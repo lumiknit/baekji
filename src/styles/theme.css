@@ -1,0 +1,128 @@
+/* ─── Themes ──────────────────────────────────────────
+   Light themes activate under prefers-color-scheme: light.
+   Dark  themes activate under prefers-color-scheme: dark.
+   The default theme (.theme-*-default) is equivalent to
+   having no theme class at all.
+──────────────────────────────────────────────────── */
+
+/* ── Fallback (light default, no class) ─────────── */
+:root {
+  --bg: #fff;
+  --text: #222;
+  --text-bold: #000;
+  --border: #eee;
+  --color-l: 35%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000;
+    --text: #ddd;
+    --text-bold: #fff;
+    --border: #222;
+    --color-l: 70%;
+  }
+}
+
+/* ── Theme classes (media-independent, for any element) ── */
+.theme-light-default {
+  --bg: #fff;
+  --text: #222;
+  --text-bold: #000;
+  --border: #eee;
+  --color-l: 35%;
+}
+
+.theme-light-warm {
+  --bg: #fdf6e3;
+  --text: #586e75;
+  --text-bold: #073642;
+  --border: #e8dfc8;
+  --color-l: 40%;
+}
+
+.theme-light-cool {
+  --bg: #eef4fb;
+  --text: #4a6278;
+  --text-bold: #1e3a50;
+  --border: #ccdae6;
+  --color-l: 38%;
+}
+
+.theme-dark-default {
+  --bg: #000;
+  --text: #ddd;
+  --text-bold: #fff;
+  --border: #222;
+  --color-l: 70%;
+}
+
+.theme-dark-warm {
+  --bg: #1a1410;
+  --text: #baa892;
+  --text-bold: #d5c5a8;
+  --border: #302622;
+  --color-l: 65%;
+}
+
+.theme-dark-cool {
+  --bg: #1e2a3a;
+  --text: #b8c9d9;
+  --text-bold: #dce8f0;
+  --border: #2d3f52;
+  --color-l: 65%;
+}
+
+/* ── Light themes ────────────────────────────────── */
+@media (prefers-color-scheme: light) {
+  :root.theme-light-default {
+    --bg: #fff;
+    --text: #222;
+    --text-bold: #000;
+    --border: #eee;
+    --color-l: 35%;
+  }
+
+  :root.theme-light-warm {
+    --bg: #fdf6e3;
+    --text: #657b83;
+    --text-bold: #073642;
+    --border: #e8dfc8;
+    --color-l: 40%;
+  }
+
+  :root.theme-light-cool {
+    --bg: #eef4fb;
+    --text: #4a6278;
+    --text-bold: #1e3a50;
+    --border: #ccdae6;
+    --color-l: 38%;
+  }
+}
+
+/* ── Dark themes ─────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root.theme-dark-default {
+    --bg: #000;
+    --text: #ddd;
+    --text-bold: #fff;
+    --border: #222;
+    --color-l: 70%;
+  }
+
+  :root.theme-dark-warm {
+    --bg: #1a1410;
+    --text: #baa892;
+    --text-bold: #d5c5a8;
+    --border: #302622;
+    --color-l: 65%;
+  }
+
+  :root.theme-dark-cool {
+    --bg: #1e2a3a;
+    --text: #b8c9d9;
+    --text-bold: #dce8f0;
+    --border: #2d3f52;
+    --color-l: 65%;
+  }
+}

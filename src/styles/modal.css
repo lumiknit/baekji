@@ -1,0 +1,74 @@
+/* ─── Modal ───────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+}
+
+.modal-body {
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: var(--r);
+  padding: var(--sp-5);
+  min-width: 300px;
+  max-width: 96%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  color: var(--text);
+
+  & > h3 {
+    margin: 0;
+  }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
+/* ─── Import Compare ─────────────────────────────── */
+
+.import-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+
+  th,
+  td {
+    padding: 4px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    word-break: break-all;
+  }
+
+  th {
+    opacity: 0.6;
+    font-weight: 600;
+  }
+}
+
+.import-compare-key {
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.import-compare-diff {
+  color: var(--accent, #e07);
+  font-weight: 600;
+}
+
+.modal-input {
+  width: 100%;
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}

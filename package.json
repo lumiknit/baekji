@@ -1,0 +1,44 @@
+{
+  "name": "baekji",
+  "private": true,
+  "version": "0.1.2",
+  "type": "module",
+  "author": "lumiknit <aasr4r4@gmail.com>",
+  "license": "MPL-2.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "bun run typecheck && vite build",
+    "preview": "vite preview",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solid-primitives/media": "^2.3.5",
+    "@solid-primitives/storage": "^4.3.4",
+    "@solidjs/router": "^0.16.1",
+    "idb": "^8.0.3",
+    "localforage": "^1.10.0",
+    "prosemirror-commands": "^1.7.1",
+    "prosemirror-history": "^1.5.0",
+    "prosemirror-inputrules": "^1.5.1",
+    "prosemirror-keymap": "^1.2.3",
+    "prosemirror-markdown": "^1.13.4",
+    "prosemirror-model": "^1.25.4",
+    "prosemirror-schema-basic": "^1.2.4",
+    "prosemirror-schema-list": "^1.5.1",
+    "prosemirror-state": "^1.4.4",
+    "prosemirror-view": "^1.41.8",
+    "solid-icons": "^1.2.0",
+    "solid-js": "^1.9.12",
+    "solid-toast": "^0.5.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.2",
+    "prettier": "^3.8.3",
+    "typescript": "~6.0.3",
+    "vite-bundle-visualizer": "^1.2.1",
+    "vite": "^8.0.9",
+    "vite-plugin-solid": "^2.11.12"
+  }
+}

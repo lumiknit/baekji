@@ -1,0 +1,124 @@
+/* ─── Design Tokens ──────────────────────────────── */
+:root {
+  --accent: color-mix(in srgb, var(--border) 80%, var(--text) 20%);
+
+  /* Typography */
+  --font-serif: serif;
+  --font-sans: sans-serif;
+  --font-mono: monospace;
+
+  /* Typo settings (overridden by JS from user settings) */
+  --typo-ff: sans-serif;
+  --typo-fs: 16px;
+  --typo-preview-fs: 13px;
+  --typo-lh: 1.5;
+  --typo-indent: 0;
+  --typo-fw: 400;
+  --typo-fw-bold: 700;
+  --fs-xs: 10px;
+  --fs-sm: 12px;
+  --fs-base: 14px;
+  /* body uses 16px directly */
+
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* Shape */
+  --r: 6px;
+
+  /* Z-index */
+  --z-sticky: 10;
+  --z-toolbar: 50;
+  --z-sidebar: 100;
+  --z-dropdown: 500;
+  --z-sidebar-mobile: 1000;
+  --z-toggle: 1100;
+  --z-modal: 9999;
+
+  /* Component sizes */
+  --btn-min: 28px;
+  --sidebar-nav-fs: 12px;
+  --color-l: 35%;
+}
+
+/* ─── Base Reset ──────────────────────────────────── */
+* {
+  box-sizing: border-box;
+  tab-size: 4;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  color: var(--text);
+}
+
+b,
+strong,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-bold);
+  font-weight: bold;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+a:hover {
+  border-bottom-color: var(--text-bold);
+  color: var(--text-bold);
+}
+
+a.btn-skeleton,
+a.btn-border,
+a.btn-primary {
+  border-bottom: none;
+}
+
+a.btn-skeleton:hover,
+a.btn-border:hover,
+a.btn-primary:hover {
+  border-bottom: none;
+  color: inherit;
+}
+
+/* ─── Page-level ──────────────────────────────────── */
+.page-body {
+  padding: var(--sp-4);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.separator-line {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--sp-6) 0;
+}
+
+.btn-danger {
+  color: red;
+}

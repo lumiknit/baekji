@@ -1,0 +1,72 @@
+/* ─── Analysis Page ───────────────────────────────── */
+
+.analysis-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+
+.analysis-header h1 {
+  margin: 0;
+}
+
+.analysis-options {
+  display: flex;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  font-size: var(--fs-sm);
+}
+
+.analysis-summary {
+  display: flex;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-4);
+  font-size: var(--fs-sm);
+}
+
+.analysis-loading {
+  padding: var(--sp-6);
+  opacity: 0.5;
+}
+
+.analysis-table-wrap {
+  overflow-x: auto;
+}
+
+.analysis-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.analysis-table th,
+.analysis-table td {
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.analysis-table th {
+  text-align: left;
+}
+
+.analysis-table th:not(:first-child),
+.analysis-table td:not(:first-child) {
+  text-align: right;
+}
+
+.analysis-table tbody tr {
+  opacity: 0.8;
+}
+
+.analysis-table tbody tr.is-group {
+  opacity: 1;
+  font-weight: bold;
+}
+
+.analysis-table .cell-name {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}

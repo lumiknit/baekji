@@ -1,0 +1,99 @@
+/* ─── Typography ──────────────────────────────────────
+   .typo 클래스가 붙은 컨테이너 하위 요소의 서식 스타일.
+   에디터(ProseMirror)와 미리보기(Preview) 모두에서 공유.
+──────────────────────────────────────────────────── */
+
+.typo {
+  font-family: var(--typo-ff);
+  font-size: var(--typo-fs);
+  font-weight: var(--typo-fw);
+  line-height: var(--typo-lh);
+
+  & p {
+    margin: 0.5em 0;
+    text-indent: var(--typo-indent, 0);
+    line-height: 1.5;
+  }
+
+  & h1,
+  & h2,
+  & h3,
+  & h4,
+  & h5,
+  & h6 {
+    color: var(--text-bold);
+    line-height: 1.4;
+    font-weight: var(--typo-fw-bold);
+  }
+
+  & h1 {
+    font-size: 1.8em;
+    font-weight: 900;
+    margin: 1.2em 0 0.4em;
+  }
+
+  & h2 {
+    font-size: 1.5em;
+    font-weight: 900;
+    margin: 1em 0 0.4em;
+  }
+
+  & h3 {
+    font-size: 1.4em;
+    font-weight: 800;
+    margin: 0.8em 0 0.3em;
+  }
+
+  & h4 {
+    font-size: 1.3em;
+    margin: 0.8em 0 0.3em;
+  }
+
+  & ul,
+  & ol {
+    padding-left: 2.5em;
+    margin: 1em 0;
+  }
+
+  & li p {
+    text-indent: 0;
+    margin: 0.2em 0;
+  }
+
+  & ul {
+    list-style-type: disc;
+  }
+
+  & ol {
+    list-style-type: decimal;
+  }
+
+  & blockquote {
+    border-left: 3px solid var(--border);
+    margin: 1.5em 0;
+    padding-left: 1.5em;
+    font-style: italic;
+  }
+
+  & code {
+    background: var(--border);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  & pre {
+    background: var(--border);
+    padding: 1.5em;
+    border-radius: 5px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    line-height: 1.4;
+    margin: 1.5em 0;
+  }
+}
+
+.typo--preview {
+  font-size: var(--typo-preview-fs);
+}

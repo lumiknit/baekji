@@ -1,0 +1,114 @@
+/* ─── Main Layout ─────────────────────────────────── */
+
+.main-layout {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+.content {
+  flex: 1;
+  background-color: var(--bg);
+}
+
+/* ─── Sidebar ─────────────────────────────────────── */
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  background-color: var(--bg);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sidebar);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-nav {
+  padding: var(--sp-3) var(--sp-4) var(--sp-3) 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  position: relative;
+}
+
+.sidebar-nav::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: var(--sp-3);
+  right: var(--sp-3);
+  height: 1px;
+  background: var(--border);
+}
+
+.sidebar-nav-btn {
+  font-size: var(--sidebar-nav-fs);
+}
+
+.sidebar-view-toggle--active {
+  background-color: var(--border) !important;
+  color: var(--text-bold) !important;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ─── Resizer ─────────────────────────────────────── */
+
+.resizer {
+  width: 4px;
+  cursor: col-resize;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background: transparent;
+  margin-left: -2px;
+  z-index: calc(var(--z-sidebar) + 1);
+  touch-action: none;
+}
+
+/* Expand hit area without changing visual size */
+.resizer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -6px;
+  right: -6px;
+}
+
+.resizer:hover {
+  background: var(--border);
+}
+
+/* ─── Sidebar Toggle Button ───────────────────────── */
+
+.sidebar-toggle {
+  position: fixed;
+  top: var(--sp-2);
+  left: var(--sp-2);
+  width: 36px;
+  height: 36px;
+  z-index: var(--z-toggle);
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+
+.sidebar-toggle.active {
+  background-color: var(--border);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100vw !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: var(--z-sidebar-mobile);
+  }
+}

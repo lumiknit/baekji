@@ -1,0 +1,165 @@
+/* ─── Buttons ─────────────────────────────────────── */
+
+button,
+a.btn-skeleton,
+a.btn-border,
+a.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  min-height: var(--btn-min);
+  min-width: var(--btn-min);
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  cursor: pointer;
+  line-height: 1;
+  text-decoration: none;
+}
+
+button {
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+a.btn-skeleton,
+a.btn-border,
+a.btn-primary {
+  color: inherit;
+}
+
+button:hover,
+a.btn-skeleton:hover,
+a.btn-border:hover {
+  background: var(--border);
+}
+
+/* Full border so div.btn-border works too */
+.btn-border {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+
+.btn-border--color-left {
+  border-left-width: 3px;
+}
+
+.btn-primary,
+a.btn-primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: transparent;
+  padding: var(--sp-2) var(--sp-4);
+}
+
+.btn-primary:hover,
+a.btn-primary:hover {
+  background: var(--text-bold);
+  color: var(--bg);
+}
+
+.btn-secondary {
+  border-color: var(--border);
+  padding: var(--sp-2) var(--sp-4);
+}
+
+/* ─── Inputs ──────────────────────────────────────── */
+
+input[type='text'],
+input[type='number'],
+select {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  min-height: var(--btn-min);
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+select {
+  padding-right: var(--sp-4);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23888' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--sp-2) center;
+}
+
+/* ─── Checkbox ────────────────────────────────────── */
+
+input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: 1.25em;
+  height: 1.25em;
+  border: 1.5px solid var(--border);
+  border-radius: calc(var(--r) * 0.5);
+  background: var(--bg);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+input[type='checkbox']::before {
+  content: '';
+  width: 0.65em;
+  height: 0.65em;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  background: var(--text);
+  transform: scale(0);
+  transition: transform 0.1s ease;
+}
+
+input[type='checkbox']:checked {
+  background: var(--text);
+  border-color: var(--text);
+}
+
+input[type='checkbox']:checked::before {
+  background: var(--bg);
+  transform: scale(1);
+}
+
+/* ─── Dropdown ────────────────────────────────────── */
+
+.dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: var(--z-dropdown);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+}
+
+.dropdown-menu--right {
+  left: auto;
+  right: 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--sp-1);
+  width: 100%;
+  padding: var(--sp-1) var(--sp-3);
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: var(--border);
+}
