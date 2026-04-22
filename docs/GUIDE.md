@@ -101,7 +101,7 @@ The following can be configured in Settings:
 
 - **Theme**: Choose Default, Warm, or Cool for both light and dark mode independently
 - **Typography**: Font (sans-serif, serif, monospace, system, or custom), editor and preview font size, line height, and first-line indent
-  - Enabling Noto fonts provides multilingual support but requires ~50 MB download.
+  - Enabling Noto fonts provides multilingual support but requires max 30 MB download.
 - **Autosave interval**: How long to wait after typing stops before saving (in seconds)
 - **Markdown input rules**: Choose which markdown shorthands are active in the editor
 

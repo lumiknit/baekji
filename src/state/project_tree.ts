@@ -1,17 +1,16 @@
 import { createRoot } from 'solid-js';
-import { createStore, produce } from 'solid-js/store';
+import { createStore } from 'solid-js/store';
 import { createEffect } from 'solid-js';
 import { activePjVerId, setGroupOpen } from './workspace';
 import {
   getNode,
   putNode,
-  deleteNode as dbDeleteNode,
   deleteProject as dbDeleteProject,
   getAllNodesInVersion,
-  getNewOrderKey,
   putSheetContent,
-  deleteSheetContent,
-  deleteSheetDraft,
+  deleteNodeSubtree,
+  moveNodeAtomic,
+  createNodeAtomic,
 } from '../lib/doc/db';
 import type { GroupNode, SheetNode } from '../lib/doc/v0';
 import { genId } from '../lib/uuid';
@@ -166,9 +165,12 @@ export function updateSheetMeta(
   preview: string,
 ): void {
   if (!tree.nodes[id]) return;
-  setTree('nodes', id, 'label', label);
-  setTree('nodes', id, 'preview', preview);
-  setTree('nodes', id, 'updatedAt', new Date().toISOString());
+  setTree('nodes', id, (prev) => ({
+    ...prev,
+    label,
+    preview,
+    updatedAt: new Date().toISOString(),
+  }));
 }
 
 // ─── Create ──────────────────────────────────────────────────
@@ -182,14 +184,12 @@ export async function createTreeNode(
   if (!vid) return null;
 
   const newId = genId();
-  const orderKey = await getNewOrderKey(parentId);
   const now = new Date().toISOString();
 
   const base = {
     id: newId,
     pjVerId: vid,
     parentId,
-    orderKey,
     label,
     updatedAt: now,
     visual: { colorH: 0, colorS: 0 },
@@ -199,18 +199,10 @@ export async function createTreeNode(
   const newNode: GroupNode | SheetNode =
     type === 'group' ? { ...base, type: 'group' } : { ...base, type: 'sheet' };
 
-  await putNode(newNode);
-  if (type === 'sheet') await putSheetContent(newId, '');
+  await createNodeAtomic(newNode, type === 'sheet' ? '' : undefined);
   if (type === 'group') setGroupOpen(newId, true);
 
-  setTree(
-    'nodes',
-    produce((nodes) => {
-      nodes[newId] = toMeta(newNode, []);
-      if (nodes[parentId]) nodes[parentId].children.push(newId);
-    }),
-  );
-
+  await fetchProjectTree(vid);
   return newId;
 }
 
@@ -224,8 +216,7 @@ export async function renameTreeNode(
   if (!node || node.type === 'versionRoot') return;
   const now = new Date().toISOString();
   await putNode({ ...node, label: newLabel, updatedAt: now });
-  setTree('nodes', id, 'label', newLabel);
-  setTree('nodes', id, 'updatedAt', now);
+  await fetchProjectTree(node.pjVerId);
 }
 
 export async function renameProjectMeta(newLabel: string): Promise<void> {
@@ -235,8 +226,7 @@ export async function renameProjectMeta(newLabel: string): Promise<void> {
   if (!node || node.type !== 'versionRoot') return;
   const now = new Date().toISOString();
   await putNode({ ...node, label: newLabel, updatedAt: now });
-  setTree('meta', 'label', newLabel);
-  setTree('meta', 'updatedAt', now);
+  await fetchProjectTree(vid);
 }
 
 // ─── Color ───────────────────────────────────────────────────
@@ -256,43 +246,11 @@ export async function setNodeColor(
 
 // ─── Delete ──────────────────────────────────────────────────
 
-function collectDescendants(
-  nodes: Record<string, TreeNodeMeta>,
-  id: string,
-): string[] {
-  const node = nodes[id];
-  if (!node) return [];
-  if (node.type === 'sheet') return [id];
-  return [id, ...node.children.flatMap((c) => collectDescendants(nodes, c))];
-}
-
-export async function deleteTreeNode(
-  id: string,
-  parentId: string,
-): Promise<void> {
-  const toDelete = collectDescendants(tree.nodes, id);
-
-  await Promise.all(
-    toDelete.map(async (nodeId) => {
-      await dbDeleteNode(nodeId);
-      if (tree.nodes[nodeId]?.type === 'sheet') {
-        await deleteSheetContent(nodeId);
-        await deleteSheetDraft(nodeId);
-      }
-    }),
-  );
-
-  setTree(
-    'nodes',
-    produce((nodes) => {
-      if (nodes[parentId]) {
-        nodes[parentId].children = nodes[parentId].children.filter(
-          (c) => c !== id,
-        );
-      }
-      for (const nodeId of toDelete) delete nodes[nodeId];
-    }),
-  );
+export async function deleteTreeNode(id: string): Promise<void> {
+  const vid = vId();
+  if (!vid) return;
+  await deleteNodeSubtree(id);
+  await fetchProjectTree(vid);
 }
 
 // ─── Delete Project ───────────────────────────────────────────
@@ -331,54 +289,59 @@ export async function moveTreeNode(
 
   const targetGroupId =
     target.kind === 'into' ? target.groupId : target.parentId;
-  const sameGroup = sourceParentId === targetGroupId;
 
-  const srcChildren = [...(tree.nodes[sourceParentId]?.children ?? [])];
-  const srcWithout = srcChildren.filter((id) => id !== itemId);
-
-  const tgtChildren = sameGroup
-    ? srcWithout
-    : [...(tree.nodes[targetGroupId]?.children ?? [])];
-
-  let insertIdx: number;
+  let afterId: string | null | undefined;
   if (target.kind === 'into') {
-    insertIdx = 0;
+    afterId = undefined; // Default 'into' to end of group
+  } else if (target.kind === 'after') {
+    afterId = target.itemId;
   } else {
-    const refIdx = tgtChildren.indexOf(target.itemId);
-    if (refIdx === -1) return;
-    insertIdx = target.kind === 'before' ? refIdx : refIdx + 1;
+    // kind === 'before'
+    const siblings = tree.nodes[targetGroupId]?.children ?? [];
+    const idx = siblings.indexOf(target.itemId);
+    afterId = idx > 0 ? siblings[idx - 1] : null; // null means 0th
   }
 
-  tgtChildren.splice(insertIdx, 0, itemId);
-
-  // Compute new parentId and orderKey for the moved node
-  const newParentId = targetGroupId;
-  const afterId = insertIdx > 0 ? tgtChildren[insertIdx - 1] : undefined;
-
-  // Update DB: change parentId + recompute orderKey
-  const movedNode = await getNode(itemId);
-  if (!movedNode || movedNode.type === 'versionRoot') return;
-
-  // Temporarily update in-memory to allow getNewOrderKey to read correct siblings
-  // (We update in DB first then mirror to store)
-  const newOrderKey = await getNewOrderKey(newParentId, afterId);
-  await putNode({ ...movedNode, parentId: newParentId, orderKey: newOrderKey });
-
-  setTree(
-    'nodes',
-    produce((nodes) => {
-      nodes[sourceParentId].children = srcWithout;
-      if (!sameGroup) nodes[targetGroupId].children = tgtChildren;
-      else nodes[sourceParentId].children = tgtChildren;
-    }),
-  );
+  await moveNodeAtomic(itemId, targetGroupId, afterId);
+  await fetchProjectTree(vid);
 }
 
 export async function moveTreeNodes(
   items: Array<{ itemId: string; parentId: string }>,
   target: MoveTarget,
 ): Promise<void> {
-  for (const { itemId, parentId } of items) {
-    await moveTreeNode(itemId, parentId, target);
+  const vid = vId();
+  if (!vid) return;
+
+  const itemIds = new Set(items.map((i) => i.itemId));
+  const topLevelItems = items.filter(({ itemId }) => {
+    let curr = findParentId(itemId);
+    while (curr) {
+      if (itemIds.has(curr)) return false;
+      curr = findParentId(curr);
+    }
+    return true;
+  });
+
+  const targetGroupId =
+    target.kind === 'into' ? target.groupId : target.parentId;
+
+  let currentAfterId: string | null | undefined;
+  if (target.kind === 'into') {
+    currentAfterId = undefined;
+  } else if (target.kind === 'after') {
+    currentAfterId = target.itemId;
+  } else {
+    const siblings = tree.nodes[targetGroupId]?.children ?? [];
+    const idx = siblings.indexOf(target.itemId);
+    currentAfterId = idx > 0 ? siblings[idx - 1] : null;
   }
+
+  for (const { itemId } of topLevelItems) {
+    await moveNodeAtomic(itemId, targetGroupId, currentAfterId);
+    // After moving the first item, subsequent items should follow it
+    currentAfterId = itemId;
+  }
+
+  await fetchProjectTree(vid);
 }

@@ -532,3 +532,18 @@
   min-width: 100px;
   flex-shrink: 0;
 }
+
+/* ── CircularProgress ── */
+.circular-progress-svg {
+  transform: rotate(-90deg);
+  pointer-events: none;
+  display: block;
+}
+
+.circular-progress-bg {
+  opacity: 0.15;
+}
+
+.circular-progress-bar {
+  transition: none;
+}

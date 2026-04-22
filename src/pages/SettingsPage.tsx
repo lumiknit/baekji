@@ -91,7 +91,6 @@ const SettingsPage: Component = () => {
               each={[
                 ['sans', s('settings.font_sans'), 'BuiltinSans'] as const,
                 ['serif', s('settings.font_serif'), 'BuiltinSerif'] as const,
-                ['mono', s('settings.font_mono'), 'monospace'] as const,
               ]}
             >
               {([key, label, notoName]) => {

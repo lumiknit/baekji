@@ -46,6 +46,7 @@ import { s } from '../../lib/i18n';
 import { updateSheetMeta } from '../../state/project_tree';
 import { settings } from '../../state/settings';
 import Dropdown from '../Dropdown';
+import CircularProgress from '../CircularProgress';
 import { buildPlugins, calcStats, pmSchema, pmSerializer } from './helpers';
 
 interface EditorProps {
@@ -57,7 +58,6 @@ const Editor: Component<EditorProps> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let view: EditorView | undefined;
   let saveInFlight = false;
-  let savingGaugeRef: HTMLSpanElement | undefined;
 
   const [sheet] = createResource(
     () => props.sheetId,
@@ -72,6 +72,7 @@ const Editor: Component<EditorProps> = (props) => {
   const [isDirty, setIsDirty] = createSignal(false);
   const [lastSaved, setLastSaved] = createSignal<Date | null>(null);
   const [stats, setStats] = createSignal({ chars: 0, words: 0 });
+  const [autosaveEndTime, setAutosaveEndTime] = createSignal<Date | null>(null);
 
   const updateStats = (docJSON: unknown) => setStats(calcStats(docJSON));
 
@@ -79,36 +80,49 @@ const Editor: Component<EditorProps> = (props) => {
     buildPlugins(s('editor.placeholder'), settings.mdRules ?? ({} as any));
 
   // Autosave: persist ProseMirror JSON to draft (no serialization cost)
-  const saveDraft = async () => {
+  const saveDraft = () => {
     if (!view || !isDirty() || saveInFlight) return;
+    const data = sheet();
+    if (!data) return;
+
+    // Capture state synchronously
+    const docJSON = view.state.doc.toJSON();
+    const nodeId = data.node.id;
+
     saveInFlight = true;
-    try {
-      const data = sheet();
-      if (data) {
-        const docJSON = view.state.doc.toJSON();
-        await putSheetDraft(data.node.id, docJSON);
+    setAutosaveEndTime(null);
+    void (async () => {
+      try {
+        await putSheetDraft(nodeId, docJSON);
         updateStats(docJSON);
         setIsDirty(false);
         setLastSaved(new Date());
+      } finally {
+        saveInFlight = false;
       }
-    } finally {
-      saveInFlight = false;
-    }
+    })();
   };
 
   // Full save: serialize to markdown, update sheetContent + node label, clear draft
-  const freeze = async () => {
+  const freeze = () => {
     if (!view || saveInFlight) return;
+    const data = sheet();
+    if (!data) return;
+
+    // Capture state synchronously before component unmounts
+    const { node } = data;
+    const doc = view.state.doc;
+    const content = pmSerializer.serialize(doc);
+    const firstLine = content.split('\n').find((l) => l.trim()) ?? '';
+    const autoLabel = firstLine.replace(/^#+\s*/, '').slice(0, 60);
+    const { anchor, head } = view.state.selection;
+    const now = new Date().toISOString();
+    const docJSON = doc.toJSON();
+
     saveInFlight = true;
-    try {
-      const data = sheet();
-      if (data) {
-        const { node } = data;
-        const content = pmSerializer.serialize(view.state.doc);
-        const firstLine = content.split('\n').find((l) => l.trim()) ?? '';
-        const autoLabel = firstLine.replace(/^#+\s*/, '').slice(0, 60);
-        const { anchor, head } = view.state.selection;
-        const now = new Date().toISOString();
+    setAutosaveEndTime(null);
+    void (async () => {
+      try {
         await putSheetContent(node.id, content);
         await deleteSheetDraft(node.id);
         await putNode({ ...node, label: autoLabel, updatedAt: now });
@@ -116,23 +130,19 @@ const Editor: Component<EditorProps> = (props) => {
         updateSheetMeta(node.id, autoLabel, content.slice(0, 200));
         setIsDirty(false);
         setLastSaved(new Date());
-        updateStats(view.state.doc.toJSON());
+        updateStats(docJSON);
+      } finally {
+        saveInFlight = false;
       }
-    } finally {
-      saveInFlight = false;
-    }
+    })();
   };
 
   let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
   const triggerAutosave = () => {
     clearTimeout(autosaveTimer);
     const intervalTime = Math.max(1, settings.autosaveInterval) * 1000;
+    setAutosaveEndTime(new Date(Date.now() + intervalTime));
     autosaveTimer = setTimeout(saveDraft, intervalTime);
-    if (savingGaugeRef) {
-      savingGaugeRef.style.animation = 'none';
-      void savingGaugeRef.offsetWidth;
-      savingGaugeRef.style.animation = `editor-gauge-fill ${intervalTime}ms linear forwards`;
-    }
   };
 
   const applySheetToView = (data: NonNullable<ReturnType<typeof sheet>>) => {
@@ -390,30 +400,23 @@ const Editor: Component<EditorProps> = (props) => {
       <div ref={editorRef} class="prosemirror-editor typo" />
 
       <div class="editor-stats-overlay">
-        <Show
-          when={!isDirty()}
-          fallback={
-            <span
-              ref={(el) => {
-                savingGaugeRef = el;
-                if (el) {
-                  const ms = Math.max(1, settings.autosaveInterval) * 1000;
-                  el.style.animation = `editor-gauge-fill ${ms}ms linear forwards`;
-                }
-              }}
-              class="editor-saving-gauge"
+        <div class="flex items-center gap-12">
+          <Show when={isDirty()}>
+            <CircularProgress
+              endTime={autosaveEndTime()}
+              size={14}
+              strokeWidth={0.4}
             />
-          }
-        >
-          <span class="editor-saved-time">
-            {lastSaved()
-              ? lastSaved()!.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                })
-              : ''}
-          </span>
+          </Show>
+          <Show when={!isDirty() && lastSaved()}>
+            <span class="editor-saved-time">
+              {lastSaved()!.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              })}
+            </span>
+          </Show>
           <button
             class="editor-stats-btn"
             onClick={() => navigate(`/nodes/${props.sheetId}/analysis`)}
@@ -421,7 +424,7 @@ const Editor: Component<EditorProps> = (props) => {
             <span>{s('editor.chars', { count: stats().chars })}</span>
             <span>{s('editor.words', { count: stats().words })}</span>
           </button>
-        </Show>
+        </div>
       </div>
     </div>
   );

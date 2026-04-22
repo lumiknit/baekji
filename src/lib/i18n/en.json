@@ -116,7 +116,13 @@
     "font_system": "System default",
     "font_custom_placeholder": "Font name...",
     "font_use_noto": "Use Noto font",
-    "font_noto_warning": "Noto fonts require ~50 MB download.",
+    "font_noto_warning": "Noto fonts require max 30 MB download.",
+    "paused": {
+      "title": "Editing Paused",
+      "message_default": "This project was opened in another tab. To prevent data corruption, editing in this tab has been suspended.",
+      "message_with_name": "The project \"{{name}}\" was opened in another tab. To prevent data corruption, editing in this tab has been suspended.",
+      "go_home": "Go to Home"
+    },
     "theme_light": "Light Mode Theme",
     "theme_dark": "Dark Mode Theme",
     "theme_default": "Default",
@@ -155,8 +161,14 @@
     "col_name": "Name"
   },
   "time": {
-    "just_now": "Just now",
-    "minutes_ago": "{{n}} min ago",
-    "hours_ago": "{{n}} hr ago"
+    "just_now": "just now",
+    "minutes_ago": "{{n}}m ago",
+    "hours_ago": "{{n}}h ago"
+  },
+  "paused": {
+    "title": "Editing Paused",
+    "message_default": "This project was opened in another tab. To prevent data corruption, editing in this tab has been suspended.",
+    "message_with_name": "The project \"{{name}}\" was opened in another tab. To prevent data corruption, editing in this tab has been suspended.",
+    "go_home": "Go to Home"
   }
 }

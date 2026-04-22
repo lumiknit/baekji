@@ -217,7 +217,7 @@ const TreeItem: Component<TreeItemProps> = (props) => {
       `"${n.label || s('common.untitled')}" ${s('common.delete')}?`,
     );
     if (!confirmed) return;
-    await deleteTreeNode(props.id, props.parentId);
+    await deleteTreeNode(props.id);
   };
 
   const handleColorChange = async (hex: string) => {
@@ -639,8 +639,7 @@ const TreeView: Component = () => {
                       );
                       if (!confirmed) return;
                       for (const id of selectedIds()) {
-                        const parent = selectedParents.get(id) ?? p().pjVerId;
-                        await deleteTreeNode(id, parent);
+                        await deleteTreeNode(id);
                       }
                       clearSelection();
                     }}

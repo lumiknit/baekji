@@ -7,7 +7,7 @@ import {
   getNode,
   getChildren,
   putNode,
-  getNewOrderKey,
+  createNodeAtomic,
 } from './db';
 import type { BakImportResult } from './backup';
 import { insertVersion } from './db';
@@ -151,14 +151,12 @@ export async function importTextAsSheet(
   if (!parent || parent.type === 'sheet') throw new Error('Invalid parent');
 
   const newId = genId();
-  const orderKey = await getNewOrderKey(parentId);
   const now = new Date().toISOString();
 
   const sheet: SheetNode = {
     id: newId,
     pjVerId,
     parentId,
-    orderKey,
     label: label.replace(/\.[^.]+$/, ''),
     type: 'sheet',
     updatedAt: now,
@@ -166,7 +164,6 @@ export async function importTextAsSheet(
     tags: [],
   };
 
-  await putNode(sheet);
-  await putSheetContent(newId, text);
+  await createNodeAtomic(sheet, text);
   return newId;
 }

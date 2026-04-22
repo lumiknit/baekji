@@ -116,7 +116,13 @@
     "font_system": "시스템 기본",
     "font_custom_placeholder": "폰트 이름 입력...",
     "font_use_noto": "Noto 폰트 사용",
-    "font_noto_warning": "Noto 폰트는 약 50MB 다운로드가 필요합니다.",
+    "font_noto_warning": "Noto 폰트는 최대 30MB 다운로드가 필요합니다.",
+    "paused": {
+      "title": "편집이 일시 중지되었습니다.",
+      "message_default": "다른 탭에서 이 프로젝트를 열었습니다. 데이터 충돌을 방지하기 위해 이 탭의 편집을 중단합니다.",
+      "message_with_name": "다른 탭에서 \"{{name}}\" 프로젝트를 열었습니다. 데이터 충돌을 방지하기 위해 이 탭의 편집을 중단합니다.",
+      "go_home": "메인 페이지로 이동"
+    },
     "theme_light": "라이트 모드 테마",
     "theme_dark": "다크 모드 테마",
     "theme_default": "기본",
@@ -158,5 +164,11 @@
     "just_now": "방금 전",
     "minutes_ago": "{{n}}분 전",
     "hours_ago": "{{n}}시간 전"
+  },
+  "paused": {
+    "title": "편집이 일시 중지되었습니다.",
+    "message_default": "다른 탭에서 이 프로젝트를 열었습니다. 데이터 충돌을 방지하기 위해 이 탭의 편집을 중단합니다.",
+    "message_with_name": "다른 탭에서 \"{{name}}\" 프로젝트를 열었습니다. 데이터 충돌을 방지하기 위해 이 탭의 편집을 중단합니다.",
+    "go_home": "메인 페이지로 이동"
   }
 }
