@@ -5,7 +5,7 @@ import type {
   GroupNode,
   SheetNode,
   SheetContent,
-  SheetDraft,
+  SheetDelta,
   StateKV,
   docVersionRootSchema,
 } from './v0';
@@ -23,14 +23,12 @@ export type VersionRootNode = z.infer<typeof docVersionRootSchema> & {
 };
 type DataNode = GroupNode | SheetNode;
 
-// DB_VERSION is the IDB internal version (must be ≥ 1).
-// The schema version 0 is encoded in DB_NAME.
-const DB_NAME = 'baekji-doc-v0';
+const DB_NAME = 'baekji-doc-v1';
 const DB_VERSION = 1;
 
 const NODES = 'nodes';
 const SHEET_CONTENTS = 'sheetContents';
-const SHEET_DRAFTS = 'sheetDrafts';
+const SHEET_DELTAS = 'sheetDeltas';
 const APP_STATE = 'appState';
 
 export const ORDER_GAP = 1024;
@@ -47,8 +45,15 @@ function getDB(): Promise<IDBPDatabase> {
         nodes.createIndex('by-type', 'type');
         nodes.createIndex('by-projectId-type', ['projectId', 'type']);
 
-        db.createObjectStore(SHEET_CONTENTS, { keyPath: 'sheetId' });
-        db.createObjectStore(SHEET_DRAFTS, { keyPath: 'sheetId' });
+        const sheetContents = db.createObjectStore(SHEET_CONTENTS, {
+          keyPath: 'id',
+        });
+        sheetContents.createIndex('by-nodeId', 'nodeId', { unique: true });
+
+        const sheetDeltas = db.createObjectStore(SHEET_DELTAS, {
+          keyPath: ['contentId', 'seq'],
+        });
+        sheetDeltas.createIndex('by-contentId', 'contentId');
 
         const appState = db.createObjectStore(APP_STATE, {
           keyPath: ['scope', 'scopeId', 'key'],
@@ -154,7 +159,7 @@ async function getNextOrderKeyInTx(
 
 export async function createNodeAtomic(
   node: DataNode,
-  sheetContent?: string,
+  sheetContent?: SheetContent,
 ): Promise<void> {
   const db = await getDB();
   const tx = db.transaction([NODES, SHEET_CONTENTS], 'readwrite');
@@ -165,10 +170,7 @@ export async function createNodeAtomic(
 
   await store.put(finalNode);
   if (node.type === 'sheet' && sheetContent !== undefined) {
-    await tx.objectStore(SHEET_CONTENTS).put({
-      sheetId: node.id,
-      content: sheetContent,
-    });
+    await tx.objectStore(SHEET_CONTENTS).put(sheetContent);
   }
   await tx.done;
 }
@@ -176,50 +178,52 @@ export async function createNodeAtomic(
 // ─── Sheet Contents ───────────────────────────────────────────
 
 export async function getSheetContent(
-  sheetId: string,
+  nodeId: string,
 ): Promise<SheetContent | undefined> {
   const db = await getDB();
-  return db.get(SHEET_CONTENTS, sheetId);
+  return db.getFromIndex(SHEET_CONTENTS, 'by-nodeId', nodeId);
 }
 
-export async function putSheetContent(
-  sheetId: string,
-  content: string,
+export async function putSheetContent(content: SheetContent): Promise<void> {
+  const db = await getDB();
+  await db.put(SHEET_CONTENTS, content);
+}
+
+export async function deleteSheetContent(nodeId: string): Promise<void> {
+  const db = await getDB();
+  const existing = await db.getFromIndex(SHEET_CONTENTS, 'by-nodeId', nodeId);
+  if (existing) await db.delete(SHEET_CONTENTS, existing.id);
+}
+
+// ─── Sheet Deltas ─────────────────────────────────────────────
+
+export async function getSheetDeltas(contentId: string): Promise<SheetDelta[]> {
+  const db = await getDB();
+  const results = await db.getAllFromIndex(
+    SHEET_DELTAS,
+    'by-contentId',
+    contentId,
+  );
+  return (results as SheetDelta[]).sort((a, b) => a.seq - b.seq);
+}
+
+export async function putSheetDelta(delta: SheetDelta): Promise<void> {
+  const db = await getDB();
+  await db.put(SHEET_DELTAS, delta);
+}
+
+export async function deleteSheetDeltasByContentId(
+  contentId: string,
 ): Promise<void> {
   const db = await getDB();
-  await db.put(SHEET_CONTENTS, { sheetId, content } satisfies SheetContent);
-}
-
-export async function deleteSheetContent(sheetId: string): Promise<void> {
-  const db = await getDB();
-  await db.delete(SHEET_CONTENTS, sheetId);
-}
-
-// ─── Sheet Drafts ─────────────────────────────────────────────
-
-export async function getSheetDraft(
-  sheetId: string,
-): Promise<SheetDraft | undefined> {
-  const db = await getDB();
-  return db.get(SHEET_DRAFTS, sheetId);
-}
-
-export async function putSheetDraft(
-  sheetId: string,
-  content: unknown,
-): Promise<void> {
-  const db = await getDB();
-  const draft: SheetDraft = {
-    sheetId,
-    updatedAt: new Date().toISOString(),
-    content,
-  };
-  await db.put(SHEET_DRAFTS, draft);
-}
-
-export async function deleteSheetDraft(sheetId: string): Promise<void> {
-  const db = await getDB();
-  await db.delete(SHEET_DRAFTS, sheetId);
+  const keys = await db.getAllKeysFromIndex(
+    SHEET_DELTAS,
+    'by-contentId',
+    contentId,
+  );
+  const tx = db.transaction(SHEET_DELTAS, 'readwrite');
+  for (const key of keys) await tx.store.delete(key);
+  await tx.done;
 }
 
 // ─── App State ────────────────────────────────────────────────
@@ -312,7 +316,15 @@ export async function insertVersion(
   const tx = db.transaction([NODES, SHEET_CONTENTS], 'readwrite');
   tx.objectStore(NODES).put(versionRoot);
   for (const node of nodes) tx.objectStore(NODES).put(node);
-  for (const sc of sheetContents) tx.objectStore(SHEET_CONTENTS).put(sc);
+  for (const sc of sheetContents) {
+    // Remove old snapshot for this nodeId if any (unique index)
+    const old = await tx
+      .objectStore(SHEET_CONTENTS)
+      .index('by-nodeId')
+      .get(sc.nodeId);
+    if (old) await tx.objectStore(SHEET_CONTENTS).delete(old.id);
+    await tx.objectStore(SHEET_CONTENTS).put(sc);
+  }
   await tx.done;
 }
 
@@ -323,16 +335,25 @@ export async function deleteVersionSubtree(versionId: string): Promise<void> {
   const sheetIds = dataNodes.filter((n) => n.type === 'sheet').map((n) => n.id);
 
   const db = await getDB();
-  const tx = db.transaction(
-    [NODES, SHEET_CONTENTS, SHEET_DRAFTS, APP_STATE],
-    'readwrite',
-  );
+
+  // Collect contentIds for delta cleanup (must be done before transaction)
+  const contentIds: string[] = [];
+  for (const sheetId of sheetIds) {
+    const sc = await db.getFromIndex(SHEET_CONTENTS, 'by-nodeId', sheetId);
+    if (sc) contentIds.push(sc.id);
+  }
+
+  // Delete deltas first (separate transaction)
+  for (const contentId of contentIds) {
+    await deleteSheetDeltasByContentId(contentId);
+  }
+
+  const tx = db.transaction([NODES, SHEET_CONTENTS, APP_STATE], 'readwrite');
 
   await tx.objectStore(NODES).delete(versionId);
   for (const node of dataNodes) await tx.objectStore(NODES).delete(node.id);
-  for (const sheetId of sheetIds) {
-    await tx.objectStore(SHEET_CONTENTS).delete(sheetId);
-    await tx.objectStore(SHEET_DRAFTS).delete(sheetId);
+  for (const contentId of contentIds) {
+    await tx.objectStore(SHEET_CONTENTS).delete(contentId);
   }
 
   // Cleanup version-specific app state
@@ -348,18 +369,17 @@ export async function deleteVersionSubtree(versionId: string): Promise<void> {
 
 export async function deleteNodeSubtree(nodeId: string): Promise<void> {
   const db = await getDB();
-  const tx = db.transaction([NODES, SHEET_CONTENTS, SHEET_DRAFTS], 'readwrite');
-  const nodeStore = tx.objectStore(NODES);
 
-  // Recursively collect all descendants
+  // Collect all descendant node IDs
   const idsToDelete = new Set<string>([nodeId]);
   const stack = [nodeId];
-
   while (stack.length > 0) {
     const parentId = stack.pop()!;
-    const children = (await nodeStore
-      .index('by-parentId')
-      .getAll(parentId)) as DataNode[];
+    const children = (await db.getAllFromIndex(
+      NODES,
+      'by-parentId',
+      parentId,
+    )) as DataNode[];
     for (const child of children) {
       if (!idsToDelete.has(child.id)) {
         idsToDelete.add(child.id);
@@ -368,16 +388,26 @@ export async function deleteNodeSubtree(nodeId: string): Promise<void> {
     }
   }
 
-  // Perform deletions in the same transaction
+  // Collect contentIds for sheet nodes (for delta cleanup)
+  const contentIds: string[] = [];
   for (const id of idsToDelete) {
-    const node = (await nodeStore.get(id)) as DocNode | undefined;
-    await nodeStore.delete(id);
+    const node = (await db.get(NODES, id)) as DocNode | undefined;
     if (node?.type === 'sheet') {
-      await tx.objectStore(SHEET_CONTENTS).delete(id);
-      await tx.objectStore(SHEET_DRAFTS).delete(id);
+      const sc = await db.getFromIndex(SHEET_CONTENTS, 'by-nodeId', id);
+      if (sc) contentIds.push(sc.id);
     }
   }
 
+  // Delete deltas first
+  for (const contentId of contentIds) {
+    await deleteSheetDeltasByContentId(contentId);
+  }
+
+  const tx = db.transaction([NODES, SHEET_CONTENTS], 'readwrite');
+  for (const id of idsToDelete) await tx.objectStore(NODES).delete(id);
+  for (const contentId of contentIds) {
+    await tx.objectStore(SHEET_CONTENTS).delete(contentId);
+  }
   await tx.done;
 }
 

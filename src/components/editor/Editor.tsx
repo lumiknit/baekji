@@ -32,22 +32,77 @@ import { undo, redo } from 'prosemirror-history';
 import { wrapInList } from 'prosemirror-schema-list';
 import { EditorState, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
+import { Step } from 'prosemirror-transform';
 import {
-  deleteSheetDraft,
   getNode,
   getSheetSelection,
   putNode,
-  putSheetContent,
-  putSheetDraft,
   setSheetSelection,
 } from '../../lib/doc/db';
-import { getSheetContentAsJSON } from '../../lib/doc/db_helper';
+import { loadSheetState, softSave, hardSave } from '../../lib/doc/db_helper';
 import { s } from '../../lib/i18n';
 import { updateSheetMeta } from '../../state/project_tree';
 import { settings } from '../../state/settings';
 import Dropdown from '../Dropdown';
 import CircularProgress from '../CircularProgress';
-import { buildPlugins, calcStats, pmSchema, pmSerializer } from './helpers';
+import { buildPlugins, calcStats, pmSchema } from './helpers';
+
+const SOFT_SAVE_IDLE_MS = 5000;
+const SOFT_SAVE_STEP_LIMIT = 100;
+
+type StepJSON = {
+  stepType: string;
+  from: number;
+  to: number;
+  slice?: {
+    content: unknown;
+  };
+};
+
+function mergeStepBuffer(steps: Step[]): StepJSON[] {
+  if (steps.length === 0) return [];
+  const result: object[] = [];
+  let cur = steps[0];
+  for (let i = 1; i < steps.length; i++) {
+    const merged = cur.merge(steps[i]);
+    if (merged) {
+      cur = merged;
+    } else {
+      console.log(
+        'Merge failed',
+        JSON.stringify(cur.toJSON()),
+        JSON.stringify(steps[i].toJSON()),
+      );
+      result.push(cur.toJSON() as StepJSON);
+      cur = steps[i];
+    }
+  }
+  result.push(cur.toJSON() as StepJSON);
+  return result;
+}
+
+function optimizeStepBuffer(steps: StepJSON[]): StepJSON[] {
+  if (steps.length === 0) return [];
+  const optimized: StepJSON[] = [];
+  let lastStep = steps[0];
+
+  const isSimpleReplace = (step: StepJSON) =>
+    step.stepType === 'replace' &&
+    step.slice &&
+    typeof step.slice === 'object' &&
+    Array.isArray(step.slice.content) &&
+    step.slice.content.length === 1 &&
+    step.slice.content[0].type === 'text';
+
+  for (let i = 1; i < steps.length; i++) {
+    const step = steps[i];
+	  if (
+		  isSimpleReplace(lastStep) &&
+		  isSimpleReplace(step) &&
+		  lastStep.from
+    )
+  }
+}
 
 interface EditorProps {
   sheetId: string;
@@ -59,42 +114,51 @@ const Editor: Component<EditorProps> = (props) => {
   let view: EditorView | undefined;
   let saveInFlight = false;
 
+  // Step buffer for soft save
+  let stepBuffer: Step[] = [];
+  let currentSeq = 0;
+
   const [sheet] = createResource(
     () => props.sheetId,
     async (id) => {
       const node = await getNode(id);
       if (!node || node.type !== 'sheet') return undefined;
-      const contentJSON = await getSheetContentAsJSON(id);
+      const state = await loadSheetState(id);
       const sel = await getSheetSelection(id);
-      return { node, contentJSON, selection: sel };
+      return { node, contentJSON: state.pmJSON, selection: sel, state };
     },
   );
   const [isDirty, setIsDirty] = createSignal(false);
   const [lastSaved, setLastSaved] = createSignal<Date | null>(null);
   const [stats, setStats] = createSignal({ chars: 0, words: 0 });
+  const [statsExact, setStatsExact] = createSignal(false);
   const [autosaveEndTime, setAutosaveEndTime] = createSignal<Date | null>(null);
 
-  const updateStats = (docJSON: unknown) => setStats(calcStats(docJSON));
+  const updateStats = (docJSON: unknown) => {
+    setStats(calcStats(docJSON));
+    setStatsExact(true);
+  };
 
   const getPlugins = () =>
     buildPlugins(s('editor.placeholder'), settings.mdRules ?? ({} as any));
 
-  // Autosave: persist ProseMirror JSON to draft (no serialization cost)
-  const saveDraft = () => {
-    if (!view || !isDirty() || saveInFlight) return;
+  // Soft save: flush step buffer to IDB
+  const flushStepBuffer = () => {
+    if (!view || stepBuffer.length === 0 || saveInFlight) return;
     const data = sheet();
     if (!data) return;
 
-    // Capture state synchronously
-    const docJSON = view.state.doc.toJSON();
+    const steps = mergeStepBuffer(stepBuffer);
+    stepBuffer = [];
+    const seq = currentSeq++;
+    const { anchor, head } = view.state.selection;
     const nodeId = data.node.id;
 
     saveInFlight = true;
     setAutosaveEndTime(null);
     void (async () => {
       try {
-        await putSheetDraft(nodeId, docJSON);
-        updateStats(docJSON);
+        await softSave(nodeId, steps, { anchor, head }, seq);
         setIsDirty(false);
         setLastSaved(new Date());
       } finally {
@@ -103,46 +167,41 @@ const Editor: Component<EditorProps> = (props) => {
     })();
   };
 
-  // Full save: serialize to markdown, update sheetContent + node label, clear draft
+  // Hard save: create new snapshot, clear deltas, update node label
   const freeze = () => {
     if (!view || saveInFlight) return;
     const data = sheet();
     if (!data) return;
 
-    // Capture state synchronously before component unmounts
-    const { node } = data;
-    const doc = view.state.doc;
-    const content = pmSerializer.serialize(doc);
-    const firstLine = content.split('\n').find((l) => l.trim()) ?? '';
-    const autoLabel = firstLine.replace(/^#+\s*/, '').slice(0, 60);
+    // Flush any buffered steps into the current doc JSON for hard save
+    const docJSON = view.state.doc.toJSON();
     const { anchor, head } = view.state.selection;
+    const { node } = data;
     const now = new Date().toISOString();
-    const docJSON = doc.toJSON();
 
+    stepBuffer = []; // discard buffered steps — hard save uses full doc
     saveInFlight = true;
     setAutosaveEndTime(null);
     void (async () => {
       try {
-        await putSheetContent(node.id, content);
-        await deleteSheetDraft(node.id);
+        const { markdown, autoLabel } = await hardSave(node.id, docJSON);
         await putNode({ ...node, label: autoLabel, updatedAt: now });
         await setSheetSelection(node.id, { anchor, head });
-        updateSheetMeta(node.id, autoLabel, content.slice(0, 200));
+        updateSheetMeta(node.id, autoLabel, markdown.slice(0, 200));
+        updateStats(docJSON);
         setIsDirty(false);
         setLastSaved(new Date());
-        updateStats(docJSON);
       } finally {
         saveInFlight = false;
       }
     })();
   };
 
-  let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
-  const triggerAutosave = () => {
-    clearTimeout(autosaveTimer);
-    const intervalTime = Math.max(1, settings.autosaveInterval) * 1000;
-    setAutosaveEndTime(new Date(Date.now() + intervalTime));
-    autosaveTimer = setTimeout(saveDraft, intervalTime);
+  let softSaveTimer: ReturnType<typeof setTimeout> | undefined;
+  const triggerSoftSave = () => {
+    clearTimeout(softSaveTimer);
+    setAutosaveEndTime(new Date(Date.now() + SOFT_SAVE_IDLE_MS));
+    softSaveTimer = setTimeout(flushStepBuffer, SOFT_SAVE_IDLE_MS);
   };
 
   const applySheetToView = (data: NonNullable<ReturnType<typeof sheet>>) => {
@@ -161,11 +220,21 @@ const Editor: Component<EditorProps> = (props) => {
         selection,
       }),
     );
+
+    // Restore seq state from loaded sheet
+    currentSeq = data.state.nextSeq;
+    stepBuffer = [];
+
     view.focus();
     view.dispatch(view.state.tr.scrollIntoView());
     setIsDirty(false);
     setLastSaved(new Date(data.node.updatedAt));
     updateStats(doc.toJSON());
+
+    // Hard save on first open if there are pending deltas
+    if (data.state.nextSeq > 0) {
+      freeze();
+    }
   };
 
   onMount(() => {
@@ -176,13 +245,19 @@ const Editor: Component<EditorProps> = (props) => {
         const newState = view!.state.apply(tr);
         view!.updateState(newState);
         if (tr.docChanged) {
+          stepBuffer.push(...tr.steps);
+          setStatsExact(false);
           setIsDirty(true);
-          triggerAutosave();
+          if (stepBuffer.length >= SOFT_SAVE_STEP_LIMIT) {
+            flushStepBuffer();
+          } else {
+            triggerSoftSave();
+          }
         }
       },
       handleDOMEvents: {
         blur: () => {
-          saveDraft();
+          flushStepBuffer();
           return false;
         },
       },
@@ -220,7 +295,7 @@ const Editor: Component<EditorProps> = (props) => {
   });
 
   onCleanup(() => {
-    clearTimeout(autosaveTimer);
+    clearTimeout(softSaveTimer);
     freeze();
     view?.destroy();
   });
@@ -419,10 +494,17 @@ const Editor: Component<EditorProps> = (props) => {
           </Show>
           <button
             class="editor-stats-btn"
+            style={{ opacity: statsExact() ? '1' : '0.5' }}
             onClick={() => navigate(`/nodes/${props.sheetId}/analysis`)}
           >
-            <span>{s('editor.chars', { count: stats().chars })}</span>
-            <span>{s('editor.words', { count: stats().words })}</span>
+            <span>
+              {statsExact() ? '' : '~'}
+              {s('editor.chars', { count: stats().chars })}
+            </span>
+            <span>
+              {statsExact() ? '' : '~'}
+              {s('editor.words', { count: stats().words })}
+            </span>
           </button>
         </div>
       </div>

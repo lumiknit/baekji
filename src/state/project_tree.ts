@@ -12,7 +12,8 @@ import {
   moveNodeAtomic,
   createNodeAtomic,
 } from '../lib/doc/db';
-import type { GroupNode, SheetNode } from '../lib/doc/v0';
+import type { GroupNode, SheetNode, SheetContent } from '../lib/doc/v0';
+import { pmSchema } from '../lib/doc/pm';
 import { genId } from '../lib/uuid';
 
 // ─── Types ─────────────────────────────────────────────────────
@@ -199,7 +200,16 @@ export async function createTreeNode(
   const newNode: GroupNode | SheetNode =
     type === 'group' ? { ...base, type: 'group' } : { ...base, type: 'sheet' };
 
-  await createNodeAtomic(newNode, type === 'sheet' ? '' : undefined);
+  let sheetContent: SheetContent | undefined;
+  if (type === 'sheet') {
+    sheetContent = {
+      id: genId(),
+      nodeId: newId,
+      pmJSON: pmSchema.topNodeType.createAndFill()!.toJSON(),
+      markdown: '',
+    };
+  }
+  await createNodeAtomic(newNode, sheetContent);
   if (type === 'group') setGroupOpen(newId, true);
 
   await fetchProjectTree(vid);

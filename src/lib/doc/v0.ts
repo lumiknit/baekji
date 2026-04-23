@@ -132,15 +132,34 @@ export type BakProject = z.infer<typeof bakProjectSchema>;
 // Doc structures
 
 /**
- * Sheet Content
+ * Sheet Content (Snapshot)
  *
- * Index should be on 'id'.
+ * Key: 'id'. Index on 'nodeId'.
+ * Created fresh on each hard save; id changes every time.
  */
 export const sheetContentSchema = z.object({
-  sheetId: idSchema.describe('Node ID of the sheet node'),
-  content: z.string().describe('Markdown format content of the sheet'),
+  id: idSchema.describe('Unique snapshot ID, regenerated on each save'),
+  nodeId: idSchema.describe('Node ID of the sheet node'),
+  pmJSON: z.unknown().describe('ProseMirror doc.toJSON()'),
+  markdown: z.string().describe('Markdown serialized content'),
 });
 export type SheetContent = z.infer<typeof sheetContentSchema>;
+
+/**
+ * Sheet Delta
+ *
+ * Key: ['contentId', 'seq']. Index on 'contentId'.
+ * Appended on each soft save; cleared on hard save.
+ */
+export const sheetDeltaSchema = z.object({
+  contentId: idSchema.describe('ID of the corresponding SheetContent snapshot'),
+  seq: z.number().describe('Sequence number starting from 0'),
+  steps: z.array(z.unknown()).describe('ProseMirror Step objects as JSON'),
+  selection: z
+    .object({ anchor: z.number(), head: z.number() })
+    .describe('Selection state after all steps applied'),
+});
+export type SheetDelta = z.infer<typeof sheetDeltaSchema>;
 
 export const docNodeCommonSchema = z.object({
   id: idSchema,
@@ -220,24 +239,6 @@ export type DocNode = z.infer<typeof docNodeSchema>;
 
 // Extra data for IndexedDB
 // These are not used to snapshot, but for UI or other purposes.
-
-/**
- * Auto-save data for the sheet.
- * For each ID, the value should be unique, and once the content is applied to
- * the DB, this should be removed from IDB.
- *
- * Index should be on 'id'.
- */
-export const sheetDraftSchema = z.object({
-  sheetId: idSchema.describe('Node ID of the sheet node'),
-  updatedAt: z
-    .string()
-    .describe('Last updated time of the draft, in ISO string format'),
-  content: z
-    .unknown()
-    .describe('Draft content of the sheet, in ProseMirror JSON Format'),
-});
-export type SheetDraft = z.infer<typeof sheetDraftSchema>;
 
 /**
  * App state data.

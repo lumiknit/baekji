@@ -1,9 +1,12 @@
+import { Step } from 'prosemirror-transform';
 import { pmSchema, pmParser, pmSerializer } from './pm';
 import {
-  getSheetDraft,
   getSheetContent,
   putSheetContent,
-  deleteSheetDraft,
+  deleteSheetContent,
+  getSheetDeltas,
+  putSheetDelta,
+  deleteSheetDeltasByContentId,
   getNode,
   getChildren,
   putNode,
@@ -11,7 +14,7 @@ import {
 } from './db';
 import type { BakImportResult } from './backup';
 import { insertVersion } from './db';
-import type { SheetNode } from './v0';
+import type { SheetContent, SheetDelta, SheetNode } from './v0';
 import { genId } from '../uuid';
 
 // ─── Project Creation ─────────────────────────────────────────
@@ -21,10 +24,6 @@ export interface NewProjectIds {
   pjVerId: string;
 }
 
-/**
- * Creates a new project with a single versionRoot node and returns
- * the generated projectId and versionId.
- */
 export async function createProject(label: string): Promise<NewProjectIds> {
   const projectId = genId();
   const pjVerId = genId();
@@ -40,56 +39,180 @@ export async function createProject(label: string): Promise<NewProjectIds> {
   return { projectId, pjVerId };
 }
 
-// ─── Draft ────────────────────────────────────────────────────
+// ─── Label Extraction ─────────────────────────────────────────
+
+/** Extracts a short label from markdown text (first non-empty line, stripped of heading markers). */
+export function getShortLabel(markdown: string): string {
+  const firstLine = markdown.split('\n').find((l) => l.trim()) ?? '';
+  return firstLine.replace(/^#+\s*/, '').slice(0, 60);
+}
+
+// ─── Load Sheet State ─────────────────────────────────────────
+
+export interface SheetState {
+  pmJSON: unknown;
+  nextSeq: number;
+  contentId: string | null;
+}
 
 /**
- * Converts a sheet's ProseMirror draft to markdown, persists it as
- * SheetContent, and removes the draft. No-op if no draft exists.
+ * Loads the current sheet state by replaying any pending deltas on top of
+ * the last snapshot. Returns the final pmJSON and the next seq number.
  */
-export async function freezeSheetDraft(sheetId: string): Promise<void> {
-  const draft = await getSheetDraft(sheetId);
-  if (!draft) return;
+export async function loadSheetState(nodeId: string): Promise<SheetState> {
+  const emptyDoc = pmSchema.topNodeType.createAndFill()!.toJSON();
+
+  const content = await getSheetContent(nodeId);
+  if (!content) {
+    return { pmJSON: emptyDoc, nextSeq: 0, contentId: null };
+  }
+
+  const deltas = await getSheetDeltas(content.id);
+  if (deltas.length === 0) {
+    return { pmJSON: content.pmJSON, nextSeq: 0, contentId: content.id };
+  }
+
+  // Replay deltas on top of snapshot
   try {
-    const pmNode = pmSchema.nodeFromJSON(draft.content);
-    const markdown = pmSerializer.serialize(pmNode);
-    await putSheetContent(sheetId, markdown);
-    await deleteSheetDraft(sheetId);
+    let doc = pmSchema.nodeFromJSON(content.pmJSON);
+    for (const delta of deltas) {
+      for (const stepJSON of delta.steps) {
+        const step = Step.fromJSON(pmSchema, stepJSON as any);
+        const result = step.apply(doc);
+        if (result.doc) doc = result.doc;
+      }
+    }
+    return {
+      pmJSON: doc.toJSON(),
+      nextSeq: deltas.length,
+      contentId: content.id,
+    };
   } catch {
-    // Corrupt draft; leave it untouched
+    // Corrupt deltas — fall back to snapshot
+    return { pmJSON: content.pmJSON, nextSeq: 0, contentId: content.id };
   }
 }
 
-/** Returns sheet content as ProseMirror JSON. Draft takes priority; falls back to parsing stored markdown. */
-export async function getSheetContentAsJSON(sheetId: string): Promise<unknown> {
-  const draft = await getSheetDraft(sheetId);
-  if (draft?.content) return draft.content;
-  const sc = await getSheetContent(sheetId);
-  try {
-    const doc = pmParser.parse(sc?.content ?? '');
-    return doc?.toJSON() ?? pmSchema.topNodeType.createAndFill()!.toJSON();
-  } catch {
-    return pmSchema.topNodeType.createAndFill()!.toJSON();
+// ─── Soft Save ────────────────────────────────────────────────
+
+/**
+ * Appends a batch of steps as a new SheetDelta.
+ * If no snapshot exists yet, creates an empty one first.
+ */
+export async function softSave(
+  nodeId: string,
+  steps: object[],
+  selection: { anchor: number; head: number },
+  seq: number,
+): Promise<void> {
+  if (steps.length === 0) return;
+
+  let content = await getSheetContent(nodeId);
+  if (!content) {
+    // No snapshot yet — create an empty one
+    const emptyDoc = pmSchema.topNodeType.createAndFill()!;
+    content = {
+      id: genId(),
+      nodeId,
+      pmJSON: emptyDoc.toJSON(),
+      markdown: '',
+    };
+    await putSheetContent(content);
   }
+
+  const delta: SheetDelta = {
+    contentId: content.id,
+    seq,
+    steps,
+    selection,
+  };
+  await putSheetDelta(delta);
+  console.log(`[softSave] seq=${seq} steps=${steps.length} stepsJSON=${JSON.stringify(steps).length}chars`);
 }
 
-/** Returns sheet content as markdown. If a draft exists it is frozen (persisted as markdown) first. */
+// ─── Hard Save ────────────────────────────────────────────────
+
+export interface HardSaveResult {
+  markdown: string;
+  autoLabel: string;
+}
+
+/**
+ * Performs a full snapshot save.
+ * - If pmDocJSON is provided (editor open), uses it directly.
+ * - Otherwise, replays all pending deltas from the last snapshot.
+ * Clears all pending deltas after saving.
+ */
+export async function hardSave(
+  nodeId: string,
+  pmDocJSON?: unknown,
+): Promise<HardSaveResult> {
+  const existing = await getSheetContent(nodeId);
+
+  let finalDoc;
+  if (pmDocJSON !== undefined) {
+    finalDoc = pmSchema.nodeFromJSON(pmDocJSON);
+  } else if (existing) {
+    finalDoc = pmSchema.nodeFromJSON(existing.pmJSON);
+    const deltas = await getSheetDeltas(existing.id);
+    for (const delta of deltas) {
+      for (const stepJSON of delta.steps) {
+        try {
+          const step = Step.fromJSON(pmSchema, stepJSON as any);
+          const result = step.apply(finalDoc);
+          if (result.doc) finalDoc = result.doc;
+        } catch {
+          // skip corrupt step
+        }
+      }
+    }
+  } else {
+    finalDoc = pmSchema.topNodeType.createAndFill()!;
+  }
+
+  const markdown = pmSerializer.serialize(finalDoc);
+  const newId = genId();
+  const newContent: SheetContent = {
+    id: newId,
+    nodeId,
+    pmJSON: finalDoc.toJSON(),
+    markdown,
+  };
+
+  // Delete old deltas, then replace snapshot
+  if (existing) {
+    await deleteSheetDeltasByContentId(existing.id);
+    await deleteSheetContent(nodeId);
+  }
+  await putSheetContent(newContent);
+
+  console.log(`[hardSave] nodeId=${nodeId} contentId=${newId} markdown=${markdown.length}chars pmJSON=${JSON.stringify(newContent.pmJSON).length}chars`);
+
+  return { markdown, autoLabel: getShortLabel(markdown) };
+}
+
+// ─── Sheet Content as Markdown (for export/analysis) ──────────
+
+/**
+ * Returns sheet content as markdown, triggering a hard save first if
+ * there are pending deltas (so callers always get up-to-date content).
+ */
 export async function getSheetContentAsMarkdown(
-  sheetId: string,
+  nodeId: string,
 ): Promise<string> {
-  const draft = await getSheetDraft(sheetId);
-  if (draft) {
-    await freezeSheetDraft(sheetId);
+  const content = await getSheetContent(nodeId);
+  if (!content) return '';
+
+  const deltas = await getSheetDeltas(content.id);
+  if (deltas.length > 0) {
+    const { markdown } = await hardSave(nodeId);
+    return markdown;
   }
-  const sc = await getSheetContent(sheetId);
-  return sc?.content ?? '';
+  return content.markdown;
 }
 
 // ─── Tree Traversal ───────────────────────────────────────────
 
-/**
- * Recursively collects markdown text from all visible sheets
- * under the given node (group, sheet, or versionRoot).
- */
 export async function collectText(
   nodeId: string,
   includeHidden: boolean,
@@ -107,7 +230,6 @@ async function walkNode(
   const node = await getNode(nodeId);
   if (!node) return;
 
-  // Hidden check (versionRoot is never filtered)
   if (
     node.type !== 'versionRoot' &&
     node.label.startsWith('.') &&
@@ -121,7 +243,6 @@ async function walkNode(
     return;
   }
 
-  // group or versionRoot: recurse into children sorted by orderKey
   const children = await getChildren(nodeId);
   for (const child of children) {
     await walkNode(child.id, includeHidden, parts);
@@ -130,11 +251,6 @@ async function walkNode(
 
 // ─── Import ───────────────────────────────────────────────────
 
-/**
- * Atomically writes a prepared BakImportResult to the database.
- * The caller is responsible for checking `result.projectExists` and
- * deciding whether to activate the version before calling this.
- */
 export async function commitBakImport(result: BakImportResult): Promise<void> {
   await insertVersion(result.versionRoot, result.nodes, result.sheetContents);
 }
@@ -164,6 +280,20 @@ export async function importTextAsSheet(
     tags: [],
   };
 
-  await createNodeAtomic(sheet, text);
+  let pmDoc;
+  try {
+    pmDoc = pmParser.parse(text);
+  } catch {
+    pmDoc = pmSchema.topNodeType.createAndFill()!;
+  }
+
+  const sheetContent: SheetContent = {
+    id: genId(),
+    nodeId: newId,
+    pmJSON: pmDoc.toJSON(),
+    markdown: text,
+  };
+
+  await createNodeAtomic(sheet, sheetContent);
   return newId;
 }
