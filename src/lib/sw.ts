@@ -1,14 +1,29 @@
 /// <reference lib="webworker" />
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
-const CACHE_NAME = 'app-cache-v1';
+declare const __APP_VERSION__: string;
+const CACHE_NAME = `baekji-cache-v${__APP_VERSION__}`;
 
 sw.addEventListener('install', () => {
   sw.skipWaiting();
 });
 
 sw.addEventListener('activate', (event) => {
-  event.waitUntil(sw.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // Delete old caches that don't match the current version
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          }),
+      );
+      await sw.clients.claim();
+    })(),
+  );
 });
 
 sw.addEventListener('fetch', (event) => {

@@ -43,6 +43,8 @@ import CircularProgress from '../CircularProgress';
 import { buildPlugins, calcStats, pmSchema } from './helpers';
 import { buildOptimizedStepJSONs } from './step_helper';
 
+import 'prosemirror-view/style/prosemirror.css';
+
 const SOFT_SAVE_STEP_LIMIT = 128;
 
 interface EditorProps {
