@@ -246,7 +246,7 @@ const Editor: Component<EditorProps> = (props) => {
 
   onCleanup(() => {
     clearTimeout(softSaveTimer);
-    freeze();
+    flushStepBuffer();
     view?.destroy();
   });
 

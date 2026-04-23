@@ -2,11 +2,9 @@ import { Step } from 'prosemirror-transform';
 import { pmSchema, pmParser, pmSerializer } from './pm';
 import {
   getSheetContent,
-  putSheetContent,
-  deleteSheetContent,
+  updateSheetSnapshotAtomic,
   getSheetDeltas,
   putSheetDelta,
-  deleteSheetDeltasByContentId,
   getNode,
   getChildren,
   putNode,
@@ -130,7 +128,7 @@ export async function softSave(
       markdown: '',
       selection: { anchor: 0, head: 0 },
     };
-    await putSheetContent(content);
+    await updateSheetSnapshotAtomic(content);
   }
 
   const delta: SheetDelta = {
@@ -197,12 +195,8 @@ export async function hardSave(
     selection: selection || { head: 0, anchor: 0 },
   };
 
-  // Delete old deltas, then replace snapshot
-  if (existing) {
-    await deleteSheetDeltasByContentId(existing.id);
-    await deleteSheetContent(nodeId);
-  }
-  await putSheetContent(newContent);
+  // Perform atomic update (replaces snapshot and clears associated deltas)
+  await updateSheetSnapshotAtomic(newContent);
 
   /*console.log(
     `[hardSave] nodeId=${nodeId} contentId=${newId} markdown=${markdown.length}chars pmJSON=${JSON.stringify(newContent.pmJSON).length}chars`,

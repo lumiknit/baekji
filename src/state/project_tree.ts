@@ -7,7 +7,6 @@ import {
   putNode,
   deleteProject as dbDeleteProject,
   getAllNodesInVersion,
-  putSheetContent,
   deleteNodeSubtree,
   moveNodeAtomic,
   createNodeAtomic,

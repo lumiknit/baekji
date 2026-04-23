@@ -170,15 +170,32 @@ export async function getSheetContent(
   return db.getFromIndex(SHEET_CONTENTS, 'by-nodeId', nodeId);
 }
 
-export async function putSheetContent(content: SheetContent): Promise<void> {
+/**
+ * Atomically updates a sheet snapshot and deletes all associated deltas.
+ * If an old snapshot exists, it is removed first to maintain the unique index.
+ */
+export async function updateSheetSnapshotAtomic(
+  content: SheetContent,
+): Promise<void> {
   const db = await getDB();
-  await db.put(SHEET_CONTENTS, content);
-}
+  const tx = db.transaction([SHEET_CONTENTS, SHEET_DELTAS], 'readwrite');
+  const scStore = tx.objectStore(SHEET_CONTENTS);
+  const sdStore = tx.objectStore(SHEET_DELTAS);
 
-export async function deleteSheetContent(nodeId: string): Promise<void> {
-  const db = await getDB();
-  const existing = await db.getFromIndex(SHEET_CONTENTS, 'by-nodeId', nodeId);
-  if (existing) await db.delete(SHEET_CONTENTS, existing.id);
+  // 1. Find and remove existing snapshot for this nodeId
+  const old = await scStore.index('by-nodeId').get(content.nodeId);
+  if (old) {
+    // 2. Delete all deltas associated with the old snapshot ID
+    const deltaKeys = await sdStore.index('by-contentId').getAllKeys(old.id);
+    for (const key of deltaKeys) {
+      await sdStore.delete(key);
+    }
+    await scStore.delete(old.id);
+  }
+
+  // 3. Store new snapshot
+  await scStore.put(content);
+  await tx.done;
 }
 
 // ─── Sheet Deltas ─────────────────────────────────────────────

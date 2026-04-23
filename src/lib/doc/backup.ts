@@ -8,14 +8,10 @@ import type {
 } from './v0';
 import { z } from 'zod/v4';
 import { bakProjectSchema } from './v0';
-import {
-  getVersionRoots,
-  getAllNodesInVersion,
-  getSheetContent,
-  getNode,
-} from './db';
+import { getVersionRoots, getAllNodesInVersion, getNode } from './db';
 import { pmParser, pmSchema } from './pm';
 import { genId } from '../uuid';
+import { getSheetContentAsMarkdown } from './db_helper';
 // pmParser/pmSchema used in prepareBakImport for markdown → pmJSON conversion
 
 type VersionRootNode = z.infer<typeof docVersionRootSchema>;
@@ -81,13 +77,13 @@ export async function exportVersionAsBak(
         children: nodeChildren.map((c) => idMap[c.id]),
       } satisfies BakGroupNode);
     } else {
-      const sc = await getSheetContent(node.id);
+      const sc = await getSheetContentAsMarkdown(node.id);
       bakNodes.push({
         id: remapped,
         label: node.label,
         updatedAt: node.updatedAt,
         type: 'sheet',
-        content: sc?.markdown ?? '',
+        content: sc,
       } satisfies BakSheetNode);
     }
   }
@@ -193,6 +189,7 @@ export async function prepareBakImport(
           nodeId: newId,
           pmJSON: pmDocJSON,
           markdown: child.content,
+          selection: { head: 0, anchor: 0 },
         } satisfies SheetContent);
       }
     }
