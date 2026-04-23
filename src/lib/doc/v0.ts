@@ -142,6 +142,9 @@ export const sheetContentSchema = z.object({
   nodeId: idSchema.describe('Node ID of the sheet node'),
   pmJSON: z.unknown().describe('ProseMirror doc.toJSON()'),
   markdown: z.string().describe('Markdown serialized content'),
+  selection: z
+    .object({ anchor: z.number(), head: z.number() })
+    .describe('Selection state after all steps applied'),
 });
 export type SheetContent = z.infer<typeof sheetContentSchema>;
 

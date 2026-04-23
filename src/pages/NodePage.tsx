@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js';
 import { createEffect, createMemo, createResource, Show } from 'solid-js';
 import { useParams, useNavigate } from '@solidjs/router';
-import { getNode, setLastOpenNodeId } from '../lib/doc/db';
+import { getNode } from '../lib/doc/db';
 import { projectTree } from '../state/project_tree';
 import {
   activePjVerId,
@@ -29,7 +29,6 @@ const NodePage: Component = () => {
     const id = nodeId();
     const vid = projectTree.meta?.pjVerId;
     if (id && vid) {
-      setLastOpenNodeId(vid, id);
       setLastGlobalNodeId(id);
     }
   });

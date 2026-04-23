@@ -33,12 +33,7 @@ import { wrapInList } from 'prosemirror-schema-list';
 import { EditorState, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { Step } from 'prosemirror-transform';
-import {
-  getNode,
-  getSheetSelection,
-  putNode,
-  setSheetSelection,
-} from '../../lib/doc/db';
+import { getNode, putNode } from '../../lib/doc/db';
 import { loadSheetState, softSave, hardSave } from '../../lib/doc/db_helper';
 import { s } from '../../lib/i18n';
 import { updateSheetMeta } from '../../state/project_tree';
@@ -46,63 +41,9 @@ import { settings } from '../../state/settings';
 import Dropdown from '../Dropdown';
 import CircularProgress from '../CircularProgress';
 import { buildPlugins, calcStats, pmSchema } from './helpers';
+import { buildOptimizedStepJSONs } from './step_helper';
 
-const SOFT_SAVE_IDLE_MS = 5000;
-const SOFT_SAVE_STEP_LIMIT = 100;
-
-type StepJSON = {
-  stepType: string;
-  from: number;
-  to: number;
-  slice?: {
-    content: unknown;
-  };
-};
-
-function mergeStepBuffer(steps: Step[]): StepJSON[] {
-  if (steps.length === 0) return [];
-  const result: object[] = [];
-  let cur = steps[0];
-  for (let i = 1; i < steps.length; i++) {
-    const merged = cur.merge(steps[i]);
-    if (merged) {
-      cur = merged;
-    } else {
-      console.log(
-        'Merge failed',
-        JSON.stringify(cur.toJSON()),
-        JSON.stringify(steps[i].toJSON()),
-      );
-      result.push(cur.toJSON() as StepJSON);
-      cur = steps[i];
-    }
-  }
-  result.push(cur.toJSON() as StepJSON);
-  return result;
-}
-
-function optimizeStepBuffer(steps: StepJSON[]): StepJSON[] {
-  if (steps.length === 0) return [];
-  const optimized: StepJSON[] = [];
-  let lastStep = steps[0];
-
-  const isSimpleReplace = (step: StepJSON) =>
-    step.stepType === 'replace' &&
-    step.slice &&
-    typeof step.slice === 'object' &&
-    Array.isArray(step.slice.content) &&
-    step.slice.content.length === 1 &&
-    step.slice.content[0].type === 'text';
-
-  for (let i = 1; i < steps.length; i++) {
-    const step = steps[i];
-	  if (
-		  isSimpleReplace(lastStep) &&
-		  isSimpleReplace(step) &&
-		  lastStep.from
-    )
-  }
-}
+const SOFT_SAVE_STEP_LIMIT = 128;
 
 interface EditorProps {
   sheetId: string;
@@ -124,8 +65,12 @@ const Editor: Component<EditorProps> = (props) => {
       const node = await getNode(id);
       if (!node || node.type !== 'sheet') return undefined;
       const state = await loadSheetState(id);
-      const sel = await getSheetSelection(id);
-      return { node, contentJSON: state.pmJSON, selection: sel, state };
+      return {
+        node,
+        contentJSON: state.pmJSON,
+        selection: state.selection,
+        state,
+      };
     },
   );
   const [isDirty, setIsDirty] = createSignal(false);
@@ -148,7 +93,7 @@ const Editor: Component<EditorProps> = (props) => {
     const data = sheet();
     if (!data) return;
 
-    const steps = mergeStepBuffer(stepBuffer);
+    const steps = buildOptimizedStepJSONs(stepBuffer);
     stepBuffer = [];
     const seq = currentSeq++;
     const { anchor, head } = view.state.selection;
@@ -184,9 +129,11 @@ const Editor: Component<EditorProps> = (props) => {
     setAutosaveEndTime(null);
     void (async () => {
       try {
-        const { markdown, autoLabel } = await hardSave(node.id, docJSON);
+        const { markdown, autoLabel } = await hardSave(node.id, docJSON, {
+          anchor,
+          head,
+        });
         await putNode({ ...node, label: autoLabel, updatedAt: now });
-        await setSheetSelection(node.id, { anchor, head });
         updateSheetMeta(node.id, autoLabel, markdown.slice(0, 200));
         updateStats(docJSON);
         setIsDirty(false);
@@ -200,8 +147,11 @@ const Editor: Component<EditorProps> = (props) => {
   let softSaveTimer: ReturnType<typeof setTimeout> | undefined;
   const triggerSoftSave = () => {
     clearTimeout(softSaveTimer);
-    setAutosaveEndTime(new Date(Date.now() + SOFT_SAVE_IDLE_MS));
-    softSaveTimer = setTimeout(flushStepBuffer, SOFT_SAVE_IDLE_MS);
+    setAutosaveEndTime(new Date(Date.now() + settings.autosaveInterval * 1000));
+    softSaveTimer = setTimeout(
+      flushStepBuffer,
+      settings.autosaveInterval * 1000,
+    );
   };
 
   const applySheetToView = (data: NonNullable<ReturnType<typeof sheet>>) => {
@@ -494,17 +444,11 @@ const Editor: Component<EditorProps> = (props) => {
           </Show>
           <button
             class="editor-stats-btn"
-            style={{ opacity: statsExact() ? '1' : '0.5' }}
+            style={{ opacity: statsExact() ? '1' : '0.3' }}
             onClick={() => navigate(`/nodes/${props.sheetId}/analysis`)}
           >
-            <span>
-              {statsExact() ? '' : '~'}
-              {s('editor.chars', { count: stats().chars })}
-            </span>
-            <span>
-              {statsExact() ? '' : '~'}
-              {s('editor.words', { count: stats().words })}
-            </span>
+            <span>{s('editor.chars', { count: stats().chars })}</span>
+            <span>{s('editor.words', { count: stats().words })}</span>
           </button>
         </div>
       </div>

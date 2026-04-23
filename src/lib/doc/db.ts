@@ -6,15 +6,9 @@ import type {
   SheetNode,
   SheetContent,
   SheetDelta,
-  StateKV,
   docVersionRootSchema,
 } from './v0';
 import { z } from 'zod/v4';
-import {
-  SK_LAST_OPEN_NODE_ID,
-  SK_SHEET_LAST_SELECTION,
-  SK_GROUP_COLLAPSED,
-} from './v0';
 
 // Zod v4 inference doesn't pick up `active` from `.boolean().describe(...)`;
 // intersect manually to keep TypeScript happy.
@@ -141,20 +135,6 @@ export async function getAllNodesInVersion(
   return results as DataNode[];
 }
 
-// ─── OrderKey (Internal Helpers for Atomic Ops) ────────────────
-
-async function getNextOrderKeyInTx(
-  store: IDBObjectStore,
-  parentId: string,
-): Promise<number> {
-  const parentIdx = store.index('by-parentId');
-  const results = (await parentIdx.getAll(parentId)) as DataNode[];
-  const last = results
-    .sort((a, b) => (a.orderKey ?? 0) - (b.orderKey ?? 0))
-    .pop();
-  return last ? (last.orderKey ?? 0) + ORDER_GAP : ORDER_GAP;
-}
-
 // ─── Atomic Create ───────────────────────────────────────────
 
 export async function createNodeAtomic(
@@ -165,7 +145,13 @@ export async function createNodeAtomic(
   const tx = db.transaction([NODES, SHEET_CONTENTS], 'readwrite');
   const store = tx.objectStore(NODES);
 
-  const orderKey = await getNextOrderKeyInTx(store, node.parentId);
+  const parentIdx = store.index('by-parentId');
+  const results = (await parentIdx.getAll(node.parentId)) as DataNode[];
+  const last = results
+    .sort((a, b) => (a.orderKey ?? 0) - (b.orderKey ?? 0))
+    .pop();
+  const orderKey = last ? (last.orderKey ?? 0) + ORDER_GAP : ORDER_GAP;
+
   const finalNode = { ...node, orderKey };
 
   await store.put(finalNode);
@@ -224,85 +210,6 @@ export async function deleteSheetDeltasByContentId(
   const tx = db.transaction(SHEET_DELTAS, 'readwrite');
   for (const key of keys) await tx.store.delete(key);
   await tx.done;
-}
-
-// ─── App State ────────────────────────────────────────────────
-
-export async function getStateKV(
-  scope: string,
-  scopeId: string,
-  key: string,
-): Promise<StateKV | undefined> {
-  const db = await getDB();
-  return db.get(APP_STATE, [scope, scopeId, key]);
-}
-
-export async function setStateKV(
-  scope: string,
-  scopeId: string,
-  key: string,
-  value: unknown,
-): Promise<void> {
-  const db = await getDB();
-  const entry: StateKV = {
-    scope,
-    scopeId,
-    key,
-    value,
-    updatedAt: new Date().toISOString(),
-  };
-  await db.put(APP_STATE, entry);
-}
-
-export async function deleteStateKV(
-  scope: string,
-  scopeId: string,
-  key: string,
-): Promise<void> {
-  const db = await getDB();
-  await db.delete(APP_STATE, [scope, scopeId, key]);
-}
-
-// ─── State KV Convenience ─────────────────────────────────────
-
-export async function getLastOpenNodeId(
-  versionId: string,
-): Promise<string | undefined> {
-  const kv = await getStateKV('version', versionId, SK_LAST_OPEN_NODE_ID);
-  return kv?.value as string | undefined;
-}
-
-export async function setLastOpenNodeId(
-  versionId: string,
-  nodeId: string,
-): Promise<void> {
-  await setStateKV('version', versionId, SK_LAST_OPEN_NODE_ID, nodeId);
-}
-
-export async function getSheetSelection(
-  sheetId: string,
-): Promise<{ anchor: number; head: number } | undefined> {
-  const kv = await getStateKV('sheet', sheetId, SK_SHEET_LAST_SELECTION);
-  return kv?.value as { anchor: number; head: number } | undefined;
-}
-
-export async function setSheetSelection(
-  sheetId: string,
-  sel: { anchor: number; head: number },
-): Promise<void> {
-  await setStateKV('sheet', sheetId, SK_SHEET_LAST_SELECTION, sel);
-}
-
-export async function getGroupCollapsed(groupId: string): Promise<boolean> {
-  const kv = await getStateKV('group', groupId, SK_GROUP_COLLAPSED);
-  return (kv?.value as boolean | undefined) ?? false;
-}
-
-export async function setGroupCollapsed(
-  groupId: string,
-  collapsed: boolean,
-): Promise<void> {
-  await setStateKV('group', groupId, SK_GROUP_COLLAPSED, collapsed);
 }
 
 // ─── Bulk Insert (for import, atomic) ─────────────────────────

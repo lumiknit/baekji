@@ -112,7 +112,7 @@ const SettingsPage: Component = () => {
                         }
                         value={isNoto() ? '' : val()}
                         disabled={isNoto()}
-                        onInput={(e) =>
+                        onChange={(e) =>
                           setSettings('fonts', key, e.currentTarget.value)
                         }
                       />
@@ -145,7 +145,7 @@ const SettingsPage: Component = () => {
                 value={settings.fontSize}
                 min="6"
                 max="24"
-                onInput={(e) =>
+                onChange={(e) =>
                   setSettings('fontSize', parseInt(e.currentTarget.value))
                 }
                 style={{ width: '60px' }}
@@ -157,7 +157,7 @@ const SettingsPage: Component = () => {
               max="24"
               step="1"
               value={settings.fontSize}
-              onInput={(e) =>
+              onChange={(e) =>
                 setSettings('fontSize', parseInt(e.currentTarget.value))
               }
               class="w-full"
@@ -169,7 +169,7 @@ const SettingsPage: Component = () => {
                 value={settings.previewFontSize}
                 min="6"
                 max="24"
-                onInput={(e) =>
+                onChange={(e) =>
                   setSettings(
                     'previewFontSize',
                     parseInt(e.currentTarget.value),
@@ -184,7 +184,7 @@ const SettingsPage: Component = () => {
               max="24"
               step="1"
               value={settings.previewFontSize}
-              onInput={(e) =>
+              onChange={(e) =>
                 setSettings('previewFontSize', parseInt(e.currentTarget.value))
               }
               class="w-full"
@@ -197,7 +197,7 @@ const SettingsPage: Component = () => {
                 value={settings.lineHeight}
                 min="0.8"
                 max="2.5"
-                onInput={(e) =>
+                onChange={(e) =>
                   setSettings('lineHeight', parseFloat(e.currentTarget.value))
                 }
                 style={{ width: '60px' }}
@@ -209,7 +209,7 @@ const SettingsPage: Component = () => {
               max="2.5"
               step="0.1"
               value={settings.lineHeight}
-              onInput={(e) =>
+              onChange={(e) =>
                 setSettings('lineHeight', parseFloat(e.currentTarget.value))
               }
               class="w-full"
@@ -224,25 +224,26 @@ const SettingsPage: Component = () => {
               <input
                 type="text"
                 value={settings.indentFirstLine}
-                onInput={(e) =>
+                onChange={(e) =>
                   setSettings('indentFirstLine', e.currentTarget.value)
                 }
-                style={{ width: '60px' }}
+                style={{ width: '120px' }}
               />
             </SettingRow>
 
             <SettingRow label={s('settings.autosave_interval')}>
               <input
                 type="number"
-                min="1"
+                min="0.5"
+                step="0.25"
                 value={settings.autosaveInterval}
-                onInput={(e) =>
+                onChange={(e) =>
                   setSettings(
                     'autosaveInterval',
-                    Math.max(1, parseInt(e.currentTarget.value) || 1),
+                    Math.max(0.5, parseFloat(e.currentTarget.value) || 1.5),
                   )
                 }
-                style={{ width: '60px' }}
+                style={{ width: '120px' }}
               />
             </SettingRow>
           </div>

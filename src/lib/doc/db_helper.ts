@@ -53,6 +53,7 @@ export interface SheetState {
   pmJSON: unknown;
   nextSeq: number;
   contentId: string | null;
+  selection: { anchor: number; head: number };
 }
 
 /**
@@ -64,33 +65,44 @@ export async function loadSheetState(nodeId: string): Promise<SheetState> {
 
   const content = await getSheetContent(nodeId);
   if (!content) {
-    return { pmJSON: emptyDoc, nextSeq: 0, contentId: null };
+    return {
+      pmJSON: emptyDoc,
+      nextSeq: 0,
+      contentId: null,
+      selection: { anchor: 0, head: 0 },
+    };
   }
 
   const deltas = await getSheetDeltas(content.id);
-  if (deltas.length === 0) {
-    return { pmJSON: content.pmJSON, nextSeq: 0, contentId: content.id };
+  if (deltas.length > 0) {
+    try {
+      let doc = pmSchema.nodeFromJSON(content.pmJSON);
+      for (const delta of deltas) {
+        for (const stepJSON of delta.steps) {
+          const step = Step.fromJSON(pmSchema, stepJSON as any);
+          const result = step.apply(doc);
+          if (result.doc) doc = result.doc;
+        }
+      }
+      return {
+        pmJSON: doc.toJSON(),
+        nextSeq: deltas.length,
+        contentId: content.id,
+        selection: deltas[deltas.length - 1].selection,
+      };
+    } catch {
+      console.error('Failed to load content id', content.id);
+    }
   }
 
+  return {
+    pmJSON: content.pmJSON,
+    nextSeq: 0,
+    contentId: content.id,
+    selection: content.selection,
+  };
+
   // Replay deltas on top of snapshot
-  try {
-    let doc = pmSchema.nodeFromJSON(content.pmJSON);
-    for (const delta of deltas) {
-      for (const stepJSON of delta.steps) {
-        const step = Step.fromJSON(pmSchema, stepJSON as any);
-        const result = step.apply(doc);
-        if (result.doc) doc = result.doc;
-      }
-    }
-    return {
-      pmJSON: doc.toJSON(),
-      nextSeq: deltas.length,
-      contentId: content.id,
-    };
-  } catch {
-    // Corrupt deltas — fall back to snapshot
-    return { pmJSON: content.pmJSON, nextSeq: 0, contentId: content.id };
-  }
 }
 
 // ─── Soft Save ────────────────────────────────────────────────
@@ -116,6 +128,7 @@ export async function softSave(
       nodeId,
       pmJSON: emptyDoc.toJSON(),
       markdown: '',
+      selection: { anchor: 0, head: 0 },
     };
     await putSheetContent(content);
   }
@@ -127,7 +140,10 @@ export async function softSave(
     selection,
   };
   await putSheetDelta(delta);
-  console.log(`[softSave] seq=${seq} steps=${steps.length} stepsJSON=${JSON.stringify(steps).length}chars`);
+  /*console.log(
+    `[softSave] seq=${seq} steps=${steps.length} stepsJSON=${JSON.stringify(steps).length}chars`,
+  );*/
+  console.log('Soft save');
 }
 
 // ─── Hard Save ────────────────────────────────────────────────
@@ -146,6 +162,7 @@ export interface HardSaveResult {
 export async function hardSave(
   nodeId: string,
   pmDocJSON?: unknown,
+  selection?: { anchor: number; head: number },
 ): Promise<HardSaveResult> {
   const existing = await getSheetContent(nodeId);
 
@@ -177,6 +194,7 @@ export async function hardSave(
     nodeId,
     pmJSON: finalDoc.toJSON(),
     markdown,
+    selection: selection || { head: 0, anchor: 0 },
   };
 
   // Delete old deltas, then replace snapshot
@@ -186,7 +204,10 @@ export async function hardSave(
   }
   await putSheetContent(newContent);
 
-  console.log(`[hardSave] nodeId=${nodeId} contentId=${newId} markdown=${markdown.length}chars pmJSON=${JSON.stringify(newContent.pmJSON).length}chars`);
+  /*console.log(
+    `[hardSave] nodeId=${nodeId} contentId=${newId} markdown=${markdown.length}chars pmJSON=${JSON.stringify(newContent.pmJSON).length}chars`,
+  );*/
+  console.log('Hard save');
 
   return { markdown, autoLabel: getShortLabel(markdown) };
 }
@@ -278,6 +299,7 @@ export async function importTextAsSheet(
     updatedAt: now,
     visual: { colorH: 0, colorS: 0 },
     tags: [],
+    orderKey: 0,
   };
 
   let pmDoc;
@@ -292,6 +314,7 @@ export async function importTextAsSheet(
     nodeId: newId,
     pmJSON: pmDoc.toJSON(),
     markdown: text,
+    selection: { head: 0, anchor: 0 },
   };
 
   await createNodeAtomic(sheet, sheetContent);

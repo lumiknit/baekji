@@ -46,7 +46,7 @@ const defaultSettings: Settings = {
   fontBoldWeight: 900,
   indentFirstLine: '1em',
   lineHeight: 1.2,
-  autosaveInterval: 3,
+  autosaveInterval: 1.5,
   previewFontSize: 13,
   mdRules: {
     headings: true,

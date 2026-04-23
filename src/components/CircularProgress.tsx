@@ -86,7 +86,7 @@ const CircularProgress: Component<Props> = (props) => {
         stroke={props.color || 'currentColor'}
         stroke-width={props.strokeWidth || 0.25}
         stroke-linecap="round"
-        stroke-dasharray={circumference}
+        stroke-dasharray={`${circumference}`}
         stroke-dashoffset={circumference}
         class="circular-progress-bar"
       />
