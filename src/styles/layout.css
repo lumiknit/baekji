@@ -2,7 +2,7 @@
 
 .main-layout {
   display: flex;
-  min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
 }
 
@@ -16,7 +16,7 @@
 .sidebar {
   border-right: 1px solid var(--border);
   background-color: var(--bg);
-  height: 100vh;
+  height: 100dvh;
   position: sticky;
   top: 0;
   z-index: var(--z-sidebar);
@@ -64,7 +64,7 @@
   cursor: col-resize;
   position: sticky;
   top: 0;
-  height: 100vh;
+  height: 100dvh;
   background: transparent;
   margin-left: -2px;
   z-index: calc(var(--z-sidebar) + 1);

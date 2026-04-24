@@ -20,6 +20,7 @@ import {
   TbOutlineListNumbers,
   TbOutlinePhoto,
   TbOutlineQuote,
+  TbOutlineScissors,
   TbOutlineSourceCode,
   TbOutlineStrikethrough,
   TbOutlineTextDecrease,
@@ -245,6 +246,7 @@ export interface EditorToolbarProps {
   onSave: () => void;
   onLink: () => void;
   onImage: () => void;
+  onSplit: () => void;
 }
 
 const EditorToolbar: Component<EditorToolbarProps> = (props) => {
@@ -279,6 +281,17 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
         </>
       ),
       onSelect: props.onSave,
+    },
+    {
+      label: (
+        <>
+          <span class="icon">
+            <TbOutlineScissors />
+          </span>{' '}
+          {s('editor.split')}
+        </>
+      ),
+      onSelect: props.onSplit,
     },
   ];
 

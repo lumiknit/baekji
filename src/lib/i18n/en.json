@@ -62,6 +62,7 @@
     "placeholder": "What's on your mind…",
     "size": "{{count}}c",
     "saveBusy": "Save in progress. Please try again in a moment.",
+    "saveFailed": "Save failed. Your data may be lost.",
     "deltaCorrupt": "Some edit history could not be loaded. Content may be incomplete.",
     "selectTextFirst": "Please select text to apply a link.",
     "insertImage": "Insert Image",

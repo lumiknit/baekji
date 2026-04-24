@@ -1,5 +1,3 @@
-import { Step } from 'prosemirror-transform';
-import { pmSchema, pmParser, pmSerializer } from './pm';
 import {
   getSheetContent,
   updateSheetSnapshotAtomic,
@@ -9,11 +7,21 @@ import {
   getChildren,
   putNode,
   createNodeAtomic,
+  insertVersion,
 } from './db';
 import type { BakImportResult } from './backup';
-import { insertVersion } from './db';
-import type { SheetContent, SheetDelta, SheetNode } from './v0';
+import type { SheetContent, SheetNode } from './v0';
 import { genId } from '../uuid';
+import {
+  pmSchema,
+  replayDeltas,
+  docToMarkdown,
+  markdownToDoc,
+  getShortLabel,
+  extractDocLabel,
+} from '../pm_content';
+
+export { getShortLabel, extractDocLabel };
 
 // ─── Project Creation ─────────────────────────────────────────
 
@@ -37,16 +45,6 @@ export async function createProject(label: string): Promise<NewProjectIds> {
   return { projectId, pjVerId };
 }
 
-// ─── Label Extraction ─────────────────────────────────────────
-
-/** Extracts a short label from markdown text (first non-empty line, stripped of heading markers). */
-export function getShortLabel(markdown: string): string {
-  return markdown
-    .replace(/^#+\s*/m, '')
-    .trim()
-    .slice(0, 200);
-}
-
 // ─── Load Sheet State ─────────────────────────────────────────
 
 export interface SheetState {
@@ -54,14 +52,9 @@ export interface SheetState {
   nextSeq: number;
   contentId: string | null;
   selection: { anchor: number; head: number };
-  partialLoad?: boolean; // true if delta replay failed partway through
+  partialLoad?: boolean;
 }
 
-/**
- * Loads the current sheet state by replaying any pending deltas on top of
- * the last snapshot. Returns the final pmJSON and the next seq number.
- * On partial delta failure, applies as many steps as possible and sets partialLoad=true.
- */
 export async function loadSheetState(nodeId: string): Promise<SheetState> {
   const emptyDoc = pmSchema.topNodeType.createAndFill()!.toJSON();
 
@@ -85,42 +78,24 @@ export async function loadSheetState(nodeId: string): Promise<SheetState> {
     };
   }
 
-  let doc = pmSchema.nodeFromJSON(content.pmJSON);
-  let lastGoodDeltaIdx = -1;
-  let partialLoad = false;
-
-  outer: for (let di = 0; di < deltas.length; di++) {
-    for (const stepJSON of deltas[di].steps) {
-      try {
-        const step = Step.fromJSON(pmSchema, stepJSON as any);
-        const result = step.apply(doc);
-        if (result.doc) doc = result.doc;
-      } catch {
-        console.error('Delta replay failed at delta seq', deltas[di].seq);
-        partialLoad = true;
-        break outer;
-      }
-    }
-    lastGoodDeltaIdx = di;
-  }
-
-  const lastGoodDelta = lastGoodDeltaIdx >= 0 ? deltas[lastGoodDeltaIdx] : null;
+  const baseDoc = pmSchema.nodeFromJSON(content.pmJSON);
+  const { doc, lastGoodIdx, partialLoad, selection } = replayDeltas(
+    baseDoc,
+    deltas,
+    content.selection,
+  );
 
   return {
     pmJSON: doc.toJSON(),
-    nextSeq: lastGoodDeltaIdx + 1,
+    nextSeq: lastGoodIdx + 1,
     contentId: content.id,
-    selection: lastGoodDelta?.selection ?? content.selection,
+    selection,
     partialLoad,
   };
 }
 
 // ─── Soft Save ────────────────────────────────────────────────
 
-/**
- * Appends a batch of steps as a new SheetDelta.
- * If no snapshot exists yet, creates an empty one first.
- */
 export async function softSave(
   nodeId: string,
   steps: object[],
@@ -131,7 +106,6 @@ export async function softSave(
 
   let content = await getSheetContent(nodeId);
   if (!content) {
-    // No snapshot yet — create an empty one
     const emptyDoc = pmSchema.topNodeType.createAndFill()!;
     content = {
       id: genId(),
@@ -143,16 +117,7 @@ export async function softSave(
     await updateSheetSnapshotAtomic(content);
   }
 
-  const delta: SheetDelta = {
-    contentId: content.id,
-    seq,
-    steps,
-    selection,
-  };
-  await putSheetDelta(delta);
-  /*console.log(
-    `[softSave] seq=${seq} steps=${steps.length} stepsJSON=${JSON.stringify(steps).length}chars`,
-  );*/
+  await putSheetDelta({ contentId: content.id, seq, steps, selection });
   console.log('Soft save');
 }
 
@@ -163,12 +128,6 @@ export interface HardSaveResult {
   autoLabel: string;
 }
 
-/**
- * Performs a full snapshot save.
- * - If pmDocJSON is provided (editor open), uses it directly.
- * - Otherwise, replays all pending deltas from the last snapshot.
- * Clears all pending deltas after saving.
- */
 export async function hardSave(
   nodeId: string,
   pmDocJSON?: unknown,
@@ -180,50 +139,31 @@ export async function hardSave(
   if (pmDocJSON !== undefined) {
     finalDoc = pmSchema.nodeFromJSON(pmDocJSON);
   } else if (existing) {
-    finalDoc = pmSchema.nodeFromJSON(existing.pmJSON);
     const deltas = await getSheetDeltas(existing.id);
-    for (const delta of deltas) {
-      for (const stepJSON of delta.steps) {
-        try {
-          const step = Step.fromJSON(pmSchema, stepJSON as any);
-          const result = step.apply(finalDoc);
-          if (result.doc) finalDoc = result.doc;
-        } catch {
-          // skip corrupt step
-        }
-      }
-    }
+    const baseDoc = pmSchema.nodeFromJSON(existing.pmJSON);
+    ({ doc: finalDoc } = replayDeltas(baseDoc, deltas, existing.selection));
   } else {
     finalDoc = pmSchema.topNodeType.createAndFill()!;
   }
 
-  const markdown = pmSerializer.serialize(finalDoc);
+  const markdown = docToMarkdown(finalDoc);
   const newId = genId();
   const newContent: SheetContent = {
     id: newId,
     nodeId,
     pmJSON: finalDoc.toJSON(),
     markdown,
-    selection: selection || { head: 0, anchor: 0 },
+    selection: selection ?? { head: 0, anchor: 0 },
   };
 
-  // Perform atomic update (replaces snapshot and clears associated deltas)
   await updateSheetSnapshotAtomic(newContent);
-
-  /*console.log(
-    `[hardSave] nodeId=${nodeId} contentId=${newId} markdown=${markdown.length}chars pmJSON=${JSON.stringify(newContent.pmJSON).length}chars`,
-  );*/
   console.log('Hard save');
 
   return { markdown, autoLabel: getShortLabel(markdown) };
 }
 
-// ─── Sheet Content as Markdown (for export/analysis) ──────────
+// ─── Sheet Content as Markdown ────────────────────────────────
 
-/**
- * Returns sheet content as markdown, triggering a hard save first if
- * there are pending deltas (so callers always get up-to-date content).
- */
 export async function getSheetContentAsMarkdown(
   nodeId: string,
 ): Promise<string> {
@@ -236,6 +176,29 @@ export async function getSheetContentAsMarkdown(
     return markdown;
   }
   return content.markdown;
+}
+
+// ─── Group Merge Helper ───────────────────────────────────────
+
+export async function collectGroupMarkdown(
+  groupId: string,
+  nodes: Record<string, { type: string; children?: string[] }>,
+): Promise<string> {
+  const parts: string[] = [];
+  async function walk(nodeId: string) {
+    const node = nodes[nodeId];
+    if (!node) return;
+    if (node.type === 'sheet') {
+      const md = (await getSheetContentAsMarkdown(nodeId)).trim();
+      if (md) parts.push(md);
+    } else {
+      for (const childId of node.children ?? []) {
+        await walk(childId);
+      }
+    }
+  }
+  await walk(groupId);
+  return parts.join('\n\n');
 }
 
 // ─── Tree Traversal ───────────────────────────────────────────
@@ -282,8 +245,6 @@ export async function commitBakImport(result: BakImportResult): Promise<void> {
   await insertVersion(result.versionRoot, result.nodes, result.sheetContents);
 }
 
-// ─── Text Import ──────────────────────────────────────────────
-
 export async function importTextAsSheet(
   text: string,
   label: string,
@@ -308,13 +269,7 @@ export async function importTextAsSheet(
     orderKey: 0,
   };
 
-  let pmDoc;
-  try {
-    pmDoc = pmParser.parse(text);
-  } catch {
-    pmDoc = pmSchema.topNodeType.createAndFill()!;
-  }
-
+  const pmDoc = markdownToDoc(text);
   const sheetContent: SheetContent = {
     id: genId(),
     nodeId: newId,

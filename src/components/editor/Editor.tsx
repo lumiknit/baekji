@@ -1,4 +1,5 @@
 import { useNavigate } from '@solidjs/router';
+import { TbOutlineCircleCheck } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
 import {
   createEffect,
@@ -15,7 +16,12 @@ import { Step } from 'prosemirror-transform';
 import { getNode, putNode } from '../../lib/doc/db';
 import { loadSheetState, softSave, hardSave } from '../../lib/doc/db_helper';
 import { s } from '../../lib/i18n';
-import { updateSheetMeta } from '../../state/project_tree';
+import {
+  createTreeNode,
+  deleteTreeNode,
+  projectTree,
+  updateSheetMeta,
+} from '../../state/project_tree';
 import { settings } from '../../state/settings';
 import CircularProgress from '../CircularProgress';
 import { buildPlugins, extractDocLabel, pmSchema } from './helpers';
@@ -23,7 +29,7 @@ import { formatCompact } from '../../lib/number';
 import { buildOptimizedStepJSONs } from './step_helper';
 import toast from 'solid-toast';
 import EditorToolbar from './EditorToolbar';
-import { showImage, showLink } from '../../state/modal';
+import { showConfirm, showImage, showLink } from '../../state/modal';
 
 import 'prosemirror-view/style/prosemirror.css';
 
@@ -109,6 +115,9 @@ const Editor: Component<EditorProps> = (props) => {
         if (deltaStepCount >= DELTA_HARD_SAVE_THRESHOLD) {
           freeze();
         }
+      } catch (err) {
+        console.error('Soft save failed:', err);
+        toast.error(s('editor.saveFailed'));
       } finally {
         saveInFlight = false;
       }
@@ -145,6 +154,9 @@ const Editor: Component<EditorProps> = (props) => {
         updateSheetMeta(node.id, autoLabel, markdown.slice(0, 200));
         setIsDirty(false);
         setLastSaved(new Date());
+      } catch (err) {
+        console.error('Hard save failed:', err);
+        toast.error(s('editor.saveFailed'));
       } finally {
         saveInFlight = false;
       }
@@ -373,6 +385,42 @@ const Editor: Component<EditorProps> = (props) => {
     view.focus();
   };
 
+  const handleSplit = async () => {
+    if (!view) return;
+    const data = sheet();
+    if (!data) return;
+
+    const confirmed = await showConfirm(
+      s('modal.split_title'),
+      s('modal.split_confirm'),
+    );
+    if (!confirmed) return;
+
+    const parentId = Object.entries(projectTree.nodes).find(([, n]) =>
+      n.children?.includes(props.sheetId),
+    )?.[0];
+    if (!parentId) return;
+
+    const anchor = view.state.selection.anchor;
+    const doc = view.state.doc;
+    const firstDoc = doc.cut(0, anchor);
+    const secondDoc = doc.cut(anchor);
+
+    const firstLabel = extractDocLabel(firstDoc) || data.node.label;
+    const secondLabel = extractDocLabel(secondDoc) || data.node.label;
+
+    const firstId = await createTreeNode('sheet', parentId, firstLabel);
+    if (!firstId) return;
+    await hardSave(firstId, firstDoc.toJSON(), { anchor: 0, head: 0 });
+
+    const secondId = await createTreeNode('sheet', parentId, secondLabel);
+    if (!secondId) return;
+    await hardSave(secondId, secondDoc.toJSON(), { anchor: 0, head: 0 });
+
+    navigate(`/nodes/${secondId}`);
+    await deleteTreeNode(props.sheetId);
+  };
+
   return (
     <div class="editor-container">
       <EditorToolbar
@@ -385,28 +433,13 @@ const Editor: Component<EditorProps> = (props) => {
         onSave={freeze}
         onLink={handleLink}
         onImage={handleImage}
+        onSplit={handleSplit}
       />
 
       <div ref={editorRef} class="prosemirror-editor typo" />
 
       <div class="editor-stats-overlay">
         <div class="flex items-center gap-12">
-          <Show when={isDirty()}>
-            <CircularProgress
-              endTime={autosaveEndTime()}
-              size={14}
-              strokeWidth={0.4}
-            />
-          </Show>
-          <Show when={!isDirty() && lastSaved()}>
-            <span class="editor-saved-time">
-              {lastSaved()!.toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })}
-            </span>
-          </Show>
           <button
             class="editor-stats-btn"
             onClick={() => navigate(`/nodes/${props.sheetId}/analysis`)}
@@ -415,6 +448,16 @@ const Editor: Component<EditorProps> = (props) => {
               {s('editor.size', { count: formatCompact(nodeSize()) })}
             </span>
           </button>
+          <Show when={isDirty()}>
+            <CircularProgress
+              endTime={autosaveEndTime()}
+              size={14}
+              strokeWidth={0.4}
+            />
+          </Show>
+          <Show when={!isDirty() && lastSaved()}>
+            <TbOutlineCircleCheck size={14} />
+          </Show>
         </div>
       </div>
     </div>

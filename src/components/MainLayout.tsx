@@ -10,7 +10,7 @@ import {
 } from '../state/workspace';
 import { createMediaQuery } from '@solid-primitives/media';
 import { A, useLocation, type RouteSectionProps } from '@solidjs/router';
-import TreeView from './TreeView';
+import TreeView from './treeview/TreeView';
 import ProjectList from './ProjectList';
 import ModalContainer from './modal/ModalContainer';
 import { s } from '../lib/i18n';

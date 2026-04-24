@@ -41,6 +41,26 @@ const AboutPage: Component = () => {
         </tbody>
       </table>
       <hr class="separator-line" />
+      <h3 class="m-0">Privacy</h3>
+      <p class="opacity-60 text-sm">
+        Baekji collects no data. Everything you write is stored only on this
+        device using IndexedDB — no servers, no analytics, no third parties.
+      </p>
+      <p class="opacity-60 text-sm">
+        If you clear your browser data, your content will be permanently lost.
+        Use the backup feature regularly. When you export or share files, that
+        data leaves the app and is outside our control.
+      </p>
+      <p class="text-sm">
+        <a
+          href="https://github.com/lumiknit/baekji/blob/master/PRIVACY.md"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Full privacy policy →
+        </a>
+      </p>
+      <hr class="separator-line" />
       <div class="flex gap-8">
         <A href="/" class="btn-skeleton">
           ← Home

@@ -54,14 +54,12 @@
   bottom: var(--sp-4);
   right: var(--sp-4);
   padding: var(--sp-1) var(--sp-3);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
   font-size: var(--fs-xs);
   z-index: var(--z-toolbar);
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  opacity: 0.5;
 }
 
 @property --gauge-pct {
@@ -89,10 +87,6 @@
   to {
     --gauge-pct: 100%;
   }
-}
-
-.editor-saved-time {
-  font-family: var(--font-mono);
 }
 
 .editor-stats-btn {

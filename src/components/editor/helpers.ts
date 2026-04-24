@@ -10,14 +10,20 @@ import {
   wrappingInputRule,
 } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
-import type { MarkType, Node } from 'prosemirror-model';
+import type { MarkType } from 'prosemirror-model';
 import { liftListItem, sinkListItem } from 'prosemirror-schema-list';
 import { Plugin } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 import type { MdRules } from '../../state/settings';
-import { pmSchema, pmSerializer } from '../../lib/doc/pm';
+import {
+  pmSchema,
+  pmSerializer,
+  extractDocLabel,
+  calcStats,
+} from '../../lib/pm_content';
 
-export { pmSchema, pmSerializer };
+export { pmSchema, pmSerializer, extractDocLabel, calcStats };
+export type { DocStats } from '../../lib/pm_content';
 
 // ─── Input Rules ─────────────────────────────────────────────
 
@@ -147,47 +153,4 @@ export function buildPlugins(placeholder: string, rules: MdRules): Plugin[] {
     }),
     keymap(baseKeymap),
   ];
-}
-
-// ─── Stats ───────────────────────────────────────────────────
-
-export interface DocStats {
-  chars: number;
-  words: number;
-}
-
-interface WalkState extends DocStats {
-  inWord: boolean;
-}
-
-function walkJSON(node: any, s: WalkState): void {
-  if (typeof node.text === 'string') {
-    for (const ch of node.text as string) {
-      if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
-        s.inWord = false;
-      } else {
-        s.chars++;
-        if (!s.inWord) {
-          s.words++;
-          s.inWord = true;
-        }
-      }
-    }
-  } else if (Array.isArray(node.content)) {
-    for (const child of node.content) walkJSON(child, s);
-  }
-}
-
-export function calcStats(docJSON: unknown): DocStats {
-  const s: WalkState = { chars: 0, words: 0, inWord: false };
-  walkJSON(docJSON, s);
-  return { chars: s.chars, words: s.words };
-}
-
-export function extractDocLabel(doc: Node, maxLen = 200): string {
-  const size = doc.content.size;
-  return doc
-    .textBetween(0, Math.min(size, maxLen * 4), ' ')
-    .trim()
-    .slice(0, maxLen);
 }

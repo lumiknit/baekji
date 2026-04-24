@@ -62,10 +62,12 @@
     "placeholder": "무엇을 적어볼까요…",
     "size": "{{count}}c",
     "saveBusy": "저장 중입니다. 잠시 후 다시 시도해 주세요.",
+    "saveFailed": "저장에 실패했습니다. 데이터가 손실될 수 있습니다.",
     "deltaCorrupt": "일부 편집 기록을 불러오지 못했습니다. 내용이 불완전할 수 있습니다.",
     "selectTextFirst": "링크를 적용할 텍스트를 선택해 주세요.",
     "insertImage": "이미지 삽입",
-    "altText": "대체 텍스트 (선택)"
+    "altText": "대체 텍스트 (선택)",
+    "split": "분할"
   },
   "modal": {
     "rename_title": "이름 변경",
@@ -76,6 +78,8 @@
     "include_hidden": "숨김 항목 포함 (.으로 시작)",
     "format": "형식",
     "hidden_hint": "이름이 .으로 시작하면 숨김 그룹으로 처리됩니다.",
+    "split_title": "시트 분할",
+    "split_confirm": "현재 커서 위치를 기준으로 시트를 둘로 나눕니다. 기존 시트는 삭제됩니다.",
     "link_title": "링크",
     "link_open": "이동",
     "image_title": "이미지",
@@ -167,7 +171,13 @@
     "delete_selected_confirm": "{{count}}개 항목을 삭제하시겠습니까?",
     "deselect": "선택 해제",
     "expand_all": "모두 펼치기",
-    "collapse_all": "모두 접기"
+    "collapse_all": "모두 접기",
+    "merge_title": "합치기",
+    "merge_to_sheet": "시트로 합치기",
+    "merge_down": "아래 시트와 합치기",
+    "merge_group_confirm": "\"{{label}}\" 그룹의 모든 시트를 하나의 시트로 합칩니다. 기존 그룹은 삭제됩니다.",
+    "merge_down_confirm": "\"{{a}}\"와 \"{{b}}\"를 하나의 시트로 합칩니다.",
+    "merge_no_next": "아래에 합칠 시트가 없습니다."
   },
   "analysis": {
     "include_spaces": "공백 포함",
