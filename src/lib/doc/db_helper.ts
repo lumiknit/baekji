@@ -118,7 +118,6 @@ export async function softSave(
   }
 
   await putSheetDelta({ contentId: content.id, seq, steps, selection });
-  console.log('Soft save');
 }
 
 // ─── Hard Save ────────────────────────────────────────────────
@@ -157,8 +156,6 @@ export async function hardSave(
   };
 
   await updateSheetSnapshotAtomic(newContent);
-  console.log('Hard save');
-
   return { markdown, autoLabel: getShortLabel(markdown) };
 }
 

@@ -8,7 +8,7 @@ import { initI18n } from './lib/i18n';
 
 const root = document.getElementById('root');
 
-// i18n 초기화 후 렌더링
+// Render after i18n is ready
 initI18n().then(() => {
   render(() => <App />, root!);
 });

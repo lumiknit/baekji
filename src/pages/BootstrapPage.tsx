@@ -5,6 +5,7 @@ import localforage from 'localforage';
 import { getAllVersionRoots, getNode } from '../lib/doc/db';
 import { s } from '../lib/i18n';
 import { setActivePjVerId } from '../state/workspace';
+import { createProject } from '../lib/doc/db_helper';
 
 const WELCOMED_KEY = 'baekji-welcomed';
 
@@ -43,7 +44,6 @@ const BootstrapPage: Component = () => {
       navigate(`/nodes/${firstSheetId}`, { replace: true });
       return;
     } else {
-      const { createProject } = await import('../lib/doc/db_helper');
       const result = await createProject(s('home.default_project_name'));
       pjVerId = result.pjVerId;
     }

@@ -32,7 +32,7 @@ sw.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTTP 혹은 HTTPS 요청만 처리
+  // Only handle HTTP/HTTPS requests
   if (!req.url.startsWith('http')) {
     return;
   }
@@ -42,7 +42,7 @@ sw.addEventListener('fetch', (event) => {
       try {
         const networkResponse = await fetch(req);
 
-        // 200 응답인 경우 캐시 저장
+        // Cache successful responses
         if (networkResponse && networkResponse.status === 200) {
           const cache = await caches.open(CACHE_NAME);
           cache.put(req, networkResponse.clone());
@@ -50,7 +50,7 @@ sw.addEventListener('fetch', (event) => {
 
         return networkResponse;
       } catch (error) {
-        // 네트워크 연결 실패 시 캐시에서 확인 (Network First, fallback to Cache)
+        // Network first, fallback to cache
         const cachedResponse = await caches.match(req);
         if (cachedResponse) {
           return cachedResponse;

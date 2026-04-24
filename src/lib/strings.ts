@@ -14,7 +14,7 @@ export const dedent = (
 
   const indent = Math.min(
     ...lines
-      .filter((line) => line.trim()) // 빈 줄 제외
+      .filter((line) => line.trim())
       .map((line) => line.match(/^(\s*)/)![1].length),
   );
 

@@ -3,7 +3,7 @@ import { collectText } from './db_helper';
 
 const mdit = new MarkdownIt({ html: false, linkify: true, typographer: true });
 
-// ─── 파일명 유틸 ──────────────────────────────────────────────
+// ─── Filename Utilities ───────────────────────────────────────
 
 export function sanitizeFilename(name: string): string {
   return name.slice(0, 128).replace(/[{}\x00-\x20\\/:*?"<>|_]+/g, '_');
@@ -19,7 +19,7 @@ export function timestampSuffix(): string {
   );
 }
 
-// ─── 다운로드 / 공유 ──────────────────────────────────────────
+// ─── Download / Share ─────────────────────────────────────────
 
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
