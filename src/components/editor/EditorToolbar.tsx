@@ -18,6 +18,7 @@ import {
   TbOutlineLink,
   TbOutlineList,
   TbOutlineListNumbers,
+  TbOutlineMinus,
   TbOutlinePhoto,
   TbOutlineQuote,
   TbOutlineScissors,
@@ -366,6 +367,27 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
               </>
             ),
             onSelect: props.onImage,
+          },
+          { separator: true as const },
+          {
+            label: (
+              <>
+                <span class="icon">
+                  <TbOutlineMinus />
+                </span>{' '}
+                Horizontal rule
+              </>
+            ),
+            onSelect: () =>
+              props.onExec((state, dispatch) => {
+                const hr = state.schema.nodes.horizontal_rule;
+                if (!hr) return false;
+                if (dispatch)
+                  dispatch(
+                    state.tr.replaceSelectionWith(hr.create()).scrollIntoView(),
+                  );
+                return true;
+              }),
           },
         ]}
       />

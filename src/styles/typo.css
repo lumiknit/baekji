@@ -104,6 +104,12 @@
     text-decoration: underline;
     cursor: pointer;
   }
+
+  & hr {
+    border: none;
+    border-top: 1px solid var(--hr);
+    margin: 1.5em 0;
+  }
 }
 
 .typo--preview {

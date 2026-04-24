@@ -3,9 +3,10 @@ import { onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import localforage from 'localforage';
 import { getAllVersionRoots, getNode } from '../lib/doc/db';
-import { createProject } from '../lib/doc/db_helper';
 import { s } from '../lib/i18n';
 import { setActivePjVerId } from '../state/workspace';
+
+const WELCOMED_KEY = 'baekji-welcomed';
 
 const BootstrapPage: Component = () => {
   const navigate = useNavigate();
@@ -27,11 +28,28 @@ const BootstrapPage: Component = () => {
       )[0];
       setActivePjVerId(latest.id);
       navigate(`/nodes/${latest.id}`, { replace: true });
-    } else {
-      const { pjVerId } = await createProject(s('home.default_project_name'));
-      setActivePjVerId(pjVerId);
-      navigate(`/nodes/${pjVerId}`, { replace: true });
+      return;
     }
+
+    // First launch — no projects exist
+    const welcomed = await localforage.getItem<boolean>(WELCOMED_KEY);
+    let pjVerId: string;
+
+    if (!welcomed) {
+      await localforage.setItem(WELCOMED_KEY, true);
+      const { createWelcomeProject } = await import('../welcome/loader');
+      const { pjVerId: vid, firstSheetId } = await createWelcomeProject();
+      setActivePjVerId(vid);
+      navigate(`/nodes/${firstSheetId}`, { replace: true });
+      return;
+    } else {
+      const { createProject } = await import('../lib/doc/db_helper');
+      const result = await createProject(s('home.default_project_name'));
+      pjVerId = result.pjVerId;
+    }
+
+    setActivePjVerId(pjVerId);
+    navigate(`/nodes/${pjVerId}`, { replace: true });
   });
 
   return <div class="p-16">Loading...</div>;

@@ -11,6 +11,7 @@ import {
 } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
 import type { MarkType } from 'prosemirror-model';
+import { TextSelection } from 'prosemirror-state';
 import { liftListItem, sinkListItem } from 'prosemirror-schema-list';
 import { Plugin } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
@@ -43,10 +44,24 @@ const backslashEscapeRule = new InputRule(
     state.tr.replaceWith(start, end, pmSchema.text(match[1])),
 );
 
+const hrRule = new InputRule(
+  /^(_{3,}|—{2,}|—+-+|-{3,})$/,
+  (state, _match, start, end) => {
+    const hr = pmSchema.nodes.horizontal_rule.create();
+    const para = pmSchema.nodes.paragraph.create();
+    const tr = state.tr.replaceWith(start - 1, end, [hr, para]);
+    const pos = start - 1 + hr.nodeSize + 1;
+    return tr.setSelection(
+      TextSelection.near(tr.doc.resolve(Math.min(pos, tr.doc.content.size))),
+    );
+  },
+);
+
 export function buildInputRules(rules: MdRules): Plugin {
   const r = rules;
   return inputRules({
     rules: [
+      hrRule,
       ...(r.backslashEscape ? [backslashEscapeRule] : []),
       ...(r.smartQuotes ? smartQuotes : []),
       ...(r.ellipsis ? [ellipsis, emDash] : []),

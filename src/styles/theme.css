@@ -11,6 +11,7 @@
   --text: #222;
   --text-bold: #000;
   --border: #eee;
+  --hr: #ccc;
   --color-l: 35%;
   --hl: #4a90d9;
 }
@@ -21,6 +22,7 @@
     --text: #ddd;
     --text-bold: #fff;
     --border: #222;
+    --hr: #444;
     --color-l: 70%;
     --hl: #5ba3e8;
   }
@@ -32,6 +34,7 @@
   --text: #222;
   --text-bold: #000;
   --border: #eee;
+  --hr: #ccc;
   --color-l: 35%;
   --hl: #4a90d9;
 }
@@ -41,6 +44,7 @@
   --text: #586e75;
   --text-bold: #073642;
   --border: #e8dfc8;
+  --hr: #c8bfa0;
   --color-l: 40%;
   --hl: #cb8a3e;
 }
@@ -50,6 +54,7 @@
   --text: #4a6278;
   --text-bold: #1e3a50;
   --border: #ccdae6;
+  --hr: #a8c0d4;
   --color-l: 38%;
   --hl: #3a7abf;
 }
@@ -59,6 +64,7 @@
   --text: #ddd;
   --text-bold: #fff;
   --border: #222;
+  --hr: #444;
   --color-l: 70%;
   --hl: #5ba3e8;
 }
@@ -68,6 +74,7 @@
   --text: #baa892;
   --text-bold: #d5c5a8;
   --border: #302622;
+  --hr: #504038;
   --color-l: 65%;
   --hl: #d4955a;
 }
@@ -77,6 +84,7 @@
   --text: #b8c9d9;
   --text-bold: #dce8f0;
   --border: #2d3f52;
+  --hr: #3d5570;
   --color-l: 65%;
   --hl: #5b9fd4;
 }
@@ -88,6 +96,7 @@
     --text: #222;
     --text-bold: #000;
     --border: #eee;
+    --hr: #ccc;
     --color-l: 35%;
     --hl: #4a90d9;
   }
@@ -97,6 +106,7 @@
     --text: #657b83;
     --text-bold: #073642;
     --border: #e8dfc8;
+    --hr: #c8bfa0;
     --color-l: 40%;
     --hl: #cb8a3e;
   }
@@ -106,6 +116,7 @@
     --text: #4a6278;
     --text-bold: #1e3a50;
     --border: #ccdae6;
+    --hr: #a8c0d4;
     --color-l: 38%;
     --hl: #3a7abf;
   }
@@ -118,6 +129,7 @@
     --text: #ddd;
     --text-bold: #fff;
     --border: #222;
+    --hr: #444;
     --color-l: 70%;
     --hl: #5ba3e8;
   }
@@ -127,6 +139,7 @@
     --text: #baa892;
     --text-bold: #d5c5a8;
     --border: #302622;
+    --hr: #504038;
     --color-l: 65%;
     --hl: #d4955a;
   }
@@ -136,6 +149,7 @@
     --text: #b8c9d9;
     --text-bold: #dce8f0;
     --border: #2d3f52;
+    --hr: #3d5570;
     --color-l: 65%;
     --hl: #5b9fd4;
   }
