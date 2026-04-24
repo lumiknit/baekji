@@ -156,10 +156,14 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
           <h1 class="flex items-center gap-8">
             <Switch>
               <Match when={isRoot()}>
-                <TbOutlineFolderRoot />
+                <span class="icon">
+                  <TbOutlineFolderRoot />
+                </span>
               </Match>
               <Match when={!isRoot()}>
-                <TbOutlineFolder />
+                <span class="icon">
+                  <TbOutlineFolder />
+                </span>
               </Match>
             </Switch>
             <span>{label() || s('common.untitled')}</span>
@@ -170,19 +174,31 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
 
         <div class="page-toolbar">
           <button class="btn-border" onClick={handleRename}>
-            <TbOutlinePencil /> {s('common.rename')}
+            <span class="icon">
+              <TbOutlinePencil />
+            </span>{' '}
+            {s('common.rename')}
           </button>
           <button class="btn-border" onClick={() => showExport(props.nodeId)}>
-            <TbOutlineDeviceFloppy /> {s('common.export')}
+            <span class="icon">
+              <TbOutlineDeviceFloppy />
+            </span>{' '}
+            {s('common.export')}
           </button>
           <button class="btn-border" onClick={importFile}>
-            <TbOutlineFileImport /> {s('common.import_file')}
+            <span class="icon">
+              <TbOutlineFileImport />
+            </span>{' '}
+            {s('common.import_file')}
           </button>
           <button
             class="btn-border"
             onClick={() => navigate(`/nodes/${props.nodeId}/analysis`)}
           >
-            <TbOutlineChartBar /> {s('common.analysis')}
+            <span class="icon">
+              <TbOutlineChartBar />
+            </span>{' '}
+            {s('common.analysis')}
           </button>
           <Show when={isRoot()}>
             <button
@@ -191,10 +207,16 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
                 showBackup(meta()?.pjVerId ?? '', meta()?.label ?? '')
               }
             >
-              <TbOutlineFileExport /> {s('common.backup_download')}
+              <span class="icon">
+                <TbOutlineFileExport />
+              </span>{' '}
+              {s('common.backup_download')}
             </button>
             <button class="btn-border btn-danger" onClick={handleDelete}>
-              <TbFillTrash /> {s('common.delete')}
+              <span class="icon">
+                <TbFillTrash />
+              </span>{' '}
+              {s('common.delete')}
             </button>
           </Show>
         </div>
@@ -228,7 +250,9 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
                     >
                       <div class="card-title">
                         <Show when={c().type === 'group'}>
-                          <TbOutlineFolder />
+                          <span class="icon">
+                            <TbOutlineFolder />
+                          </span>
                         </Show>
                         <span
                           class="card-label"
@@ -253,12 +277,16 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
           </For>
 
           <button class="card card-add" onClick={() => addChild('sheet')}>
-            <TbOutlineFilePlus />
+            <span class="icon">
+              <TbOutlineFilePlus />
+            </span>
             <span>{s('common.add_sheet')}</span>
           </button>
 
           <button class="card card-add" onClick={() => addChild('group')}>
-            <TbOutlineFolderPlus />
+            <span class="icon">
+              <TbOutlineFolderPlus />
+            </span>
             <span>{s('common.add_group')}</span>
           </button>
         </div>

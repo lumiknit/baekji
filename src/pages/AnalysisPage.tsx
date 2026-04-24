@@ -188,10 +188,14 @@ const AnalysisPage: Component = () => {
                     >
                       <Switch>
                         <Match when={row.type === 'group'}>
-                          <TbFillFolderOpen />
+                          <span class="icon">
+                            <TbFillFolderOpen />
+                          </span>
                         </Match>
                         <Match when={row.type === 'sheet'}>
-                          <TbOutlineFile />
+                          <span class="icon">
+                            <TbOutlineFile />
+                          </span>
                         </Match>
                       </Switch>
                       {row.label}

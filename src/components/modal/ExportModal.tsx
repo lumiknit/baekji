@@ -102,17 +102,23 @@ const ExportModal: Component<Props> = (props) => {
           onClick={handlePreview}
           title={s('stats.preview')}
         >
-          <TbOutlineEye />
+          <span class="icon">
+            <TbOutlineEye />
+          </span>
         </button>
         <button class="btn-border" onClick={handlePrint} title="Print">
-          <TbOutlinePrinter />
+          <span class="icon">
+            <TbOutlinePrinter />
+          </span>
         </button>
         <button
           class="btn-border"
           onClick={handleShare}
           title={s('common.share')}
         >
-          <TbOutlineShare />
+          <span class="icon">
+            <TbOutlineShare />
+          </span>
         </button>
       </div>
 
@@ -121,7 +127,10 @@ const ExportModal: Component<Props> = (props) => {
           {s('common.cancel')}
         </button>
         <button class="btn-primary" onClick={handleDownload}>
-          <TbOutlineDeviceFloppy /> {s('common.download')}
+          <span class="icon">
+            <TbOutlineDeviceFloppy />
+          </span>{' '}
+          {s('common.download')}
         </button>
       </div>
     </>

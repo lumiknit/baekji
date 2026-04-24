@@ -275,10 +275,14 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                 >
                   <Switch>
                     <Match when={isOpen()}>
-                      <TbFillFolderOpen />
+                      <span class="icon">
+                        <TbFillFolderOpen />
+                      </span>
                     </Match>
                     <Match when={!isOpen()}>
-                      <TbOutlineFolder />
+                      <span class="icon">
+                        <TbOutlineFolder />
+                      </span>
                     </Match>
                   </Switch>
                 </button>
@@ -291,7 +295,9 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                     color: labelColor(),
                   }}
                 >
-                  <TbOutlineFile />
+                  <span class="icon">
+                    <TbOutlineFile />
+                  </span>
                 </span>
               </Match>
             </Switch>
@@ -328,14 +334,21 @@ const TreeItem: Component<TreeItemProps> = (props) => {
               <Dropdown
                 class="tree-actions"
                 align="right"
-                trigger={<TbOutlineDotsVertical />}
+                trigger={
+                  <span class="icon">
+                    <TbOutlineDotsVertical />
+                  </span>
+                }
                 items={[
                   ...(n().type === 'group'
                     ? [
                         {
                           label: (
                             <>
-                              <TbOutlineFilePlus /> {s('common.new_sheet')}
+                              <span class="icon">
+                                <TbOutlineFilePlus />
+                              </span>{' '}
+                              {s('common.new_sheet')}
                             </>
                           ),
                           onSelect: () => addChild('sheet'),
@@ -343,7 +356,10 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                         {
                           label: (
                             <>
-                              <TbOutlineFolderPlus /> {s('common.new_group')}
+                              <span class="icon">
+                                <TbOutlineFolderPlus />
+                              </span>{' '}
+                              {s('common.new_group')}
                             </>
                           ),
                           onSelect: () => addChild('group'),
@@ -351,7 +367,10 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                         {
                           label: (
                             <>
-                              <TbOutlineFileImport /> {s('common.import_file')}
+                              <span class="icon">
+                                <TbOutlineFileImport />
+                              </span>{' '}
+                              {s('common.import_file')}
                             </>
                           ),
                           onSelect: () => importFile(props.id),
@@ -362,7 +381,10 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                   {
                     label: (
                       <>
-                        <TbOutlineReportAnalytics /> {s('common.analysis')}
+                        <span class="icon">
+                          <TbOutlineReportAnalytics />
+                        </span>{' '}
+                        {s('common.analysis')}
                       </>
                     ),
                     onSelect: () => navigate(`/nodes/${props.id}/analysis`),
@@ -370,7 +392,10 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                   {
                     label: (
                       <>
-                        <TbOutlineDeviceFloppy /> {s('common.export')}
+                        <span class="icon">
+                          <TbOutlineDeviceFloppy />
+                        </span>{' '}
+                        {s('common.export')}
                       </>
                     ),
                     onSelect: () => showExport(props.id),
@@ -381,7 +406,10 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                         {
                           label: (
                             <>
-                              <TbOutlinePencil /> {s('common.rename')}
+                              <span class="icon">
+                                <TbOutlinePencil />
+                              </span>{' '}
+                              {s('common.rename')}
                             </>
                           ),
                           onSelect: renameNode,
@@ -391,7 +419,10 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                   {
                     label: (
                       <span class="btn-danger">
-                        <TbFillTrash /> {s('common.delete')}
+                        <span class="icon">
+                          <TbFillTrash />
+                        </span>{' '}
+                        {s('common.delete')}
                       </span>
                     ),
                     onSelect: handleDelete,
@@ -662,14 +693,18 @@ const TreeView: Component = () => {
                       clearSelection();
                     }}
                   >
-                    <TbFillTrash />
+                    <span class="icon">
+                      <TbFillTrash />
+                    </span>
                   </button>
                   <button
                     class="tree-toggle"
                     onClick={clearSelection}
                     title={s('tree.deselect')}
                   >
-                    <TbOutlineX />
+                    <span class="icon">
+                      <TbOutlineX />
+                    </span>
                   </button>
                 </div>
               </Show>
@@ -690,16 +725,25 @@ const TreeView: Component = () => {
                         onClick={() => navigate('/search')}
                         title={s('common.search')}
                       >
-                        <TbOutlineSearch />
+                        <span class="icon">
+                          <TbOutlineSearch />
+                        </span>
                       </button>
                       <Dropdown
                         align="right"
-                        trigger={<TbOutlineDotsVertical />}
+                        trigger={
+                          <span class="icon">
+                            <TbOutlineDotsVertical />
+                          </span>
+                        }
                         items={[
                           {
                             label: (
                               <>
-                                <TbOutlineFilePlus /> {s('common.new_sheet')}
+                                <span class="icon">
+                                  <TbOutlineFilePlus />
+                                </span>{' '}
+                                {s('common.new_sheet')}
                               </>
                             ),
                             onSelect: () => addRootChild('sheet'),
@@ -707,7 +751,10 @@ const TreeView: Component = () => {
                           {
                             label: (
                               <>
-                                <TbOutlineFolderPlus /> {s('common.new_group')}
+                                <span class="icon">
+                                  <TbOutlineFolderPlus />
+                                </span>{' '}
+                                {s('common.new_group')}
                               </>
                             ),
                             onSelect: () => addRootChild('group'),
@@ -715,7 +762,9 @@ const TreeView: Component = () => {
                           {
                             label: (
                               <>
-                                <TbOutlineFileImport />{' '}
+                                <span class="icon">
+                                  <TbOutlineFileImport />
+                                </span>{' '}
                                 {s('common.import_file')}
                               </>
                             ),
@@ -725,7 +774,9 @@ const TreeView: Component = () => {
                           {
                             label: (
                               <>
-                                <TbOutlineReportAnalytics />{' '}
+                                <span class="icon">
+                                  <TbOutlineReportAnalytics />
+                                </span>{' '}
                                 {s('common.analysis')}
                               </>
                             ),
@@ -735,7 +786,10 @@ const TreeView: Component = () => {
                           {
                             label: (
                               <>
-                                <TbOutlineFolderSearch /> {s('tree.expand_all')}
+                                <span class="icon">
+                                  <TbOutlineFolderSearch />
+                                </span>{' '}
+                                {s('tree.expand_all')}
                               </>
                             ),
                             onSelect: () =>
@@ -744,7 +798,9 @@ const TreeView: Component = () => {
                           {
                             label: (
                               <>
-                                <TbOutlineFolderMinus />{' '}
+                                <span class="icon">
+                                  <TbOutlineFolderMinus />
+                                </span>{' '}
                                 {s('tree.collapse_all')}
                               </>
                             ),
@@ -754,7 +810,10 @@ const TreeView: Component = () => {
                           {
                             label: (
                               <>
-                                <TbOutlineColorSwatch /> {s('common.color')}
+                                <span class="icon">
+                                  <TbOutlineColorSwatch />
+                                </span>{' '}
+                                {s('common.color')}
                               </>
                             ),
                             onSelect: () => setMode('color'),
@@ -763,7 +822,10 @@ const TreeView: Component = () => {
                           {
                             label: (
                               <>
-                                <TbOutlinePencil /> {s('common.rename')}
+                                <span class="icon">
+                                  <TbOutlinePencil />
+                                </span>{' '}
+                                {s('common.rename')}
                               </>
                             ),
                             onSelect: handleRenameProject,
@@ -777,7 +839,10 @@ const TreeView: Component = () => {
                     class="btn-border btn-sm"
                     onClick={() => setMode('normal')}
                   >
-                    <TbOutlineCheck /> {s('common.done')}
+                    <span class="icon">
+                      <TbOutlineCheck />
+                    </span>{' '}
+                    {s('common.done')}
                   </button>
                 </Show>
               </div>

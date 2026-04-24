@@ -72,6 +72,17 @@ textarea {
   color: var(--text);
 }
 
+span.icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+span.icon > svg {
+  font-size: 1.25em;
+  width: 1em;
+  height: 1em;
+}
+
 b,
 strong,
 h1,

@@ -44,7 +44,10 @@ const LinkModal: Component<Props> = (props) => {
           {s('common.cancel')}
         </button>
         <button class="btn-secondary" onClick={handleOpen}>
-          <TbOutlineExternalLink /> {s('modal.link_open')}
+          <span class="icon">
+            <TbOutlineExternalLink />
+          </span>{' '}
+          {s('modal.link_open')}
         </button>
         <button class="btn-primary" onClick={handleSave}>
           {s('common.save')}

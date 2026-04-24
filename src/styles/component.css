@@ -211,7 +211,6 @@
 .tree-row {
   display: flex;
   align-items: center;
-  gap: var(--sp-1);
   margin: 0 var(--sp-2);
   padding: var(--sp-2) 0;
   padding-left: calc(var(--tree-depth, 0) * 14px);

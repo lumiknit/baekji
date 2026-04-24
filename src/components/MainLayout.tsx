@@ -72,7 +72,10 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
       >
         <div class="sidebar-nav">
           <A href="/settings" class="btn-skeleton sidebar-nav-btn">
-            <TbFillSettings /> {s('common.settings')}
+            <span class="icon">
+              <TbFillSettings />
+            </span>{' '}
+            {s('common.settings')}
           </A>
           <button
             class={`btn-skeleton sidebar-nav-btn ${sidebarView() === 'projects' ? 'sidebar-view-toggle--active' : ''}`}
@@ -81,7 +84,10 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
             }
             title={s('sidebar.project_list')}
           >
-            <TbOutlineCarouselVertical /> {s('sidebar.project_list')}
+            <span class="icon">
+              <TbOutlineCarouselVertical />
+            </span>{' '}
+            {s('sidebar.project_list')}
           </button>
         </div>
         <div class="sidebar-content">
@@ -108,10 +114,14 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
       >
         <Switch>
           <Match when={isSidebarOpen()}>
-            <TbFillLayoutSidebarLeftCollapse />
+            <span class="icon">
+              <TbFillLayoutSidebarLeftCollapse />
+            </span>
           </Match>
           <Match when={!isSidebarOpen()}>
-            <TbOutlineLayoutSidebarLeftExpand />
+            <span class="icon">
+              <TbOutlineLayoutSidebarLeftExpand />
+            </span>
           </Match>
         </Switch>
       </button>

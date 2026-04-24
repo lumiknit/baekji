@@ -170,7 +170,11 @@ const ProjectList: Component = () => {
         />
         <Dropdown
           align="right"
-          trigger={<TbOutlineDotsVertical />}
+          trigger={
+            <span class="icon">
+              <TbOutlineDotsVertical />
+            </span>
+          }
           items={[
             {
               label: showInactive()
@@ -183,10 +187,16 @@ const ProjectList: Component = () => {
       </div>
       <div class="project-list-items">
         <button class="project-list-new-btn" onClick={createProject}>
-          <TbOutlinePlus /> {s('project.new_project')}
+          <span class="icon">
+            <TbOutlinePlus />
+          </span>{' '}
+          {s('project.new_project')}
         </button>
         <button class="project-list-new-btn" onClick={importBackup}>
-          <TbOutlineFileImport /> {s('home.backup_import')}
+          <span class="icon">
+            <TbOutlineFileImport />
+          </span>{' '}
+          {s('home.backup_import')}
         </button>
         <Show
           when={!allVersions.loading}
