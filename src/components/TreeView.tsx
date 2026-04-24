@@ -9,8 +9,11 @@ import {
   TbOutlineFileImport,
   TbOutlineFilePlus,
   TbOutlineFolder,
+  TbOutlineFolderMinus,
   TbOutlineFolderPlus,
+  TbOutlineFolderSearch,
   TbOutlinePencil,
+  TbOutlineReportAnalytics,
   TbOutlineSearch,
   TbOutlineX,
 } from 'solid-icons/tb';
@@ -47,6 +50,7 @@ import {
 import {
   isGroupOpen,
   isSidebarOpen,
+  setAllGroupsOpen,
   setGroupOpen,
   setSidebarView,
 } from '../state/workspace';
@@ -326,22 +330,6 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                 align="right"
                 trigger={<TbOutlineDotsVertical />}
                 items={[
-                  {
-                    label: (
-                      <>
-                        <TbOutlinePencil /> {s('common.rename')}
-                      </>
-                    ),
-                    onSelect: renameNode,
-                  },
-                  {
-                    label: (
-                      <>
-                        <TbOutlineDeviceFloppy /> {s('common.export')}
-                      </>
-                    ),
-                    onSelect: () => showExport(props.id),
-                  },
                   ...(n().type === 'group'
                     ? [
                         {
@@ -367,6 +355,36 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                             </>
                           ),
                           onSelect: () => importFile(props.id),
+                        },
+                        { separator: true as const },
+                      ]
+                    : []),
+                  {
+                    label: (
+                      <>
+                        <TbOutlineReportAnalytics /> {s('common.analysis')}
+                      </>
+                    ),
+                    onSelect: () => navigate(`/nodes/${props.id}/analysis`),
+                  },
+                  {
+                    label: (
+                      <>
+                        <TbOutlineDeviceFloppy /> {s('common.export')}
+                      </>
+                    ),
+                    onSelect: () => showExport(props.id),
+                  },
+                  { separator: true as const },
+                  ...(n().type === 'group'
+                    ? [
+                        {
+                          label: (
+                            <>
+                              <TbOutlinePencil /> {s('common.rename')}
+                            </>
+                          ),
+                          onSelect: renameNode,
                         },
                       ]
                     : []),
@@ -681,14 +699,6 @@ const TreeView: Component = () => {
                           {
                             label: (
                               <>
-                                <TbOutlinePencil /> {s('common.rename')}
-                              </>
-                            ),
-                            onSelect: handleRenameProject,
-                          },
-                          {
-                            label: (
-                              <>
                                 <TbOutlineFilePlus /> {s('common.new_sheet')}
                               </>
                             ),
@@ -711,6 +721,36 @@ const TreeView: Component = () => {
                             ),
                             onSelect: importRootFile,
                           },
+                          { separator: true as const },
+                          {
+                            label: (
+                              <>
+                                <TbOutlineReportAnalytics />{' '}
+                                {s('common.analysis')}
+                              </>
+                            ),
+                            onSelect: () =>
+                              navigate(`/nodes/${p().pjVerId}/analysis`),
+                          },
+                          {
+                            label: (
+                              <>
+                                <TbOutlineFolderSearch /> {s('tree.expand_all')}
+                              </>
+                            ),
+                            onSelect: () =>
+                              setAllGroupsOpen(projectTree.nodes, true),
+                          },
+                          {
+                            label: (
+                              <>
+                                <TbOutlineFolderMinus />{' '}
+                                {s('tree.collapse_all')}
+                              </>
+                            ),
+                            onSelect: () =>
+                              setAllGroupsOpen(projectTree.nodes, false),
+                          },
                           {
                             label: (
                               <>
@@ -718,6 +758,15 @@ const TreeView: Component = () => {
                               </>
                             ),
                             onSelect: () => setMode('color'),
+                          },
+                          { separator: true as const },
+                          {
+                            label: (
+                              <>
+                                <TbOutlinePencil /> {s('common.rename')}
+                              </>
+                            ),
+                            onSelect: handleRenameProject,
                           },
                         ]}
                       />

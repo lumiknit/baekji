@@ -65,6 +65,17 @@ export function setGroupOpen(groupId: string, open: boolean): void {
   setGroupOpenState((prev) => ({ ...prev, [groupId]: open }));
 }
 
+export function setAllGroupsOpen(
+  nodes: Record<string, { type: string }>,
+  open: boolean,
+): void {
+  const patch: Record<string, boolean> = {};
+  for (const [id, node] of Object.entries(nodes)) {
+    if (node.type === 'group') patch[id] = open;
+  }
+  setGroupOpenState((prev) => ({ ...prev, ...patch }));
+}
+
 export function isGroupOpen(groupId: string, defaultOpen = false): boolean {
   const v = groupOpenState()[groupId];
   return v === undefined ? defaultOpen : v;

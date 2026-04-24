@@ -15,8 +15,10 @@ import {
   TbOutlineIndentDecrease,
   TbOutlineIndentIncrease,
   TbOutlineItalic,
+  TbOutlineLink,
   TbOutlineList,
   TbOutlineListNumbers,
+  TbOutlinePhoto,
   TbOutlineQuote,
   TbOutlineSourceCode,
   TbOutlineStrikethrough,
@@ -200,6 +202,8 @@ export interface EditorToolbarProps {
   onRedo: () => void;
   onExec: (cmd: Cmd) => void;
   onSave: () => void;
+  onLink: () => void;
+  onImage: () => void;
 }
 
 const EditorToolbar: Component<EditorToolbarProps> = (props) => {
@@ -264,6 +268,29 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
       <Dropdown trigger={<TbOutlineDots />} items={charStyleDropdownItems()} />
 
       <div class="separator" />
+
+      {/* Link / Image dropdown */}
+      <Dropdown
+        trigger={<TbOutlineLink />}
+        items={[
+          {
+            label: (
+              <>
+                <TbOutlineLink /> Link
+              </>
+            ),
+            onSelect: props.onLink,
+          },
+          {
+            label: (
+              <>
+                <TbOutlinePhoto /> Image
+              </>
+            ),
+            onSelect: props.onImage,
+          },
+        ]}
+      />
 
       {/* Block style */}
       <Dropdown

@@ -3,6 +3,8 @@ import { Show } from 'solid-js';
 import { modalState, closeModal } from '../../state/modal';
 import ConfirmModal from './ConfirmModal';
 import NameInputModal from './NameInputModal';
+import LinkModal from './LinkModal';
+import ImageModal from './ImageModal';
 import ExportModal from './ExportModal';
 import BackupModal from './BackupModal';
 import ImportCompareModal from './ImportCompareModal';
@@ -21,6 +23,15 @@ const ModalContainer: Component = () => {
                 title={state().title}
                 message={state().message}
                 defaultValue={state().defaultValue}
+              />
+            </Show>
+            <Show when={state().type === 'link'}>
+              <LinkModal defaultValue={state().defaultValue} />
+            </Show>
+            <Show when={state().type === 'image'}>
+              <ImageModal
+                src={state().imageMeta?.src}
+                alt={state().imageMeta?.alt}
               />
             </Show>
             <Show when={state().type === 'export'}>

@@ -63,6 +63,14 @@
   font-weight: 600;
 }
 
+.modal-label {
+  display: block;
+  font-size: var(--fs-sm);
+  color: var(--text);
+  margin-top: var(--sp-2);
+  margin-bottom: var(--sp-1);
+}
+
 .modal-input {
   width: 100%;
   padding: var(--sp-2);

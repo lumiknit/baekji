@@ -41,8 +41,10 @@ export async function createProject(label: string): Promise<NewProjectIds> {
 
 /** Extracts a short label from markdown text (first non-empty line, stripped of heading markers). */
 export function getShortLabel(markdown: string): string {
-  const firstLine = markdown.split('\n').find((l) => l.trim()) ?? '';
-  return firstLine.replace(/^#+\s*/, '').slice(0, 60);
+  return markdown
+    .replace(/^#+\s*/m, '')
+    .trim()
+    .slice(0, 200);
 }
 
 // ─── Load Sheet State ─────────────────────────────────────────

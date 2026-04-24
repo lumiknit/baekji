@@ -60,9 +60,12 @@
     "chars": "{{count}} chars",
     "words": "{{count}} words",
     "placeholder": "What's on your mind…",
-    "size": "{{count}} ch",
+    "size": "{{count}}c",
     "saveBusy": "Save in progress. Please try again in a moment.",
-    "deltaCorrupt": "Some edit history could not be loaded. Content may be incomplete."
+    "deltaCorrupt": "Some edit history could not be loaded. Content may be incomplete.",
+    "selectTextFirst": "Please select text to apply a link.",
+    "insertImage": "Insert Image",
+    "altText": "Alt text (optional)"
   },
   "modal": {
     "rename_title": "Rename",
@@ -72,7 +75,13 @@
     "download_title": "Download Content",
     "include_hidden": "Include Hidden (starting with .)",
     "format": "Format",
-    "hidden_hint": "Names starting with . are treated as hidden groups."
+    "hidden_hint": "Names starting with . are treated as hidden groups.",
+    "link_title": "Link",
+    "link_open": "Open",
+    "image_title": "Image",
+    "image_url": "URL",
+    "image_alt": "Alt text",
+    "image_alt_placeholder": "Leave empty to omit"
   },
   "stats": {
     "characters": "Characters",
@@ -156,7 +165,9 @@
     "view_list": "View List",
     "selected_count": "{{count}} selected",
     "delete_selected_confirm": "Delete {{count}} items?",
-    "deselect": "Deselect"
+    "deselect": "Deselect",
+    "expand_all": "Expand all",
+    "collapse_all": "Collapse all"
   },
   "analysis": {
     "include_spaces": "Include spaces",

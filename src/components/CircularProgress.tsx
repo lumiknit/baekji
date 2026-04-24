@@ -25,7 +25,11 @@ const CircularProgress: Component<Props> = (props) => {
     if (animation) animation.cancel();
 
     animation = circleRef.animate(
-      [{ strokeDashoffset: circumference }, { strokeDashoffset: 0 }],
+      [
+        { strokeDashoffset: circumference },
+        { strokeDashoffset: circumference, offset: 0.15 },
+        { strokeDashoffset: 0 },
+      ],
       {
         duration: ms,
         easing: 'linear',

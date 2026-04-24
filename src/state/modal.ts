@@ -3,6 +3,8 @@ import { createSignal } from 'solid-js';
 export type ModalType =
   | 'confirm'
   | 'prompt'
+  | 'link'
+  | 'image'
   | 'export'
   | 'backup'
   | 'import-compare'
@@ -24,6 +26,7 @@ interface ModalState {
   title: string;
   message: string;
   defaultValue?: string;
+  imageMeta?: { src: string; alt: string };
   nodeId?: string;
   pjVerId?: string;
   projectLabel?: string;
@@ -91,6 +94,39 @@ export const showImportCompare = (
       title: '',
       message: '',
       importCompareMeta: { existing, incoming },
+      resolve,
+    });
+  });
+};
+
+export function normalizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+export const showImage = (
+  meta: { src: string; alt: string } = { src: '', alt: '' },
+): Promise<{ src: string; alt: string } | null> => {
+  return new Promise((resolve) => {
+    setModalState({
+      type: 'image',
+      title: '',
+      message: '',
+      imageMeta: meta,
+      resolve,
+    });
+  });
+};
+
+export const showLink = (defaultValue = ''): Promise<string | null> => {
+  return new Promise((resolve) => {
+    setModalState({
+      type: 'link',
+      title: '',
+      message: '',
+      defaultValue,
       resolve,
     });
   });

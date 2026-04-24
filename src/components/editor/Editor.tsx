@@ -18,11 +18,12 @@ import { s } from '../../lib/i18n';
 import { updateSheetMeta } from '../../state/project_tree';
 import { settings } from '../../state/settings';
 import CircularProgress from '../CircularProgress';
-import { buildPlugins, pmSchema } from './helpers';
+import { buildPlugins, extractDocLabel, pmSchema } from './helpers';
 import { formatCompact } from '../../lib/number';
 import { buildOptimizedStepJSONs } from './step_helper';
 import toast from 'solid-toast';
 import EditorToolbar from './EditorToolbar';
+import { showImage, showLink } from '../../state/modal';
 
 import 'prosemirror-view/style/prosemirror.css';
 
@@ -41,6 +42,9 @@ const Editor: Component<EditorProps> = (props) => {
   // Step buffer for soft save
   let stepBuffer: Step[] = [];
   let currentSeq = 0;
+  let deltaStepCount = 0;
+
+  const DELTA_HARD_SAVE_THRESHOLD = 256;
 
   const [sheet] = createResource(
     () => props.sheetId,
@@ -87,12 +91,7 @@ const Editor: Component<EditorProps> = (props) => {
     const { anchor, head } = view.state.selection;
     const { node } = data;
     const doc = view.state.doc;
-    const rawLabel =
-      doc
-        .textBetween(0, Math.min(doc.content.size, 500), '\n')
-        .split('\n')
-        .find((l) => l.trim()) ?? '';
-    const autoLabel = rawLabel.trim().slice(0, 60);
+    const autoLabel = extractDocLabel(doc);
     const now = new Date().toISOString();
 
     saveInFlight = true;
@@ -100,12 +99,16 @@ const Editor: Component<EditorProps> = (props) => {
     void (async () => {
       try {
         await softSave(node.id, steps, { anchor, head }, seq);
+        deltaStepCount += steps.length;
         if (autoLabel && autoLabel !== node.label) {
           await putNode({ ...node, label: autoLabel, updatedAt: now });
           updateSheetMeta(node.id, autoLabel, autoLabel);
         }
         setIsDirty(false);
         setLastSaved(new Date());
+        if (deltaStepCount >= DELTA_HARD_SAVE_THRESHOLD) {
+          freeze();
+        }
       } finally {
         saveInFlight = false;
       }
@@ -129,6 +132,7 @@ const Editor: Component<EditorProps> = (props) => {
     const now = new Date().toISOString();
 
     stepBuffer = []; // discard buffered steps — hard save uses full doc
+    deltaStepCount = 0;
     saveInFlight = true;
     setAutosaveEndTime(null);
     void (async () => {
@@ -177,6 +181,7 @@ const Editor: Component<EditorProps> = (props) => {
     // Restore seq state from loaded sheet
     currentSeq = data.state.nextSeq;
     stepBuffer = [];
+    deltaStepCount = 0;
 
     view.focus();
     view.dispatch(view.state.tr.scrollIntoView());
@@ -219,6 +224,65 @@ const Editor: Component<EditorProps> = (props) => {
           flushStepBuffer();
           return false;
         },
+      },
+      handleClick(v, pos) {
+        const linkMark = pmSchema.marks.link;
+        const $pos = v.state.doc.resolve(pos);
+        const link = $pos.marks().find((m) => m.type === linkMark);
+        if (!link) return false;
+
+        // Find range of this link mark
+        const doc = v.state.doc;
+        let from = pos,
+          to = pos;
+        while (
+          from > 0 &&
+          doc
+            .resolve(from - 1)
+            .marks()
+            .some(
+              (m) => m.type === linkMark && m.attrs.href === link.attrs.href,
+            )
+        )
+          from--;
+        while (
+          to < doc.content.size &&
+          doc
+            .resolve(to)
+            .marks()
+            .some(
+              (m) => m.type === linkMark && m.attrs.href === link.attrs.href,
+            )
+        )
+          to++;
+
+        void showLink(link.attrs.href as string).then((url) => {
+          if (url === null) return;
+          const tr = v.state.tr;
+          if (url === '') tr.removeMark(from, to, linkMark);
+          else tr.addMark(from, to, linkMark.create({ href: url }));
+          v.dispatch(tr);
+          v.focus();
+        });
+        return true;
+      },
+      handleDoubleClick(v, pos) {
+        const node = v.state.doc.nodeAt(pos);
+        if (node?.type !== pmSchema.nodes.image) return false;
+        void showImage({
+          src: node.attrs.src as string,
+          alt: (node.attrs.alt as string) ?? '',
+        }).then((result) => {
+          if (!result) return;
+          v.dispatch(
+            v.state.tr.setNodeMarkup(pos, undefined, {
+              src: result.src,
+              alt: result.alt,
+            }),
+          );
+          v.focus();
+        });
+        return true;
       },
     });
 
@@ -272,6 +336,43 @@ const Editor: Component<EditorProps> = (props) => {
     }
   };
 
+  const handleLink = async () => {
+    if (!view) return;
+    const { from, to, empty } = view.state.selection;
+    if (empty) {
+      toast(s('editor.selectTextFirst'));
+      return;
+    }
+    const linkMark = pmSchema.marks.link;
+    let existingHref = '';
+    view.state.doc.nodesBetween(from, to, (node) => {
+      const mark = node.marks.find((m) => m.type === linkMark);
+      if (mark) existingHref = mark.attrs.href as string;
+    });
+    const url = await showLink(existingHref);
+    if (url === null) return;
+    const tr = view.state.tr;
+    if (url === '') {
+      tr.removeMark(from, to, linkMark);
+    } else {
+      tr.addMark(from, to, linkMark.create({ href: url }));
+    }
+    view.dispatch(tr);
+    view.focus();
+  };
+
+  const handleImage = async () => {
+    if (!view) return;
+    const result = await showImage();
+    if (!result) return;
+    const node = pmSchema.nodes.image.create({
+      src: result.src,
+      alt: result.alt,
+    });
+    view.dispatch(view.state.tr.replaceSelectionWith(node));
+    view.focus();
+  };
+
   return (
     <div class="editor-container">
       <EditorToolbar
@@ -282,6 +383,8 @@ const Editor: Component<EditorProps> = (props) => {
         onRedo={() => exec(redo)}
         onExec={exec}
         onSave={freeze}
+        onLink={handleLink}
+        onImage={handleImage}
       />
 
       <div ref={editorRef} class="prosemirror-editor typo" />

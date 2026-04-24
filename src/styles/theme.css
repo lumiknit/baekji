@@ -12,6 +12,7 @@
   --text-bold: #000;
   --border: #eee;
   --color-l: 35%;
+  --hl: #4a90d9;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,6 +22,7 @@
     --text-bold: #fff;
     --border: #222;
     --color-l: 70%;
+    --hl: #5ba3e8;
   }
 }
 
@@ -31,6 +33,7 @@
   --text-bold: #000;
   --border: #eee;
   --color-l: 35%;
+  --hl: #4a90d9;
 }
 
 .theme-light-warm {
@@ -39,6 +42,7 @@
   --text-bold: #073642;
   --border: #e8dfc8;
   --color-l: 40%;
+  --hl: #cb8a3e;
 }
 
 .theme-light-cool {
@@ -47,6 +51,7 @@
   --text-bold: #1e3a50;
   --border: #ccdae6;
   --color-l: 38%;
+  --hl: #3a7abf;
 }
 
 .theme-dark-default {
@@ -55,6 +60,7 @@
   --text-bold: #fff;
   --border: #222;
   --color-l: 70%;
+  --hl: #5ba3e8;
 }
 
 .theme-dark-warm {
@@ -63,6 +69,7 @@
   --text-bold: #d5c5a8;
   --border: #302622;
   --color-l: 65%;
+  --hl: #d4955a;
 }
 
 .theme-dark-cool {
@@ -71,6 +78,7 @@
   --text-bold: #dce8f0;
   --border: #2d3f52;
   --color-l: 65%;
+  --hl: #5b9fd4;
 }
 
 /* ── Light themes ────────────────────────────────── */
@@ -81,6 +89,7 @@
     --text-bold: #000;
     --border: #eee;
     --color-l: 35%;
+    --hl: #4a90d9;
   }
 
   :root.theme-light-warm {
@@ -89,6 +98,7 @@
     --text-bold: #073642;
     --border: #e8dfc8;
     --color-l: 40%;
+    --hl: #cb8a3e;
   }
 
   :root.theme-light-cool {
@@ -97,6 +107,7 @@
     --text-bold: #1e3a50;
     --border: #ccdae6;
     --color-l: 38%;
+    --hl: #3a7abf;
   }
 }
 
@@ -108,6 +119,7 @@
     --text-bold: #fff;
     --border: #222;
     --color-l: 70%;
+    --hl: #5ba3e8;
   }
 
   :root.theme-dark-warm {
@@ -116,6 +128,7 @@
     --text-bold: #d5c5a8;
     --border: #302622;
     --color-l: 65%;
+    --hl: #d4955a;
   }
 
   :root.theme-dark-cool {
@@ -124,5 +137,6 @@
     --text-bold: #dce8f0;
     --border: #2d3f52;
     --color-l: 65%;
+    --hl: #5b9fd4;
   }
 }

@@ -75,7 +75,7 @@ const AnalysisPage: Component = () => {
     for (const item of flat) {
       if (item.type === 'sheet') {
         const sc = await getSheetContent(item.id);
-        statsMap[item.id] = calcText(sc?.content ?? '', includeSpace());
+        statsMap[item.id] = calcText(sc?.markdown ?? '', includeSpace());
       }
     }
 

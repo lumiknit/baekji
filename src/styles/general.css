@@ -5,7 +5,9 @@
   /* Typography */
   --font-serif: serif;
   --font-sans: sans-serif;
-  --font-mono: monospace;
+  --font-mono:
+    'Jetbrains Mono', 'Cascadia Mono', 'Cascadia Code', Consolas, Menlo,
+    'Fira Code', 'Fira Mono', monospace;
 
   /* Typo settings (overridden by JS from user settings) */
   --typo-ff: sans-serif;

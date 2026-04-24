@@ -10,7 +10,7 @@ import {
   wrappingInputRule,
 } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
-import type { MarkType } from 'prosemirror-model';
+import type { MarkType, Node } from 'prosemirror-model';
 import { liftListItem, sinkListItem } from 'prosemirror-schema-list';
 import { Plugin } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
@@ -182,4 +182,12 @@ export function calcStats(docJSON: unknown): DocStats {
   const s: WalkState = { chars: 0, words: 0, inWord: false };
   walkJSON(docJSON, s);
   return { chars: s.chars, words: s.words };
+}
+
+export function extractDocLabel(doc: Node, maxLen = 200): string {
+  const size = doc.content.size;
+  return doc
+    .textBetween(0, Math.min(size, maxLen * 4), ' ')
+    .trim()
+    .slice(0, maxLen);
 }
