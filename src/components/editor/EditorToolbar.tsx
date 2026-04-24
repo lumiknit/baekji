@@ -43,7 +43,7 @@ type Cmd = (state: EditorState, dispatch: (tr: any) => void) => boolean;
 interface CharStyle {
   id: string;
   icon: () => JSX.Element;
-  label: string;
+  label: () => string;
   cmd: Cmd;
 }
 
@@ -61,7 +61,7 @@ const CHAR_STYLES: CharStyle[] = [
         <TbOutlineBold />
       </span>
     ),
-    label: 'Bold',
+    label: () => s('editor.bold'),
     cmd: toggleMark(pmSchema.marks.strong),
   },
   {
@@ -71,7 +71,7 @@ const CHAR_STYLES: CharStyle[] = [
         <TbOutlineItalic />
       </span>
     ),
-    label: 'Italic',
+    label: () => s('editor.italic'),
     cmd: toggleMark(pmSchema.marks.em),
   },
   {
@@ -81,7 +81,7 @@ const CHAR_STYLES: CharStyle[] = [
         <TbOutlineStrikethrough />
       </span>
     ),
-    label: 'Strikethrough',
+    label: () => s('editor.strikethrough'),
     cmd: toggleMark(pmSchema.marks.strikethrough),
   },
   {
@@ -91,7 +91,7 @@ const CHAR_STYLES: CharStyle[] = [
         <TbOutlineCode />
       </span>
     ),
-    label: 'Monospace',
+    label: () => s('editor.monospace'),
     cmd: toggleMark(pmSchema.marks.code),
   },
   {
@@ -101,7 +101,7 @@ const CHAR_STYLES: CharStyle[] = [
         <TbOutlineTextDecrease />
       </span>
     ),
-    label: 'Clear styles',
+    label: () => s('editor.clear_styles'),
     cmd: clearMarksCmd,
   },
 ];
@@ -162,7 +162,7 @@ const BLOCK_STYLE_ITEMS = (exec: (cmd: Cmd) => void): DropdownItem[] => [
         <span class="icon">
           <TbOutlineAlignJustified />
         </span>{' '}
-        Paragraph
+        {s('editor.paragraph')}
       </>
     ),
     onSelect: () => resetBlock(exec),
@@ -174,7 +174,7 @@ const BLOCK_STYLE_ITEMS = (exec: (cmd: Cmd) => void): DropdownItem[] => [
         <span class="icon">
           <TbOutlineList />
         </span>{' '}
-        Bullet list
+        {s('editor.bullet_list')}
       </>
     ),
     onSelect: () => execBlock(exec, wrapInList(pmSchema.nodes.bullet_list)),
@@ -185,7 +185,7 @@ const BLOCK_STYLE_ITEMS = (exec: (cmd: Cmd) => void): DropdownItem[] => [
         <span class="icon">
           <TbOutlineListNumbers />
         </span>{' '}
-        Ordered list
+        {s('editor.ordered_list')}
       </>
     ),
     onSelect: () => execBlock(exec, wrapInList(pmSchema.nodes.ordered_list)),
@@ -196,7 +196,7 @@ const BLOCK_STYLE_ITEMS = (exec: (cmd: Cmd) => void): DropdownItem[] => [
         <span class="icon">
           <TbOutlineIndentIncrease />
         </span>{' '}
-        Indent
+        {s('editor.indent')}
       </>
     ),
     onSelect: () => exec(sinkListItem(pmSchema.nodes.list_item)),
@@ -207,7 +207,7 @@ const BLOCK_STYLE_ITEMS = (exec: (cmd: Cmd) => void): DropdownItem[] => [
         <span class="icon">
           <TbOutlineIndentDecrease />
         </span>{' '}
-        Dedent
+        {s('editor.dedent')}
       </>
     ),
     onSelect: () => exec(liftListItem(pmSchema.nodes.list_item)),
@@ -219,7 +219,7 @@ const BLOCK_STYLE_ITEMS = (exec: (cmd: Cmd) => void): DropdownItem[] => [
         <span class="icon">
           <TbOutlineQuote />
         </span>{' '}
-        Quote
+        {s('editor.quote')}
       </>
     ),
     onSelect: () => execBlock(exec, wrapIn(pmSchema.nodes.blockquote)),
@@ -230,7 +230,7 @@ const BLOCK_STYLE_ITEMS = (exec: (cmd: Cmd) => void): DropdownItem[] => [
         <span class="icon">
           <TbOutlineSourceCode />
         </span>{' '}
-        Code block
+        {s('editor.code_block')}
       </>
     ),
     onSelect: () => execBlock(exec, setBlockType(pmSchema.nodes.code_block)),
@@ -265,7 +265,7 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
     CHAR_STYLES.map((style) => ({
       label: (
         <>
-          {style.icon()} {style.label}
+          {style.icon()} {style.label()}
         </>
       ),
       onSelect: () => execStyle(style),
@@ -301,7 +301,7 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
       {/* History */}
       <button
         onClick={props.onUndo}
-        title="Undo"
+        title={s('editor.undo')}
         style={{ opacity: props.canUndo ? '1' : '0.5' }}
       >
         <span class="icon">
@@ -310,7 +310,7 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
       </button>
       <button
         onClick={props.onRedo}
-        title="Redo"
+        title={s('editor.redo')}
         style={{ opacity: props.canRedo ? '1' : '0.5' }}
       >
         <span class="icon">
@@ -323,7 +323,7 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
       {/* Char style: last used + dropdown */}
       <button
         onClick={() => props.onExec(lastStyle().cmd)}
-        title={lastStyle().label}
+        title={lastStyle().label()}
       >
         {lastStyle().icon()}
       </button>
@@ -352,7 +352,7 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
                 <span class="icon">
                   <TbOutlineLink />
                 </span>{' '}
-                Link
+                {s('editor.link')}
               </>
             ),
             onSelect: props.onLink,
@@ -363,7 +363,7 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
                 <span class="icon">
                   <TbOutlinePhoto />
                 </span>{' '}
-                Image
+                {s('editor.image')}
               </>
             ),
             onSelect: props.onImage,
@@ -375,7 +375,7 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
                 <span class="icon">
                   <TbOutlineMinus />
                 </span>{' '}
-                Horizontal rule
+                {s('editor.horizontal_rule')}
               </>
             ),
             onSelect: () =>
