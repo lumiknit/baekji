@@ -1,10 +1,9 @@
 import type { Component, JSX } from 'solid-js';
 import { createSignal, For, onCleanup, Show } from 'solid-js';
 
-export interface DropdownItem {
-  label: string | JSX.Element;
-  onSelect: () => void;
-}
+export type DropdownItem =
+  | { label: string | JSX.Element; onSelect: () => void }
+  | { separator: true };
 
 interface DropdownProps {
   trigger: JSX.Element;
@@ -60,17 +59,21 @@ const Dropdown: Component<DropdownProps> = (props) => {
           class={`dropdown-menu ${props.align === 'right' ? 'dropdown-menu--right' : ''}`}
         >
           <For each={props.items}>
-            {(item) => (
-              <button
-                class="dropdown-item"
-                onClick={() => {
-                  item.onSelect();
-                  close();
-                }}
-              >
-                {item.label}
-              </button>
-            )}
+            {(item) =>
+              'separator' in item ? (
+                <div class="dropdown-separator" />
+              ) : (
+                <button
+                  class="dropdown-item"
+                  onClick={() => {
+                    item.onSelect();
+                    close();
+                  }}
+                >
+                  {item.label}
+                </button>
+              )
+            }
           </For>
         </div>
       </Show>

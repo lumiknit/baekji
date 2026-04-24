@@ -163,3 +163,9 @@ input[type='checkbox']:checked::before {
 .dropdown-item:hover {
   background: var(--border);
 }
+
+.dropdown-separator {
+  height: 1px;
+  background: var(--border);
+  margin: var(--sp-1) 0;
+}

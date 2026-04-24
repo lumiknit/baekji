@@ -59,7 +59,10 @@
     "saved_at": "{{time}}에 저장됨",
     "chars": "{{count}} 자",
     "words": "{{count}} 단어",
-    "placeholder": "무엇을 적어볼까요…"
+    "placeholder": "무엇을 적어볼까요…",
+    "size": "{{count}} ch",
+    "saveBusy": "저장 중입니다. 잠시 후 다시 시도해 주세요.",
+    "deltaCorrupt": "일부 편집 기록을 불러오지 못했습니다. 내용이 불완전할 수 있습니다."
   },
   "modal": {
     "rename_title": "이름 변경",

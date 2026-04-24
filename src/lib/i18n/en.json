@@ -59,7 +59,10 @@
     "saved_at": "Saved at {{time}}",
     "chars": "{{count}} chars",
     "words": "{{count}} words",
-    "placeholder": "What's on your mind…"
+    "placeholder": "What's on your mind…",
+    "size": "{{count}} ch",
+    "saveBusy": "Save in progress. Please try again in a moment.",
+    "deltaCorrupt": "Some edit history could not be loaded. Content may be incomplete."
   },
   "modal": {
     "rename_title": "Rename",

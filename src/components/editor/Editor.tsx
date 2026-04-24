@@ -8,28 +8,7 @@ import {
   onMount,
   Show,
 } from 'solid-js';
-import {
-  TbOutlineAlignJustified,
-  TbOutlineArrowBackUp,
-  TbOutlineArrowForwardUp,
-  TbOutlineBold,
-  TbOutlineCode,
-  TbOutlineDeviceFloppy,
-  TbOutlineH1,
-  TbOutlineH2,
-  TbOutlineH3,
-  TbOutlineH4,
-  TbOutlineItalic,
-  TbOutlineList,
-  TbOutlineListNumbers,
-  TbOutlineQuote,
-  TbOutlineSourceCode,
-  TbOutlineStrikethrough,
-  TbOutlineTextDecrease,
-} from 'solid-icons/tb';
-import { setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
-import { undo, redo } from 'prosemirror-history';
-import { wrapInList } from 'prosemirror-schema-list';
+import { undo, redo, undoDepth, redoDepth } from 'prosemirror-history';
 import { EditorState, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { Step } from 'prosemirror-transform';
@@ -38,10 +17,12 @@ import { loadSheetState, softSave, hardSave } from '../../lib/doc/db_helper';
 import { s } from '../../lib/i18n';
 import { updateSheetMeta } from '../../state/project_tree';
 import { settings } from '../../state/settings';
-import Dropdown from '../Dropdown';
 import CircularProgress from '../CircularProgress';
-import { buildPlugins, calcStats, pmSchema } from './helpers';
+import { buildPlugins, pmSchema } from './helpers';
+import { formatCompact } from '../../lib/number';
 import { buildOptimizedStepJSONs } from './step_helper';
+import toast from 'solid-toast';
+import EditorToolbar from './EditorToolbar';
 
 import 'prosemirror-view/style/prosemirror.css';
 
@@ -76,22 +57,27 @@ const Editor: Component<EditorProps> = (props) => {
     },
   );
   const [isDirty, setIsDirty] = createSignal(false);
-  const [lastSaved, setLastSaved] = createSignal<Date | null>(null);
-  const [stats, setStats] = createSignal({ chars: 0, words: 0 });
-  const [statsExact, setStatsExact] = createSignal(false);
-  const [autosaveEndTime, setAutosaveEndTime] = createSignal<Date | null>(null);
+  const [canUndo, setCanUndo] = createSignal(false);
+  const [canRedo, setCanRedo] = createSignal(false);
 
-  const updateStats = (docJSON: unknown) => {
-    setStats(calcStats(docJSON));
-    setStatsExact(true);
+  const updateHistoryState = (state: EditorState) => {
+    setCanUndo(undoDepth(state) > 0);
+    setCanRedo(redoDepth(state) > 0);
   };
+  const [lastSaved, setLastSaved] = createSignal<Date | null>(null);
+  const [nodeSize, setNodeSize] = createSignal(0);
+  const [autosaveEndTime, setAutosaveEndTime] = createSignal<Date | null>(null);
 
   const getPlugins = () =>
     buildPlugins(s('editor.placeholder'), settings.mdRules ?? ({} as any));
 
   // Soft save: flush step buffer to IDB
   const flushStepBuffer = () => {
-    if (!view || stepBuffer.length === 0 || saveInFlight) return;
+    if (!view || stepBuffer.length === 0) return;
+    if (saveInFlight) {
+      toast.error(s('editor.saveBusy'));
+      return;
+    }
     const data = sheet();
     if (!data) return;
 
@@ -99,13 +85,25 @@ const Editor: Component<EditorProps> = (props) => {
     stepBuffer = [];
     const seq = currentSeq++;
     const { anchor, head } = view.state.selection;
-    const nodeId = data.node.id;
+    const { node } = data;
+    const doc = view.state.doc;
+    const rawLabel =
+      doc
+        .textBetween(0, Math.min(doc.content.size, 500), '\n')
+        .split('\n')
+        .find((l) => l.trim()) ?? '';
+    const autoLabel = rawLabel.trim().slice(0, 60);
+    const now = new Date().toISOString();
 
     saveInFlight = true;
     setAutosaveEndTime(null);
     void (async () => {
       try {
-        await softSave(nodeId, steps, { anchor, head }, seq);
+        await softSave(node.id, steps, { anchor, head }, seq);
+        if (autoLabel && autoLabel !== node.label) {
+          await putNode({ ...node, label: autoLabel, updatedAt: now });
+          updateSheetMeta(node.id, autoLabel, autoLabel);
+        }
         setIsDirty(false);
         setLastSaved(new Date());
       } finally {
@@ -116,7 +114,11 @@ const Editor: Component<EditorProps> = (props) => {
 
   // Hard save: create new snapshot, clear deltas, update node label
   const freeze = () => {
-    if (!view || saveInFlight) return;
+    if (!view) return;
+    if (saveInFlight) {
+      toast.error(s('editor.saveBusy'));
+      return;
+    }
     const data = sheet();
     if (!data) return;
 
@@ -137,7 +139,6 @@ const Editor: Component<EditorProps> = (props) => {
         });
         await putNode({ ...node, label: autoLabel, updatedAt: now });
         updateSheetMeta(node.id, autoLabel, markdown.slice(0, 200));
-        updateStats(docJSON);
         setIsDirty(false);
         setLastSaved(new Date());
       } finally {
@@ -179,9 +180,14 @@ const Editor: Component<EditorProps> = (props) => {
 
     view.focus();
     view.dispatch(view.state.tr.scrollIntoView());
+    updateHistoryState(view.state);
+    setNodeSize(doc.nodeSize);
     setIsDirty(false);
     setLastSaved(new Date(data.node.updatedAt));
-    updateStats(doc.toJSON());
+
+    if (data.state.partialLoad) {
+      toast.error(s('editor.deltaCorrupt'), { duration: 6000 });
+    }
 
     // Hard save on first open if there are pending deltas
     if (data.state.nextSeq > 0) {
@@ -196,9 +202,10 @@ const Editor: Component<EditorProps> = (props) => {
       dispatchTransaction(tr) {
         const newState = view!.state.apply(tr);
         view!.updateState(newState);
+        updateHistoryState(newState);
         if (tr.docChanged) {
+          setNodeSize(newState.doc.nodeSize);
           stepBuffer.push(...tr.steps);
-          setStatsExact(false);
           setIsDirty(true);
           if (stepBuffer.length >= SOFT_SAVE_STEP_LIMIT) {
             flushStepBuffer();
@@ -256,173 +263,26 @@ const Editor: Component<EditorProps> = (props) => {
     cmd: (state: EditorState, dispatch: (tr: any) => void) => boolean,
   ) => {
     if (view) {
-      cmd(view.state, view.dispatch);
+      try {
+        cmd(view.state, view.dispatch);
+      } catch (e) {
+        console.warn('editor cmd failed:', e);
+      }
       view.focus();
     }
   };
 
   return (
     <div class="editor-container">
-      <div class="editor-toolbar">
-        <button onClick={() => exec(undo)} title="Undo">
-          <TbOutlineArrowBackUp />
-        </button>
-        <button onClick={() => exec(redo)} title="Redo">
-          <TbOutlineArrowForwardUp />
-        </button>
-
-        <div class="separator" />
-
-        <button
-          onClick={() => exec(toggleMark(pmSchema.marks.strong))}
-          title="Bold"
-        >
-          <TbOutlineBold />
-        </button>
-        <button
-          onClick={() => exec(toggleMark(pmSchema.marks.em))}
-          title="Italic"
-        >
-          <TbOutlineItalic />
-        </button>
-
-        <Dropdown
-          trigger={<TbOutlineStrikethrough />}
-          items={[
-            {
-              label: (
-                <>
-                  <TbOutlineStrikethrough /> Strikethrough
-                </>
-              ),
-              onSelect: () => exec(toggleMark(pmSchema.marks.strikethrough)),
-            },
-            {
-              label: (
-                <>
-                  <TbOutlineCode /> Monospace
-                </>
-              ),
-              onSelect: () => exec(toggleMark(pmSchema.marks.code)),
-            },
-            {
-              label: (
-                <>
-                  <TbOutlineTextDecrease /> Clear styles
-                </>
-              ),
-              onSelect: () => {
-                if (!view) return;
-                const { from, to } = view.state.selection;
-                exec((state, dispatch) => {
-                  if (dispatch) dispatch(state.tr.removeMark(from, to));
-                  return true;
-                });
-              },
-            },
-          ]}
-        />
-
-        <div class="separator" />
-
-        <Dropdown
-          trigger={<TbOutlineH1 />}
-          items={[
-            {
-              label: (
-                <>
-                  <TbOutlineH1 /> H1
-                </>
-              ),
-              onSelect: () =>
-                exec(setBlockType(pmSchema.nodes.heading, { level: 1 })),
-            },
-            {
-              label: (
-                <>
-                  <TbOutlineH2 /> H2
-                </>
-              ),
-              onSelect: () =>
-                exec(setBlockType(pmSchema.nodes.heading, { level: 2 })),
-            },
-            {
-              label: (
-                <>
-                  <TbOutlineH3 /> H3
-                </>
-              ),
-              onSelect: () =>
-                exec(setBlockType(pmSchema.nodes.heading, { level: 3 })),
-            },
-            {
-              label: (
-                <>
-                  <TbOutlineH4 /> H4
-                </>
-              ),
-              onSelect: () =>
-                exec(setBlockType(pmSchema.nodes.heading, { level: 4 })),
-            },
-            {
-              label: (
-                <>
-                  <TbOutlineAlignJustified /> Paragraph
-                </>
-              ),
-              onSelect: () => exec(setBlockType(pmSchema.nodes.paragraph)),
-            },
-          ]}
-        />
-
-        <Dropdown
-          trigger={<TbOutlineList />}
-          items={[
-            {
-              label: (
-                <>
-                  <TbOutlineList /> Bullet list
-                </>
-              ),
-              onSelect: () => exec(wrapInList(pmSchema.nodes.bullet_list)),
-            },
-            {
-              label: (
-                <>
-                  <TbOutlineListNumbers /> Ordered list
-                </>
-              ),
-              onSelect: () => exec(wrapInList(pmSchema.nodes.ordered_list)),
-            },
-            {
-              label: (
-                <>
-                  <TbOutlineQuote /> Quote
-                </>
-              ),
-              onSelect: () => exec(wrapIn(pmSchema.nodes.blockquote)),
-            },
-            {
-              label: (
-                <>
-                  <TbOutlineSourceCode /> Code block
-                </>
-              ),
-              onSelect: () => exec(setBlockType(pmSchema.nodes.code_block)),
-            },
-          ]}
-        />
-
-        <button
-          class="btn-border save-btn"
-          style={{ 'margin-left': 'auto', 'flex-shrink': '0' }}
-          onClick={freeze}
-          disabled={!isDirty()}
-        >
-          <TbOutlineDeviceFloppy />
-          <span class="hidden-mobile">{s('common.save')}</span>
-        </button>
-      </div>
+      <EditorToolbar
+        canUndo={canUndo()}
+        canRedo={canRedo()}
+        isDirty={isDirty()}
+        onUndo={() => exec(undo)}
+        onRedo={() => exec(redo)}
+        onExec={exec}
+        onSave={freeze}
+      />
 
       <div ref={editorRef} class="prosemirror-editor typo" />
 
@@ -446,11 +306,11 @@ const Editor: Component<EditorProps> = (props) => {
           </Show>
           <button
             class="editor-stats-btn"
-            style={{ opacity: statsExact() ? '1' : '0.3' }}
             onClick={() => navigate(`/nodes/${props.sheetId}/analysis`)}
           >
-            <span>{s('editor.chars', { count: stats().chars })}</span>
-            <span>{s('editor.words', { count: stats().words })}</span>
+            <span>
+              {s('editor.size', { count: formatCompact(nodeSize()) })}
+            </span>
           </button>
         </div>
       </div>

@@ -52,11 +52,13 @@ export interface SheetState {
   nextSeq: number;
   contentId: string | null;
   selection: { anchor: number; head: number };
+  partialLoad?: boolean; // true if delta replay failed partway through
 }
 
 /**
  * Loads the current sheet state by replaying any pending deltas on top of
  * the last snapshot. Returns the final pmJSON and the next seq number.
+ * On partial delta failure, applies as many steps as possible and sets partialLoad=true.
  */
 export async function loadSheetState(nodeId: string): Promise<SheetState> {
   const emptyDoc = pmSchema.topNodeType.createAndFill()!.toJSON();
@@ -72,35 +74,43 @@ export async function loadSheetState(nodeId: string): Promise<SheetState> {
   }
 
   const deltas = await getSheetDeltas(content.id);
-  if (deltas.length > 0) {
-    try {
-      let doc = pmSchema.nodeFromJSON(content.pmJSON);
-      for (const delta of deltas) {
-        for (const stepJSON of delta.steps) {
-          const step = Step.fromJSON(pmSchema, stepJSON as any);
-          const result = step.apply(doc);
-          if (result.doc) doc = result.doc;
-        }
-      }
-      return {
-        pmJSON: doc.toJSON(),
-        nextSeq: deltas.length,
-        contentId: content.id,
-        selection: deltas[deltas.length - 1].selection,
-      };
-    } catch {
-      console.error('Failed to load content id', content.id);
-    }
+  if (deltas.length === 0) {
+    return {
+      pmJSON: content.pmJSON,
+      nextSeq: 0,
+      contentId: content.id,
+      selection: content.selection,
+    };
   }
 
-  return {
-    pmJSON: content.pmJSON,
-    nextSeq: 0,
-    contentId: content.id,
-    selection: content.selection,
-  };
+  let doc = pmSchema.nodeFromJSON(content.pmJSON);
+  let lastGoodDeltaIdx = -1;
+  let partialLoad = false;
 
-  // Replay deltas on top of snapshot
+  outer: for (let di = 0; di < deltas.length; di++) {
+    for (const stepJSON of deltas[di].steps) {
+      try {
+        const step = Step.fromJSON(pmSchema, stepJSON as any);
+        const result = step.apply(doc);
+        if (result.doc) doc = result.doc;
+      } catch {
+        console.error('Delta replay failed at delta seq', deltas[di].seq);
+        partialLoad = true;
+        break outer;
+      }
+    }
+    lastGoodDeltaIdx = di;
+  }
+
+  const lastGoodDelta = lastGoodDeltaIdx >= 0 ? deltas[lastGoodDeltaIdx] : null;
+
+  return {
+    pmJSON: doc.toJSON(),
+    nextSeq: lastGoodDeltaIdx + 1,
+    contentId: content.id,
+    selection: lastGoodDelta?.selection ?? content.selection,
+    partialLoad,
+  };
 }
 
 // ─── Soft Save ────────────────────────────────────────────────
