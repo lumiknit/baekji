@@ -74,7 +74,6 @@ const Editor: Component<EditorProps> = (props) => {
     setCanUndo(undoDepth(state) > 0);
     setCanRedo(redoDepth(state) > 0);
   };
-  const [lastSaved, setLastSaved] = createSignal<Date | null>(null);
   const [nodeSize, setNodeSize] = createSignal(0);
   const [autosaveEndTime, setAutosaveEndTime] = createSignal<Date | null>(null);
 
@@ -111,7 +110,6 @@ const Editor: Component<EditorProps> = (props) => {
           updateSheetMeta(node.id, autoLabel, autoLabel);
         }
         setIsDirty(false);
-        setLastSaved(new Date());
         if (deltaStepCount >= DELTA_HARD_SAVE_THRESHOLD) {
           freeze();
         }
@@ -153,7 +151,6 @@ const Editor: Component<EditorProps> = (props) => {
         await putNode({ ...node, label: autoLabel, updatedAt: now });
         updateSheetMeta(node.id, autoLabel, markdown.slice(0, 200));
         setIsDirty(false);
-        setLastSaved(new Date());
       } catch (err) {
         console.error('Hard save failed:', err);
         toast.error(s('editor.saveFailed'));
@@ -200,7 +197,6 @@ const Editor: Component<EditorProps> = (props) => {
     updateHistoryState(view.state);
     setNodeSize(doc.nodeSize);
     setIsDirty(false);
-    setLastSaved(new Date(data.node.updatedAt));
 
     if (data.state.partialLoad) {
       toast.error(s('editor.deltaCorrupt'), { duration: 6000 });
@@ -503,15 +499,12 @@ const Editor: Component<EditorProps> = (props) => {
               {s('editor.size', { count: formatCompact(nodeSize()) })}
             </span>
           </button>
-          <Show when={isDirty()}>
+          <Show when={isDirty()} fallback={<TbOutlineCircleCheck size={14} />}>
             <CircularProgress
               endTime={autosaveEndTime()}
               size={14}
               strokeWidth={0.4}
             />
-          </Show>
-          <Show when={!isDirty() && lastSaved()}>
-            <TbOutlineCircleCheck size={14} />
           </Show>
         </div>
       </div>

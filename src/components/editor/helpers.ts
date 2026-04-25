@@ -172,7 +172,7 @@ function makeSelectionIndicatorPlugin(): Plugin {
 export function buildPlugins(placeholder: string, rules: MdRules): Plugin[] {
   return [
     makePlaceholderPlugin(placeholder),
-    makeSelectionIndicatorPlugin(),
+    //makeSelectionIndicatorPlugin(), // -> Not work pretty well.
     history(),
     buildInputRules(rules),
     keymap({

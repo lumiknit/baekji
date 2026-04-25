@@ -47,10 +47,10 @@ const defaultSettings: Settings = {
   fontWeight: 500,
   fontBoldWeight: 900,
   indentFirstLine: 1,
-  lineHeight: 1.2,
+  lineHeight: 1.5,
   paragraphSpacing: 0.5,
   autosaveInterval: 1.5,
-  typewriterMode: false,
+  typewriterMode: true,
   previewFontSize: 13,
   mdRules: {
     headings: true,
