@@ -10,7 +10,7 @@
   line-height: var(--typo-lh);
 
   & p {
-    margin: 0.5em 0;
+    margin: var(--typo-paragraph-spacing, 0.5em) 0;
     text-indent: var(--typo-indent, 0);
     line-height: 1.5;
   }

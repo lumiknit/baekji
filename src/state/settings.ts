@@ -29,9 +29,11 @@ export interface Settings {
   fontSize: number;
   fontWeight: number;
   fontBoldWeight: number;
-  indentFirstLine: string;
+  indentFirstLine: number; // In em
   lineHeight: number;
+  paragraphSpacing: number; // In em
   autosaveInterval: number; // In seconds
+  typewriterMode: boolean;
   previewFontSize: number;
   mdRules: MdRules;
 }
@@ -44,9 +46,11 @@ const defaultSettings: Settings = {
   fontSize: 16,
   fontWeight: 500,
   fontBoldWeight: 900,
-  indentFirstLine: '1em',
+  indentFirstLine: 1,
   lineHeight: 1.2,
+  paragraphSpacing: 0.5,
   autosaveInterval: 1.5,
+  typewriterMode: false,
   previewFontSize: 13,
   mdRules: {
     headings: true,
@@ -100,7 +104,11 @@ export function updateRootStyle() {
   root.setProperty('--typo-fs', `${settings.fontSize}px`);
   root.setProperty('--typo-preview-fs', `${settings.previewFontSize}px`);
   root.setProperty('--typo-lh', String(settings.lineHeight));
-  root.setProperty('--typo-indent', settings.indentFirstLine || '0');
+  root.setProperty('--typo-indent', `${settings.indentFirstLine}em`);
+  root.setProperty(
+    '--typo-paragraph-spacing',
+    `${settings.paragraphSpacing}em`,
+  );
   root.setProperty('--typo-fw', String(settings.fontWeight));
   root.setProperty('--typo-fw-bold', String(settings.fontBoldWeight));
 

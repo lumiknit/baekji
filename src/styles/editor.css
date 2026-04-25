@@ -110,38 +110,44 @@
   display: flex;
   align-items: center;
   gap: var(--sp-4);
-  padding: 0 40px;
+  padding: 0 1em;
+  cursor: text;
 }
 
 .editor-section-marker--start {
-  margin-top: var(--sp-6);
+  padding-top: 45dvh;
+  align-items: flex-start;
 }
 
 .editor-section-marker--end {
-  margin-bottom: 100px;
+  padding-bottom: 45dvh;
+  align-items: flex-end;
 }
 
 .editor-section-label {
-  font-size: 11px;
+  font-size: 0.625rem;
   letter-spacing: 0.1em;
-  opacity: 0.6;
+  opacity: 0.25;
   white-space: nowrap;
+  line-height: 1;
 }
 
 .editor-section-marker .separator-line {
   margin: 0;
+  opacity: 0.2;
+  align-self: center;
 }
 
 /* ─── ProseMirror Editor ──────────────────────────── */
 
 .prosemirror-editor {
-  padding: 1rem;
+  padding: 0 1rem;
   max-width: 720px;
   margin: 0 auto;
 }
 
 .ProseMirror {
-  min-height: 80svh;
+  min-height: 10svh;
   outline: none;
 }
 
@@ -157,4 +163,21 @@
   pointer-events: none;
   opacity: 0.35;
   font-style: italic;
+}
+
+.has-selection-indicator {
+  position: relative;
+}
+
+.has-selection-indicator::before {
+  content: '❯';
+  position: absolute;
+  left: -20px;
+  top: 0;
+  font-size: 1rem;
+  line-height: var(--typo-lh);
+  color: var(--fg);
+  opacity: 0.25;
+  pointer-events: none;
+  font-family: var(--font-mono);
 }

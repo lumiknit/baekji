@@ -185,12 +185,6 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
             </span>{' '}
             {s('common.export')}
           </button>
-          <button class="btn-border" onClick={importFile}>
-            <span class="icon">
-              <TbOutlineFileImport />
-            </span>{' '}
-            {s('common.import_file')}
-          </button>
           <button
             class="btn-border"
             onClick={() => navigate(`/nodes/${props.nodeId}/analysis`)}
@@ -288,6 +282,13 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
               <TbOutlineFolderPlus />
             </span>
             <span>{s('common.add_group')}</span>
+          </button>
+
+          <button class="card card-add" onClick={importFile}>
+            <span class="icon">
+              <TbOutlineFileImport />
+            </span>
+            <span>{s('common.import_file')}</span>
           </button>
         </div>
 

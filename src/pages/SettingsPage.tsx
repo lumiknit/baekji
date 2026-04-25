@@ -1,5 +1,5 @@
 import type { Component, JSX } from 'solid-js';
-import { For } from 'solid-js';
+import { For, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import { settings, setSettings } from '../state/settings';
 import type { MdRules } from '../state/settings';
@@ -16,6 +16,40 @@ const SettingRow: Component<{ label: string; children: JSX.Element }> = (
     {props.children}
   </label>
 );
+
+const NumberInputWithSlider: Component<{
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (val: number) => void;
+}> = (props) => {
+  return (
+    <div class="flex flex-column gap-4">
+      <SettingRow label={props.label}>
+        <input
+          type="number"
+          step={props.step}
+          value={props.value}
+          min={props.min}
+          max={props.max}
+          onChange={(e) => props.onChange(parseFloat(e.currentTarget.value))}
+          style={{ width: '60px' }}
+        />
+      </SettingRow>
+      <input
+        type="range"
+        min={props.min}
+        max={props.max}
+        step={props.step}
+        value={props.value}
+        onInput={(e) => props.onChange(parseFloat(e.currentTarget.value))}
+        class="w-full"
+      />
+    </div>
+  );
+};
 
 const SettingsPage: Component = () => {
   const handleFullReset = async () => {
@@ -73,7 +107,7 @@ const SettingsPage: Component = () => {
         </section>
 
         <section>
-          <h3>{s('settings.typography')}</h3>
+          <h3>{s('settings.font_settings')}</h3>
           <div class="mt-32 flex flex-column gap-8">
             <SettingRow label={s('settings.font_family')}>
               <select
@@ -139,115 +173,79 @@ const SettingsPage: Component = () => {
               ⚠️ {s('settings.font_noto_warning')}
             </p>
 
-            <SettingRow label={s('settings.font_size')}>
-              <input
-                type="number"
-                value={settings.fontSize}
-                min="6"
-                max="24"
-                onChange={(e) =>
-                  setSettings('fontSize', parseInt(e.currentTarget.value))
-                }
-                style={{ width: '60px' }}
-              />
-            </SettingRow>
-            <input
-              type="range"
-              min="6"
-              max="24"
-              step="1"
+            <NumberInputWithSlider
+              label={s('settings.font_size')}
               value={settings.fontSize}
-              onChange={(e) =>
-                setSettings('fontSize', parseInt(e.currentTarget.value))
-              }
-              class="w-full"
+              min={6}
+              max={32}
+              step={1}
+              onChange={(v) => setSettings('fontSize', v)}
             />
 
-            <SettingRow label={s('settings.preview_font_size')}>
-              <input
-                type="number"
-                value={settings.previewFontSize}
-                min="6"
-                max="24"
-                onChange={(e) =>
-                  setSettings(
-                    'previewFontSize',
-                    parseInt(e.currentTarget.value),
-                  )
-                }
-                style={{ width: '60px' }}
-              />
-            </SettingRow>
-            <input
-              type="range"
-              min="6"
-              max="24"
-              step="1"
+            <NumberInputWithSlider
+              label={s('settings.preview_font_size')}
               value={settings.previewFontSize}
-              onChange={(e) =>
-                setSettings('previewFontSize', parseInt(e.currentTarget.value))
-              }
-              class="w-full"
-            />
-
-            <SettingRow label={s('settings.line_height')}>
-              <input
-                type="number"
-                step="0.1"
-                value={settings.lineHeight}
-                min="0.8"
-                max="2.5"
-                onChange={(e) =>
-                  setSettings('lineHeight', parseFloat(e.currentTarget.value))
-                }
-                style={{ width: '60px' }}
-              />
-            </SettingRow>
-            <input
-              type="range"
-              min="0.8"
-              max="2.5"
-              step="0.1"
-              value={settings.lineHeight}
-              onChange={(e) =>
-                setSettings('lineHeight', parseFloat(e.currentTarget.value))
-              }
-              class="w-full"
+              min={6}
+              max={32}
+              step={1}
+              onChange={(v) => setSettings('previewFontSize', v)}
             />
           </div>
         </section>
 
         <section>
-          <h3>{s('settings.paragraphs')}</h3>
+          <h3>{s('settings.typography')}</h3>
           <div class="mt-32 flex flex-column gap-8">
-            <SettingRow label={s('settings.indent_first_line')}>
-              <input
-                type="text"
-                value={settings.indentFirstLine}
-                onChange={(e) =>
-                  setSettings('indentFirstLine', e.currentTarget.value)
-                }
-                style={{ width: '120px' }}
-              />
-            </SettingRow>
+            <NumberInputWithSlider
+              label={s('settings.line_height')}
+              value={settings.lineHeight}
+              min={0.8}
+              max={3.0}
+              step={0.1}
+              onChange={(v) => setSettings('lineHeight', v)}
+            />
+            <NumberInputWithSlider
+              label={s('settings.indent_first_line')}
+              value={settings.indentFirstLine}
+              min={0}
+              max={5}
+              step={0.5}
+              onChange={(v) => setSettings('indentFirstLine', v)}
+            />
+            <NumberInputWithSlider
+              label={s('settings.paragraph_spacing')}
+              value={settings.paragraphSpacing}
+              min={0}
+              max={3}
+              step={0.1}
+              onChange={(v) => setSettings('paragraphSpacing', v)}
+            />
+          </div>
+        </section>
 
-            <SettingRow label={s('settings.autosave_interval')}>
+        <section>
+          <h3>{s('settings.editor_settings')}</h3>
+          <div class="mt-32 flex flex-column gap-8">
+            <NumberInputWithSlider
+              label={s('settings.autosave_interval')}
+              value={settings.autosaveInterval}
+              min={0.5}
+              max={10}
+              step={0.25}
+              onChange={(v) => setSettings('autosaveInterval', v)}
+            />
+            <SettingRow label={s('settings.typewriter_mode')}>
               <input
-                type="number"
-                min="0.5"
-                step="0.25"
-                value={settings.autosaveInterval}
+                type="checkbox"
+                checked={settings.typewriterMode}
                 onChange={(e) =>
-                  setSettings(
-                    'autosaveInterval',
-                    Math.max(0.5, parseFloat(e.currentTarget.value) || 1.5),
-                  )
+                  setSettings('typewriterMode', e.currentTarget.checked)
                 }
-                style={{ width: '120px' }}
               />
             </SettingRow>
           </div>
         </section>
+
         <section>
           <h3>{s('settings.md_rules')}</h3>
           <div class="mt-32 flex flex-column gap-8">

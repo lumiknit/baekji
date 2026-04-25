@@ -142,9 +142,37 @@ function makePlaceholderPlugin(placeholder: string): Plugin {
   });
 }
 
+function makeSelectionIndicatorPlugin(): Plugin {
+  return new Plugin({
+    props: {
+      decorations(state) {
+        const { $head } = state.selection;
+        const decos: Decoration[] = [];
+
+        // Find the block node containing the cursor ($from)
+        for (let d = $head.depth; d > 0; d--) {
+          const node = $head.node(d);
+          if (node.isBlock) {
+            const pos = $head.before(d);
+            decos.push(
+              Decoration.node(pos, pos + node.nodeSize, {
+                class: 'has-selection-indicator',
+              }),
+            );
+            break;
+          }
+        }
+
+        return DecorationSet.create(state.doc, decos);
+      },
+    },
+  });
+}
+
 export function buildPlugins(placeholder: string, rules: MdRules): Plugin[] {
   return [
     makePlaceholderPlugin(placeholder),
+    makeSelectionIndicatorPlugin(),
     history(),
     buildInputRules(rules),
     keymap({

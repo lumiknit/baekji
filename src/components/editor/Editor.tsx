@@ -220,7 +220,29 @@ const Editor: Component<EditorProps> = (props) => {
         const newState = view!.state.apply(tr);
         view!.updateState(newState);
         updateHistoryState(newState);
+
         if (tr.docChanged) {
+          if (settings.typewriterMode) {
+            const { $from } = newState.selection;
+            const pos = $from.pos;
+            // Use a small timeout to ensure DOM has updated
+            setTimeout(() => {
+              if (!view) return;
+              try {
+                const coords = view.coordsAtPos(pos);
+                const viewportHeight = window.innerHeight;
+                const targetY = viewportHeight / 2;
+                const diff = coords.top - targetY;
+
+                // Only scroll if offset is significant to avoid jitter
+                if (Math.abs(diff) > 10) {
+                  window.scrollBy({ top: diff, behavior: 'smooth' });
+                }
+              } catch (e) {
+                // coordsAtPos can fail if pos is not in view or invalid
+              }
+            }, 0);
+          }
           setNodeSize(newState.doc.nodeSize);
           stepBuffer.push(...tr.steps);
           setIsDirty(true);
@@ -436,7 +458,40 @@ const Editor: Component<EditorProps> = (props) => {
         onSplit={handleSplit}
       />
 
+      <div
+        class="editor-section-marker editor-section-marker--start"
+        onClick={() => {
+          if (view) {
+            const tr = view.state.tr.setSelection(
+              TextSelection.create(view.state.doc, 0),
+            );
+            view.dispatch(tr.scrollIntoView());
+            view.focus();
+          }
+        }}
+      >
+        <span class="editor-section-label">SOF</span>
+        <hr class="separator-line flex-1" />
+      </div>
+
       <div ref={editorRef} class="prosemirror-editor typo" />
+
+      <div
+        class="editor-section-marker editor-section-marker--end"
+        onClick={() => {
+          if (view) {
+            const size = view.state.doc.content.size;
+            const tr = view.state.tr.setSelection(
+              TextSelection.create(view.state.doc, size),
+            );
+            view.dispatch(tr.scrollIntoView());
+            view.focus();
+          }
+        }}
+      >
+        <span class="editor-section-label">EOF</span>
+        <hr class="separator-line flex-1" />
+      </div>
 
       <div class="editor-stats-overlay">
         <div class="flex items-center gap-12">
