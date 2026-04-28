@@ -2,18 +2,21 @@ import {
   TbFillFolderOpen,
   TbFillTrash,
   TbOutlineArrowMerge,
+  TbOutlineChevronDown,
+  TbOutlineChevronRight,
   TbOutlineDeviceFloppy,
   TbOutlineDotsVertical,
   TbOutlineFile,
   TbOutlineFileImport,
   TbOutlineFilePlus,
+  TbOutlineFileText,
   TbOutlineFolder,
   TbOutlineFolderPlus,
   TbOutlinePencil,
   TbOutlineReportAnalytics,
 } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
-import { For, Match, Show, Switch, useContext } from 'solid-js';
+import { createSignal, For, Match, Show, Switch, useContext } from 'solid-js';
 import { useLocation, useNavigate } from '@solidjs/router';
 import toast from 'solid-toast';
 
@@ -38,6 +41,7 @@ import { isGroupOpen, setGroupOpen } from '../../state/workspace';
 import Dropdown from '../Dropdown';
 import { TreeCtxKey } from './context';
 import { openImportFileDialog } from './import_file';
+import { Dynamic } from 'solid-js/web';
 
 interface TreeItemProps {
   id: string;
@@ -193,6 +197,14 @@ const TreeItem: Component<TreeItemProps> = (props) => {
 
   const labelColor = () => nodeColorToCss(node()?.color);
 
+  const [dropdownOpen, setDropdownOpen] = createSignal(false);
+
+  const handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDropdownOpen(true);
+  };
+
   return (
     <Show when={node()}>
       {(n) => (
@@ -219,35 +231,32 @@ const TreeItem: Component<TreeItemProps> = (props) => {
             data-parent-id={props.parentId}
             data-item-type={n().type}
             onClick={handleSelect}
-            onContextMenu={(e) => e.preventDefault()}
+            onContextMenu={handleContextMenu}
             onPointerDown={(e) => ctx.startDrag(props.id, props.parentId, e)}
           >
-            <Switch>
-              <Match when={n().type === 'group'}>
-                <button
-                  class="tree-toggle"
-                  style={{ color: labelColor() }}
-                  onClick={handleToggle}
-                >
+            <button
+              class="tree-toggle"
+              style={{ color: labelColor() }}
+              onClick={handleToggle}
+            >
+              <Switch>
+                <Match when={n().type === 'group'}>
+                  <Dynamic
+                    component={
+                      isOpen() ? TbOutlineChevronDown : TbOutlineChevronRight
+                    }
+                  />
                   <span class="icon">
-                    {isOpen() ? <TbFillFolderOpen /> : <TbOutlineFolder />}
+                    <TbOutlineFolder />
                   </span>
-                </button>
-              </Match>
-              <Match when={n().type === 'sheet'}>
-                <span
-                  class="tree-toggle"
-                  style={{
-                    opacity: labelColor() ? '1' : '0.4',
-                    color: labelColor(),
-                  }}
-                >
+                </Match>
+                <Match when>
                   <span class="icon">
-                    <TbOutlineFile />
+                    <TbOutlineFileText />
                   </span>
-                </span>
-              </Match>
-            </Switch>
+                </Match>
+              </Switch>
+            </button>
 
             <span
               class="tree-label flex-1 overflow-hidden"
@@ -279,8 +288,10 @@ const TreeItem: Component<TreeItemProps> = (props) => {
 
             <Show when={ctx.mode() === 'normal'}>
               <Dropdown
-                class="tree-actions"
+                class={`tree-actions${!isActive() ? ' tree-actions--hidden' : ''}`}
                 align="right"
+                open={dropdownOpen}
+                onOpenChange={setDropdownOpen}
                 trigger={
                   <span class="icon">
                     <TbOutlineDotsVertical />

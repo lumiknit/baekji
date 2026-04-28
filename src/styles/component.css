@@ -223,6 +223,10 @@
   border-radius: var(--r);
 }
 
+.tree-actions--hidden .dropdown-trigger {
+  visibility: hidden;
+}
+
 .tree-row--active {
   background: var(--border);
   border-radius: var(--r);
@@ -256,9 +260,9 @@
 .tree-toggle {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: end;
   padding: 0;
-  width: 26px;
+  width: 40px;
   height: 26px;
   flex-shrink: 0;
 }
