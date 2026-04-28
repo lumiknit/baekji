@@ -29,7 +29,7 @@
         "@types/node": "^24.12.2",
         "prettier": "^3.8.3",
         "typescript": "~6.0.3",
-        "vite": "^8.0.9",
+        "vite": "^8.0.10",
         "vite-bundle-visualizer": "^1.2.1",
         "vite-plugin-solid": "^2.11.12",
       },
