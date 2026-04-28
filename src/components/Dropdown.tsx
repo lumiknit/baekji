@@ -1,5 +1,5 @@
-import type { Component, JSX } from 'solid-js';
-import { createSignal, For, onCleanup, Show } from 'solid-js';
+import type { Accessor, Component, JSX } from 'solid-js';
+import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js';
 
 export type DropdownItem =
   | { label: string | JSX.Element; onSelect: () => void }
@@ -11,11 +11,20 @@ interface DropdownProps {
   title?: string;
   class?: string;
   align?: 'left' | 'right';
+  open?: Accessor<boolean>;
+  onOpenChange?: (v: boolean) => void;
 }
 
 const Dropdown: Component<DropdownProps> = (props) => {
-  const [open, setOpen] = createSignal(false);
+  const [internalOpen, setInternalOpen] = createSignal(false);
   let containerRef: HTMLDivElement | undefined;
+
+  const isControlled = () => props.open !== undefined;
+  const open = () => (isControlled() ? props.open!() : internalOpen());
+  const setOpen = (v: boolean) => {
+    if (isControlled()) props.onOpenChange?.(v);
+    else setInternalOpen(v);
+  };
 
   const handleOutsideClick = (e: MouseEvent) => {
     if (containerRef && !containerRef.contains(e.target as Node)) {
@@ -23,19 +32,17 @@ const Dropdown: Component<DropdownProps> = (props) => {
     }
   };
 
-  const close = () => {
-    setOpen(false);
-    document.removeEventListener('mousedown', handleOutsideClick);
-  };
+  const close = () => setOpen(false);
 
-  const toggle = () => {
-    if (!open()) {
+  const toggle = () => setOpen(!open());
+
+  createEffect(() => {
+    if (open()) {
       document.addEventListener('mousedown', handleOutsideClick);
     } else {
       document.removeEventListener('mousedown', handleOutsideClick);
     }
-    setOpen(!open());
-  };
+  });
 
   onCleanup(() =>
     document.removeEventListener('mousedown', handleOutsideClick),

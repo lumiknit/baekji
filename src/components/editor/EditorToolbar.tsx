@@ -15,6 +15,7 @@ import {
   TbOutlineIndentDecrease,
   TbOutlineIndentIncrease,
   TbOutlineItalic,
+  TbOutlineLetterT,
   TbOutlineLink,
   TbOutlineList,
   TbOutlineListNumbers,
@@ -25,6 +26,7 @@ import {
   TbOutlineSourceCode,
   TbOutlineStrikethrough,
   TbOutlineTextDecrease,
+  TbOutlineTypography,
 } from 'solid-icons/tb';
 import { lift, setBlockType, toggleMark, wrapIn } from 'prosemirror-commands';
 import {
@@ -330,7 +332,7 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
       <Dropdown
         trigger={
           <span class="icon">
-            <TbOutlineDots />
+            <TbOutlineLetterT />
           </span>
         }
         items={charStyleDropdownItems()}
