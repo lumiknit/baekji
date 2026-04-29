@@ -8,24 +8,15 @@ import type { Component } from 'solid-js';
 import { createResource, createSignal, For, Show } from 'solid-js';
 import {
   getAllVersionRoots,
-  getAllNodesInVersion,
-  getActiveVersionRoot,
   setActiveVersion,
 } from '../lib/doc/db';
-import { parseBak, prepareBakImport } from '../lib/doc/backup';
-import {
-  commitBakImport,
-  createProject as createProjectInDB,
-} from '../lib/doc/db_helper';
-import { schemaVersion } from '../lib/doc/v0';
+import { createProject as createProjectInDB } from '../lib/doc/db_helper';
 import { s } from '../lib/i18n';
-import { showConfirm, showImportCompare, showPrompt } from '../state/modal';
-import type { VersionCompareMeta } from '../state/modal';
+import { showPrompt } from '../state/modal';
 import { setActivePjVerId, setSidebarView } from '../state/workspace';
 import Dropdown from './Dropdown';
-import { deserializeBak } from '../lib/doc/backup_helper';
+import { openImportBakDialog } from '../lib/import_bak';
 
-declare const __APP_VERSION__: string;
 
 const ProjectList: Component = () => {
   const navigate = useNavigate();
@@ -70,80 +61,7 @@ const ProjectList: Component = () => {
   };
 
   const importBackup = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json,.gz';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      try {
-        let raw: unknown;
-        if (file.name.endsWith('.gz')) {
-          const bak = await deserializeBak(
-            await file.arrayBuffer().then((b) => new Uint8Array(b)),
-          );
-          raw = bak;
-        } else {
-          raw = JSON.parse(await file.text());
-        }
-        const bak = parseBak(raw);
-        const result = await prepareBakImport(bak);
-
-        if (result.projectExists) {
-          const existingRoot = await getActiveVersionRoot(result.projectId);
-          const existingNodes = existingRoot
-            ? await getAllNodesInVersion(existingRoot.id)
-            : [];
-
-          const existing: VersionCompareMeta = {
-            label: existingRoot?.label ?? '',
-            updatedAt: existingRoot?.updatedAt ?? '',
-            exportedAt: existingRoot?.exportedAt,
-            exportedBy: existingRoot?.exportedBy,
-            appVersion: __APP_VERSION__,
-            schemaVersion,
-            sheetCount: existingNodes.filter((n) => n.type === 'sheet').length,
-            groupCount: existingNodes.filter((n) => n.type === 'group').length,
-          };
-
-          const incomingNodes = bak.nodes;
-          const incoming: VersionCompareMeta = {
-            label: bak.label,
-            updatedAt: bak.updatedAt,
-            exportedAt: bak.exportedAt,
-            exportedBy: bak.exportedBy,
-            appVersion: bak.$appVersion,
-            schemaVersion: bak.$schemaVersion,
-            sheetCount: incomingNodes.filter((n) => n.type === 'sheet').length,
-            groupCount: incomingNodes.filter(
-              (n) => n.type === 'group' && n.id !== bak.rootNodeId,
-            ).length,
-          };
-
-          const choice = await showImportCompare(existing, incoming);
-          if (choice === 'cancel') return;
-
-          await commitBakImport(result);
-          if (choice === 'overwrite') {
-            await setActiveVersion(result.projectId, result.versionRoot.id);
-            refetch();
-            openProject(result.versionRoot.id);
-          } else {
-            // 'separate': import as inactive version, stay on current project
-            refetch();
-          }
-          return;
-        }
-
-        await commitBakImport(result);
-        await setActiveVersion(result.projectId, result.versionRoot.id);
-        refetch();
-        openProject(result.versionRoot.id);
-      } catch (err) {
-        await showConfirm(s('common.import_file'), String(err));
-      }
-    };
-    input.click();
+    openImportBakDialog(navigate, refetch);
   };
 
   const formatDate = (iso: string) => {
@@ -169,11 +87,12 @@ const ProjectList: Component = () => {
           onInput={(e) => setFilter(e.currentTarget.value)}
         />
         <Dropdown
+          triggerClass="sb-icon-btn"
           align="right"
           trigger={
-            <span class="icon">
-              <TbOutlineDotsVertical />
-            </span>
+            <div class="btn-pad">
+              <span class="icon"><TbOutlineDotsVertical /></span>
+            </div>
           }
           items={[
             {
@@ -187,16 +106,16 @@ const ProjectList: Component = () => {
       </div>
       <div class="project-list-items">
         <button class="project-list-new-btn" onClick={createProject}>
-          <span class="icon">
-            <TbOutlinePlus />
-          </span>{' '}
-          {s('project.new_project')}
+          <div class="btn-pad">
+            <span class="icon"><TbOutlinePlus /></span>
+            {s('project.new_project')}
+          </div>
         </button>
         <button class="project-list-new-btn" onClick={importBackup}>
-          <span class="icon">
-            <TbOutlineFileImport />
-          </span>{' '}
-          {s('home.backup_import')}
+          <div class="btn-pad">
+            <span class="icon"><TbOutlineFileImport /></span>
+            {s('home.backup_import')}
+          </div>
         </button>
         <Show
           when={!allVersions.loading}
@@ -214,14 +133,16 @@ const ProjectList: Component = () => {
                     : activateAndOpen(p.projectId, p.id)
                 }
               >
-                <div class="project-list-item-label">{p.label}</div>
-                <div class="project-list-item-meta">
-                  <Show when={!p.active}>
-                    <span class="project-list-item-inactive-badge">
-                      {s('project.inactive')}
-                    </span>
-                  </Show>
-                  {formatDate(p.updatedAt)}
+                <div class="btn-pad">
+                  <div class="project-list-item-label">{p.label}</div>
+                  <div class="project-list-item-meta">
+                    <Show when={!p.active}>
+                      <span class="project-list-item-inactive-badge">
+                        {s('project.inactive')}
+                      </span>
+                    </Show>
+                    {formatDate(p.updatedAt)}
+                  </div>
                 </div>
               </div>
             )}

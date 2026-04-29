@@ -10,6 +10,7 @@ interface DropdownProps {
   items: DropdownItem[];
   title?: string;
   class?: string;
+  triggerClass?: string;
   align?: 'left' | 'right';
   open?: Accessor<boolean>;
   onOpenChange?: (v: boolean) => void;
@@ -58,7 +59,7 @@ const Dropdown: Component<DropdownProps> = (props) => {
       onPointerDown={stopProp}
       onClick={stopProp}
     >
-      <button class="dropdown-trigger" onClick={toggle} title={props.title}>
+      <button class={`dropdown-trigger${props.triggerClass ? ` ${props.triggerClass}` : ''}`} onClick={toggle} title={props.title}>
         {props.trigger}
       </button>
       <Show when={open()}>

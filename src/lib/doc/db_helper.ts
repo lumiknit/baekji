@@ -11,7 +11,7 @@ import {
 } from './db';
 import type { BakImportResult } from './backup';
 import type { SheetContent, SheetNode } from './v0';
-import { genId } from '../uuid';
+import { genUnorderedId } from '../uuid';
 import {
   pmSchema,
   replayDeltas,
@@ -31,8 +31,8 @@ export interface NewProjectIds {
 }
 
 export async function createProject(label: string): Promise<NewProjectIds> {
-  const projectId = genId();
-  const pjVerId = genId();
+  const projectId = genUnorderedId();
+  const pjVerId = genUnorderedId();
   const now = new Date().toISOString();
   await putNode({
     id: pjVerId,
@@ -108,7 +108,7 @@ export async function softSave(
   if (!content) {
     const emptyDoc = pmSchema.topNodeType.createAndFill()!;
     content = {
-      id: genId(),
+      id: genUnorderedId(),
       nodeId,
       pmJSON: emptyDoc.toJSON(),
       markdown: '',
@@ -146,7 +146,7 @@ export async function hardSave(
   }
 
   const markdown = docToMarkdown(finalDoc);
-  const newId = genId();
+  const newId = genUnorderedId();
   const newContent: SheetContent = {
     id: newId,
     nodeId,
@@ -251,7 +251,7 @@ export async function importTextAsSheet(
   const parent = await getNode(parentId);
   if (!parent || parent.type === 'sheet') throw new Error('Invalid parent');
 
-  const newId = genId();
+  const newId = genUnorderedId();
   const now = new Date().toISOString();
 
   const sheet: SheetNode = {
@@ -268,7 +268,7 @@ export async function importTextAsSheet(
 
   const pmDoc = markdownToDoc(text);
   const sheetContent: SheetContent = {
-    id: genId(),
+    id: genUnorderedId(),
     nodeId: newId,
     pmJSON: pmDoc.toJSON(),
     markdown: text,

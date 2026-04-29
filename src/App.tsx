@@ -1,6 +1,7 @@
 import { HashRouter, Route } from '@solidjs/router';
 import type { Component } from 'solid-js';
 import { Toaster } from 'solid-toast';
+import toast from 'solid-toast';
 import { createEffect, onMount } from 'solid-js';
 import MainLayout from './components/MainLayout';
 import AboutPage from './pages/AboutPage';
@@ -15,12 +16,32 @@ import { updateRootStyle } from './state/settings';
 import { activePjVerId } from './state/workspace';
 import { projectTree } from './state/project_tree';
 import { initTabSync, notifyProjectOpen } from './lib/sync';
+import { handleCallback } from './lib/sync/dropbox_auth';
+import { s } from './lib/i18n';
 
 const App: Component = () => {
   onMount(() => {
     initTabSync();
 
     (async () => {
+      // Handle Dropbox OAuth callback (?code= in query string, no fragment allowed)
+      const params = new URLSearchParams(location.search);
+      const code = params.get('code');
+      if (code) {
+        try {
+          await handleCallback(code);
+        } catch (err: any) {
+          console.error('Dropbox callback failed:', err);
+          // Delay toast until after the router has mounted
+          setTimeout(() => {
+            const key = err?.message ?? '';
+            const msg = key.startsWith('dropbox.') ? s(key) : s('dropbox.error_auth_callback');
+            toast.error(msg, { duration: 6000 });
+          }, 500);
+        }
+        history.replaceState(null, '', location.pathname + '#/settings');
+      }
+
       if (!(await navigator.storage.persisted())) {
         const granted = await navigator.storage.persist();
         if (granted) {

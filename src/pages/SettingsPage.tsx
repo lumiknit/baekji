@@ -35,7 +35,7 @@ const NumberInputWithSlider: Component<{
           min={props.min}
           max={props.max}
           onChange={(e) => props.onChange(parseFloat(e.currentTarget.value))}
-          style={{ width: '60px' }}
+          style={{ width: '80px' }}
         />
       </SettingRow>
       <input
@@ -135,10 +135,11 @@ const SettingsPage: Component = () => {
                 };
                 return (
                   <div class="flex flex-column gap-4">
-                    <label class="flex justify-between items-center">
+                    <label class="flex justify-between items-center gap-8">
                       {label}
                       <input
                         type="text"
+                        style={{ flex: '1', 'min-width': '0', 'max-width': '200px' }}
                         placeholder={
                           isNoto()
                             ? notoName

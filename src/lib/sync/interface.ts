@@ -3,6 +3,8 @@ export interface SyncToken {
   refreshToken?: string;
   /** ms timestamp */
   expiresAt: number;
+  displayName?: string;
+  email?: string;
 }
 
 export interface SyncFile {

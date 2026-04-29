@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { createEffect, Match, Switch, onMount, onCleanup } from 'solid-js';
+import { createEffect, createMemo, Match, Show, Switch, onMount, onCleanup } from 'solid-js';
 import {
   isSidebarOpen,
   setSidebarOpen,
@@ -23,6 +23,7 @@ import {
 
 const MainLayout: Component<RouteSectionProps> = (props) => {
   const isMobile = createMediaQuery('(max-width: 768px)');
+  const isNarrow = createMemo(() => isMobile() || sidebarWidth() < 300);
   const location = useLocation();
 
   onMount(() => {
@@ -64,30 +65,30 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
       class={`main-layout ${isSidebarOpen() ? 'sidebar-open' : 'sidebar-closed'}`}
     >
       <div
-        class="sidebar"
+        class={`sidebar${isNarrow() ? ' narrow' : ''}`}
         style={{
           width: isMobile() ? '100%' : `${sidebarWidth()}px`,
           display: isSidebarOpen() ? 'flex' : 'none',
         }}
       >
         <div class="sidebar-nav">
-          <A href="/settings" class="btn-skeleton sidebar-nav-btn">
-            <span class="icon">
-              <TbFillSettings />
-            </span>{' '}
-            {s('common.settings')}
+          <A href="/settings" class="sb-nav-btn" title={s('common.settings')}>
+            <div class="btn-pad">
+              <span class="icon"><TbFillSettings /></span>
+              <Show when={!isNarrow()}>{s('common.settings')}</Show>
+            </div>
           </A>
           <button
-            class={`btn-skeleton sidebar-nav-btn ${sidebarView() === 'projects' ? 'sidebar-view-toggle--active' : ''}`}
+            class={`sb-nav-btn${sidebarView() === 'projects' ? ' sb-nav-btn--active' : ''}`}
             onClick={() =>
               setSidebarView(sidebarView() === 'tree' ? 'projects' : 'tree')
             }
             title={s('sidebar.project_list')}
           >
-            <span class="icon">
-              <TbOutlineCarouselVertical />
-            </span>{' '}
-            {s('sidebar.project_list')}
+            <div class="btn-pad">
+              <span class="icon"><TbOutlineCarouselVertical /></span>
+              <Show when={!isNarrow()}>{s('sidebar.project_list')}</Show>
+            </div>
           </button>
         </div>
         <div class="sidebar-content">
@@ -112,18 +113,16 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
         class={`sidebar-toggle ${isSidebarOpen() ? 'active' : ''}`}
         onClick={() => setSidebarOpen(!isSidebarOpen())}
       >
-        <Switch>
-          <Match when={isSidebarOpen()}>
-            <span class="icon">
-              <TbFillLayoutSidebarLeftCollapse />
-            </span>
-          </Match>
-          <Match when={!isSidebarOpen()}>
-            <span class="icon">
-              <TbOutlineLayoutSidebarLeftExpand />
-            </span>
-          </Match>
-        </Switch>
+        <div class="btn-pad">
+          <Switch>
+            <Match when={isSidebarOpen()}>
+              <span class="icon"><TbFillLayoutSidebarLeftCollapse /></span>
+            </Match>
+            <Match when={!isSidebarOpen()}>
+              <span class="icon"><TbOutlineLayoutSidebarLeftExpand /></span>
+            </Match>
+          </Switch>
+        </div>
       </button>
 
       <ModalContainer />

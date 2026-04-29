@@ -1,10 +1,10 @@
 # Privacy Policy
 
-_Last updated: 2026-04-24_
+_Last updated: 2026-04-29_
 
 ## Overview
 
-Baekji is a local-first writing application. It runs entirely in your browser and does not communicate with any external server.
+Baekji is a local-first writing application. It runs entirely in your browser. By default, it does not communicate with any external server.
 
 ## Data Collection
 
@@ -18,13 +18,21 @@ All your data — projects, documents, and settings — is stored exclusively on
 
 We strongly recommend using the built-in backup (export) feature regularly to keep copies of your work.
 
+## Cloud Sync
+
+Baekji supports optional cloud sync features (e.g. Dropbox). These features are entirely opt-in and disabled by default.
+
+When you enable cloud sync, Baekji will authenticate with the chosen service using your own account and will read from and write to the app folder of that account only. No data is shared with Baekji or any other party — all communication is directly between your browser and the cloud service you have chosen.
+
+The privacy policy of the cloud service you use applies to any data stored there. We have no control over, and accept no responsibility for, how that service handles your data.
+
 ## Export and Sharing
 
 Some features (backup download, export, share) may save files to your local machine or share them via your device's native share mechanism. Once data leaves the app through these features, it is subject to the policies of whatever application or service you choose to share it with. We have no control over, and accept no responsibility for, how that data is handled externally.
 
 ## Third Parties
 
-Baekji does not integrate any third-party analytics, advertising, or data-processing services. All assets, including fonts, are bundled with the app and no external network requests are made.
+By default, Baekji does not integrate any third-party analytics, advertising, or data-processing services. All assets, including fonts, are bundled with the app and no external network requests are made unless you explicitly enable a cloud sync feature.
 
 ## Contact
 

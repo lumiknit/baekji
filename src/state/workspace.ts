@@ -1,7 +1,7 @@
 import { createSignal } from 'solid-js';
 import { makePersisted } from '@solid-primitives/storage';
 import localforage from 'localforage';
-import { genId } from '../lib/uuid';
+import { genOrderedId } from '../lib/uuid';
 
 localforage.config({
   name: 'baekji-kv-pairs',
@@ -41,7 +41,7 @@ export const [activePjVerId, setActivePjVerId] = createSignal<string | null>(
 );
 
 // Persistent device ID — generated once on first visit, used in backup metadata
-export const [deviceId] = makePersisted(createSignal<string>(genId()), {
+export const [deviceId] = makePersisted(createSignal<string>(genOrderedId()), {
   name: 'baekji-device-id',
   storage: localforage as any,
 });

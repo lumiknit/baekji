@@ -10,7 +10,7 @@ import { z } from 'zod/v4';
 import { bakProjectSchema } from './v0';
 import { getVersionRoots, getAllNodesInVersion, getNode } from './db';
 import { pmParser, pmSchema } from './pm';
-import { genId } from '../uuid';
+import { genUnorderedId } from '../uuid';
 import { getSheetContentAsMarkdown } from './db_helper';
 // pmParser/pmSchema used in prepareBakImport for markdown → pmJSON conversion
 
@@ -126,7 +126,7 @@ export async function prepareBakImport(
   // Remap all bak node IDs to fresh genId values
   const idMap: Record<string, string> = {};
   for (const node of bak.nodes) {
-    idMap[node.id] = genId();
+    idMap[node.id] = genUnorderedId();
   }
 
   const newVersionId = idMap[bak.rootNodeId];
@@ -185,7 +185,7 @@ export async function prepareBakImport(
           pmDocJSON = pmSchema.topNodeType.createAndFill()!.toJSON();
         }
         sheetContents.push({
-          id: genId(),
+          id: genUnorderedId(),
           nodeId: newId,
           pmJSON: pmDocJSON,
           markdown: child.content,

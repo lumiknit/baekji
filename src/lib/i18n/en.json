@@ -16,7 +16,9 @@
     "organize": "Organize",
     "done": "Done",
     "export": "Export",
+    "backup": "Backup",
     "backup_download": "Backup Download",
+    "backup_import_local": "Load from Local",
     "share": "Share",
     "import_file": "Import from File",
     "analysis": "Analysis",
@@ -205,5 +207,33 @@
     "message_default": "This project was opened in another tab. To prevent data corruption, editing in this tab has been suspended.",
     "message_with_name": "The project \"{{name}}\" was opened in another tab. To prevent data corruption, editing in this tab has been suspended.",
     "go_home": "Go to Home"
+  },
+  "dropbox": {
+    "open_link": "Open Dropbox website",
+    "not_connected": "Not connected to Dropbox.",
+    "no_account_info": "No account info",
+    "login": "Log in to Dropbox",
+    "logout": "Log out",
+    "save_project": "Save Project",
+    "saving": "Saving...",
+    "save_done": "Saved!",
+    "load_list": "Browse Saved Files",
+    "loading_list": "Loading...",
+    "no_files": "No saved files found.",
+    "list_hint": "Showing up to 5 most recent files.",
+    "downloading": "Downloading...",
+    "expiry_expired": "Expired",
+    "expiry_hours": "Expires in {{h}}h {{m}}m",
+    "expiry_minutes": "Expires in {{m}}m",
+    "error_auth_callback": "Dropbox authentication failed.",
+    "error_invalid_filename": "Invalid filename.",
+    "error_pkce_missing": "Auth state missing. Please log in again.",
+    "error_upload": "Dropbox save failed: {{msg}}",
+    "error_download": "Dropbox download failed: {{msg}}",
+    "error_list": "Failed to load list: {{msg}}"
+  },
+  "import": {
+    "error_title": "Import Error",
+    "error_invalid_file": "Unsupported file format."
   }
 }

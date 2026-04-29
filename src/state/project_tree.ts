@@ -13,7 +13,7 @@ import {
 } from '../lib/doc/db';
 import type { GroupNode, SheetNode, SheetContent } from '../lib/doc/v0';
 import { pmSchema } from '../lib/doc/pm';
-import { genId } from '../lib/uuid';
+import { genUnorderedId } from '../lib/uuid';
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -183,7 +183,7 @@ export async function createTreeNode(
   const vid = vId();
   if (!vid) return null;
 
-  const newId = genId();
+  const newId = genUnorderedId();
   const now = new Date().toISOString();
 
   const base = {
@@ -202,7 +202,7 @@ export async function createTreeNode(
   let sheetContent: SheetContent | undefined;
   if (type === 'sheet') {
     sheetContent = {
-      id: genId(),
+      id: genUnorderedId(),
       nodeId: newId,
       pmJSON: pmSchema.topNodeType.createAndFill()!.toJSON(),
       markdown: '',

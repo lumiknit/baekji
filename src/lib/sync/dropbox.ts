@@ -138,6 +138,15 @@ export async function list(
     .map(fileFromJson);
 }
 
+/** Allowed filename pattern: alphanumeric, hyphens, underscores, dots only. No path separators. */
+const SAFE_FILENAME_RE = /^[A-Za-z0-9_.\-]+$/;
+
+function assertSafeFilename(name: string): void {
+  if (!SAFE_FILENAME_RE.test(name) || name.startsWith('.') || name.includes('..')) {
+    throw new Error(`Invalid filename: "${name}"`);
+  }
+}
+
 /**
  * Upload a Blob to the app folder.
  * @param name filename, e.g. 'snapshot-2024.gz'
@@ -147,6 +156,7 @@ export async function upload(
   name: string,
   blob: Blob,
 ): Promise<SyncFile> {
+  assertSafeFilename(name);
   const res = await fetch(`${CONTENT_URL}/files/upload`, {
     method: 'POST',
     headers: {
@@ -180,6 +190,32 @@ export async function download(token: SyncToken, name: string): Promise<Blob> {
     throw new Error(`Download failed: ${JSON.stringify(err)}`);
   }
   return res.blob();
+}
+
+// --- Account ---
+
+interface DropboxAccount {
+  displayName: string;
+  email: string;
+}
+
+export async function getCurrentAccount(
+  token: SyncToken,
+): Promise<DropboxAccount> {
+  const res = await fetch(`${API_URL}/users/get_current_account`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: 'null',
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(JSON.stringify(json.error));
+  return {
+    displayName: json.name?.display_name ?? '',
+    email: json.email ?? '',
+  };
 }
 
 // --- Internal ---

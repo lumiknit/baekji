@@ -82,6 +82,8 @@ export const showBackup = (
   });
 };
 
+export const showDropbox = showBackup;
+
 export type ImportCompareResult = 'cancel' | 'separate' | 'overwrite';
 
 export const showImportCompare = (

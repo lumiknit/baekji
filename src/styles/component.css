@@ -179,6 +179,68 @@
   white-space: nowrap;
 }
 
+/* ─── Sidebar Button System ───────────────────────── */
+
+/*
+ * Two-layer hit-box pattern:
+ *   outer element  — full click region, no visual background, no gaps between items
+ *   .btn-pad       — inner visual pill that receives hover/active background,
+ *                    ~2–4px smaller than the outer on each side
+ *
+ * Minimum touch targets: 44px tall (and 44px wide for icon-only).
+ */
+
+.btn-pad {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  border-radius: var(--r);
+}
+
+/* Icon-only: 44×44 hit-box, 32×32 visual pill */
+.sb-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  flex-shrink: 0;
+}
+.sb-icon-btn:hover { background: transparent; }
+.sb-icon-btn > .btn-pad {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+.sb-icon-btn:hover > .btn-pad { background: var(--border); }
+
+/* Text + icon nav button: stretches to fill 44px row height */
+.sb-nav-btn {
+  display: flex;
+  align-items: stretch;
+  min-height: 44px;
+  padding: 0;
+  text-decoration: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  background: transparent;
+}
+.sb-nav-btn:hover { background: transparent; }
+.sb-nav-btn > .btn-pad {
+  align-self: center;
+  padding: 6px var(--sp-3);
+  margin: 2px;
+}
+.sb-nav-btn:hover > .btn-pad,
+.sb-nav-btn--active > .btn-pad {
+  background: var(--border);
+  color: var(--text-bold);
+}
+
 /* ─── Tree View ───────────────────────────────────── */
 
 .tree-view {
@@ -208,41 +270,66 @@
   padding: var(--sp-2) 0;
 }
 
+/* Full-width hit-box row — no outer background on hover */
 .tree-row {
   display: flex;
-  align-items: center;
-  margin: 0 var(--sp-2);
-  padding: var(--sp-2) 0;
-  padding-left: calc(var(--tree-depth, 0) * 14px);
+  align-items: stretch;
+  min-height: 44px;
   cursor: pointer;
   font-size: var(--fs-base);
 }
+.tree-row:hover { background: transparent; }
 
-.tree-row:hover {
-  background: var(--border);
+/* Inner visual area: 2px gap on all sides, depth indent */
+.tree-row-inner {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  margin: 2px;
   border-radius: var(--r);
+  padding-left: calc(var(--tree-depth, 0) * 14px);
 }
 
-.tree-actions--hidden .dropdown-trigger {
-  visibility: hidden;
-}
+.tree-row:hover > .tree-row-inner { background: var(--border); }
 
-.tree-row--active {
+.tree-row--active > .tree-row-inner {
   background: var(--border);
-  border-radius: var(--r);
   font-weight: bold;
   color: var(--text-bold);
 }
 
-.tree-row--selected {
+.tree-row--selected > .tree-row-inner {
   outline: 2px solid var(--hl);
   outline-offset: -2px;
-  border-radius: var(--r);
 }
 
-.tree-row--drop-into {
+.tree-row--drop-into > .tree-row-inner {
   outline: 2px solid var(--text);
 }
+
+/* ⋮ dropdown hidden unless row is active */
+.tree-actions--hidden .dropdown-trigger {
+  visibility: hidden;
+}
+
+/* Inside tree rows the trigger stretches to row height, not 44px fixed */
+.tree-row-inner .sb-icon-btn {
+  min-height: unset;
+  align-self: stretch;
+}
+
+/* Toggle button: fixed width, icon right-aligned so folder/file
+   column stays consistent whether or not a chevron is present */
+.tree-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 40px;
+  flex-shrink: 0;
+  padding: 0;
+}
+.tree-toggle:hover { background: transparent; }
 
 .tree-label {
   flex: 1;
@@ -251,26 +338,10 @@
   white-space: nowrap;
 }
 
-.tree-project-link {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  border: none;
-}
-
-.tree-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: end;
-  padding: 0;
-  width: 40px;
-  height: 26px;
-  flex-shrink: 0;
-}
-
 .tree-insert-line {
   height: 2px;
   background: var(--text);
-  margin: 0 var(--sp-2);
+  margin: 0 2px;
 }
 
 .tree-node--dragging {
@@ -314,9 +385,7 @@
 
 .sidebar-project-header {
   display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-2) var(--sp-4);
+  align-items: stretch;
   position: sticky;
   top: 0;
   background: var(--bg);
@@ -333,6 +402,42 @@
   background: var(--border);
 }
 
+/* Project title link — fills remaining width, own hover via btn-pad */
+.tree-project-link {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-height: 44px;
+  min-width: 0;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+}
+.tree-project-link:hover { background: transparent; border-bottom: none; color: inherit; }
+.tree-project-link > .btn-pad {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  margin: 2px 2px 2px 4px;
+  padding: 0 var(--sp-2);
+  font-weight: bold;
+  overflow: hidden;
+}
+.tree-project-link > .btn-pad > .tree-project-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tree-project-link:hover > .btn-pad { background: var(--border); }
+
+/* Right-side icon buttons in header row */
+.tree-project-header-btns {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 /* ─── Project List ────────────────────────────────── */
 
 .project-list {
@@ -346,7 +451,8 @@
   display: flex;
   align-items: center;
   gap: var(--sp-1);
-  padding: var(--sp-2) var(--sp-3);
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  min-height: 44px;
   position: sticky;
   top: 0;
   background: var(--bg);
@@ -379,17 +485,26 @@
   overflow-y: auto;
 }
 
+/* New project / import buttons — full-width, separator at bottom */
 .project-list-new-btn {
   display: flex;
-  align-items: center;
-  gap: var(--sp-2);
+  align-items: stretch;
   width: 100%;
-  padding: var(--sp-2) var(--sp-4);
-  position: relative;
+  min-height: 44px;
+  padding: 0;
   font-size: var(--fs-sm);
   opacity: 0.7;
+  position: relative;
+  background: transparent;
 }
-
+.project-list-new-btn:hover { background: transparent; }
+.project-list-new-btn > .btn-pad {
+  flex: 1;
+  align-items: center;
+  padding: 0 var(--sp-4);
+  margin: 2px;
+}
+.project-list-new-btn:hover > .btn-pad { background: var(--border); }
 .project-list-new-btn::after {
   content: '';
   position: absolute;
@@ -400,16 +515,25 @@
   background: var(--border);
 }
 
+/* Project list items — full-width hit-box, inner .btn-pad for hover */
 .project-list-item {
-  padding: 10px 14px;
+  display: flex;
+  align-items: stretch;
   cursor: pointer;
-  border-radius: var(--r);
+  min-height: 44px;
+}
+.project-list-item:hover { background: transparent; }
+.project-list-item > .btn-pad {
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--sp-2) var(--sp-3);
   margin: 2px var(--sp-1);
 }
-
-.project-list-item:hover {
-  background: var(--border);
-}
+.project-list-item:hover > .btn-pad { background: var(--border); }
 
 .project-list-item-label {
   font-size: var(--fs-base);
@@ -417,12 +541,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
 }
 
 .project-list-item-meta {
   font-size: var(--fs-xs);
   opacity: 0.5;
-  margin-top: 2px;
   display: flex;
   align-items: center;
   gap: 6px;

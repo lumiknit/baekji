@@ -7,7 +7,7 @@ import notesMd from './notes.md?raw';
 import { createNodeAtomic, ORDER_GAP, putNode } from '../lib/doc/db';
 import { hardSave } from '../lib/doc/db_helper';
 import { markdownToDoc } from '../lib/pm_content';
-import { genId } from '../lib/uuid';
+import { genUnorderedId } from '../lib/uuid';
 
 interface NodeSpec {
   type: 'group' | 'sheet';
@@ -39,8 +39,8 @@ export async function createWelcomeProject(): Promise<{
   pjVerId: string;
   firstSheetId: string;
 }> {
-  const projectId = genId();
-  const pjVerId = genId();
+  const projectId = genUnorderedId();
+  const pjVerId = genUnorderedId();
   const now = new Date().toISOString();
 
   await putNode({
@@ -57,7 +57,7 @@ export async function createWelcomeProject(): Promise<{
 
   async function buildNodes(specs: NodeSpec[], parentId: string) {
     for (const spec of specs) {
-      const id = genId();
+      const id = genUnorderedId();
 
       if (spec.type === 'group') {
         await createNodeAtomic({
@@ -86,7 +86,7 @@ export async function createWelcomeProject(): Promise<{
             tags: [],
           },
           {
-            id: genId(),
+            id: genUnorderedId(),
             nodeId: id,
             pmJSON: {},
             markdown: '',

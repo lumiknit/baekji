@@ -1,12 +1,10 @@
 import {
-  TbFillFolderOpen,
   TbFillTrash,
   TbOutlineArrowMerge,
   TbOutlineChevronDown,
   TbOutlineChevronRight,
   TbOutlineDeviceFloppy,
   TbOutlineDotsVertical,
-  TbOutlineFile,
   TbOutlineFileImport,
   TbOutlineFilePlus,
   TbOutlineFileText,
@@ -223,10 +221,7 @@ const TreeItem: Component<TreeItemProps> = (props) => {
               'tree-row--active': isActive(),
               'tree-row--selected': isSelected(),
             }}
-            style={{
-              '--tree-depth': props.depth,
-              opacity: props.hidden ? '0.75' : undefined,
-            }}
+            style={{ '--tree-depth': props.depth }}
             data-item-id={props.id}
             data-parent-id={props.parentId}
             data-item-type={n().type}
@@ -234,6 +229,10 @@ const TreeItem: Component<TreeItemProps> = (props) => {
             onContextMenu={handleContextMenu}
             onPointerDown={(e) => ctx.startDrag(props.id, props.parentId, e)}
           >
+            <div
+              class="tree-row-inner"
+              style={{ opacity: props.hidden ? '0.75' : undefined }}
+            >
             <button
               class="tree-toggle"
               style={{ color: labelColor() }}
@@ -246,20 +245,16 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                       isOpen() ? TbOutlineChevronDown : TbOutlineChevronRight
                     }
                   />
-                  <span class="icon">
-                    <TbOutlineFolder />
-                  </span>
+                  <span class="icon"><TbOutlineFolder /></span>
                 </Match>
                 <Match when>
-                  <span class="icon">
-                    <TbOutlineFileText />
-                  </span>
+                  <span class="icon"><TbOutlineFileText /></span>
                 </Match>
               </Switch>
             </button>
 
             <span
-              class="tree-label flex-1 overflow-hidden"
+              class="tree-label"
               style={{
                 'font-style': n().label ? 'normal' : 'italic',
                 color: labelColor(),
@@ -289,13 +284,14 @@ const TreeItem: Component<TreeItemProps> = (props) => {
             <Show when={ctx.mode() === 'normal'}>
               <Dropdown
                 class={`tree-actions${!isActive() ? ' tree-actions--hidden' : ''}`}
+                triggerClass="sb-icon-btn"
                 align="right"
                 open={dropdownOpen}
                 onOpenChange={setDropdownOpen}
                 trigger={
-                  <span class="icon">
-                    <TbOutlineDotsVertical />
-                  </span>
+                  <div class="btn-pad">
+                    <span class="icon"><TbOutlineDotsVertical /></span>
+                  </div>
                 }
                 items={[
                   ...(n().type === 'group'
@@ -411,7 +407,8 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                 ]}
               />
             </Show>
-          </div>
+            </div>{/* tree-row-inner */}
+          </div>{/* tree-row */}
 
           <Show when={showAfter()}>
             <div class="tree-insert-line" />

@@ -22,14 +22,14 @@
   z-index: var(--z-sidebar);
   display: flex;
   flex-direction: column;
+  font-size: 0.875em;
 }
 
 .sidebar-nav {
-  padding: var(--sp-3) var(--sp-4) var(--sp-3) 56px;
+  padding-left: 44px; /* leave room for the floating toggle */
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--sp-2);
   position: relative;
 }
 
@@ -41,15 +41,6 @@
   right: var(--sp-3);
   height: 1px;
   background: var(--border);
-}
-
-.sidebar-nav-btn {
-  font-size: var(--sidebar-nav-fs);
-}
-
-.sidebar-view-toggle--active {
-  background-color: var(--border) !important;
-  color: var(--text-bold) !important;
 }
 
 .sidebar-content {
@@ -89,19 +80,30 @@
 
 .sidebar-toggle {
   position: fixed;
-  top: var(--sp-2);
-  left: var(--sp-2);
-  width: 36px;
-  height: 36px;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 44px;
   z-index: var(--z-toggle);
-  background-color: var(--bg);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-toggle:hover { background: transparent; }
+.sidebar-toggle > .btn-pad {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border-radius: var(--r);
 }
-
-.sidebar-toggle.active {
-  background-color: var(--border);
-}
+.sidebar-toggle:hover > .btn-pad,
+.sidebar-toggle.active > .btn-pad { background: var(--border); }
 
 @media (max-width: 768px) {
   .sidebar {
