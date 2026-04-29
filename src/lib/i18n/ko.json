@@ -227,6 +227,7 @@
     "save_project": "프로젝트 저장",
     "saving": "저장 중...",
     "save_done": "저장 완료!",
+    "show_all": "현재 프로젝트 외의 항목도 표시",
     "load_list": "저장된 목록 조회",
     "loading_list": "조회 중...",
     "no_files": "저장된 파일이 없습니다.",

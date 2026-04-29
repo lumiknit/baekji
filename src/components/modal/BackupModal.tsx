@@ -133,20 +133,26 @@ const DropboxBackup: Component<Props> = (props) => {
     'idle' | 'busy' | 'done' | 'error'
   >('idle');
   const [listTrigger, setListTrigger] = createSignal(0);
-  const [files] = createResource(listTrigger, async (n) => {
-    if (n === 0) return null;
-    try {
-      const tok = await ensureToken();
-      const all = await list(tok, { prefix: props.pjVerId + '.' });
-      all.sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime());
-      return all.slice(0, 5);
-    } catch (err: any) {
-      toast.error(
-        s('dropbox.error_list', { msg: err?.message ?? String(err) }),
-      );
-      throw err;
-    }
-  });
+  const [showAll, setShowAll] = createSignal(false);
+  const [files] = createResource(
+    () => ({ trigger: listTrigger(), showAll: showAll() }),
+    async ({ trigger: n, showAll }) => {
+      if (n === 0) return null;
+      try {
+        const tok = await ensureToken();
+        const all = await list(tok, {
+          prefix: showAll ? undefined : props.pjVerId + '.',
+        });
+        all.sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime());
+        return all.slice(0, 10);
+      } catch (err: any) {
+        toast.error(
+          s('dropbox.error_list', { msg: err?.message ?? String(err) }),
+        );
+        throw err;
+      }
+    },
+  );
   const [downloadingId, setDownloadingId] = createSignal<string | null>(null);
 
   const handleLogin = () => beginOAuth();
@@ -299,6 +305,18 @@ const DropboxBackup: Component<Props> = (props) => {
             </Show>
           </button>
         </div>
+
+        <label
+          class="flex items-center gap-8 cursor-pointer"
+          style={{ 'font-size': 'var(--fs-sm)' }}
+        >
+          <input
+            type="checkbox"
+            checked={showAll()}
+            onChange={(e) => setShowAll(e.currentTarget.checked)}
+          />
+          <span class="opacity-60">{s('dropbox.show_all')}</span>
+        </label>
 
         <Show when={files() !== null && !files.loading && !files.error}>
           <div class="flex flex-column gap-4">

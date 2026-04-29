@@ -218,6 +218,7 @@
     "save_project": "Save Project",
     "saving": "Saving...",
     "save_done": "Saved!",
+    "show_all": "Show items outside current project",
     "load_list": "Browse Saved Files",
     "loading_list": "Loading...",
     "no_files": "No saved files found.",

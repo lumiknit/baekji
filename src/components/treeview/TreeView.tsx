@@ -16,13 +16,14 @@ import {
 } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
 import { For, Show, createEffect, createSignal } from 'solid-js';
-import { A, useNavigate } from '@solidjs/router';
+import { A, useLocation, useNavigate } from '@solidjs/router';
 
 import { s } from '../../lib/i18n';
 import { showBackup, showConfirm, showPrompt } from '../../state/modal';
 import {
   createTreeNode,
   deleteTreeNode,
+  isDescendantOf,
   projectTree,
   renameProjectMeta,
 } from '../../state/project_tree';
@@ -125,6 +126,8 @@ const TreeView: Component = () => {
     clearSelection,
   };
 
+  const location = useLocation();
+
   return (
     <TreeCtxKey.Provider value={treeCtx}>
       <div class="tree-view">
@@ -153,12 +156,27 @@ const TreeView: Component = () => {
                     class="btn-border btn-sm"
                     onClick={async () => {
                       const confirmed = await showConfirm(
-                        s('modal.rename_title'),
+                        s('common.delete'),
                         s('tree.delete_selected_confirm', {
                           count: selectedIds().size,
                         }),
                       );
                       if (!confirmed) return;
+
+                      const currentPathId =
+                        location.pathname.match(/^\/nodes\/([^/]+)/)?.[1];
+                      if (currentPathId) {
+                        for (const id of selectedIds()) {
+                          if (
+                            id === currentPathId ||
+                            isDescendantOf(id, currentPathId)
+                          ) {
+                            navigate(`/nodes/${p().pjVerId}`);
+                            break;
+                          }
+                        }
+                      }
+
                       for (const id of selectedIds()) await deleteTreeNode(id);
                       clearSelection();
                     }}

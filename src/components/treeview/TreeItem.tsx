@@ -31,6 +31,7 @@ import { showConfirm, showExport, showPrompt } from '../../state/modal';
 import {
   createTreeNode,
   deleteTreeNode,
+  isDescendantOf,
   projectTree,
   renameTreeNode,
   setNodeColor,
@@ -126,10 +127,21 @@ const TreeItem: Component<TreeItemProps> = (props) => {
     const n = node();
     if (!n) return;
     const confirmed = await showConfirm(
-      s('modal.rename_title'),
+      s('common.delete'),
       `"${n.label || s('common.untitled')}" ${s('common.delete')}?`,
     );
     if (!confirmed) return;
+
+    const currentPathId = location.pathname.match(/^\/nodes\/([^/]+)/)?.[1];
+    if (
+      currentPathId &&
+      (props.id === currentPathId || isDescendantOf(props.id, currentPathId))
+    ) {
+      const rootId = projectTree.meta?.pjVerId;
+      if (rootId) navigate(`/nodes/${rootId}`);
+      else navigate('/');
+    }
+
     await deleteTreeNode(props.id);
   };
 
