@@ -29,7 +29,8 @@
     "search": "검색",
     "search_placeholder": "검색어 입력...",
     "search_no_results": "결과 없음",
-    "untitled": "(제목없음)"
+    "untitled": "(제목없음)",
+    "more_actions": "더보기"
   },
   "home": {
     "title": "백지",

@@ -1,5 +1,5 @@
 import type { Component, JSX } from 'solid-js';
-import { For, Show } from 'solid-js';
+import { For } from 'solid-js';
 import { A } from '@solidjs/router';
 import { settings, setSettings } from '../state/settings';
 import type { MdRules } from '../state/settings';
@@ -139,7 +139,11 @@ const SettingsPage: Component = () => {
                       {label}
                       <input
                         type="text"
-                        style={{ flex: '1', 'min-width': '0', 'max-width': '200px' }}
+                        style={{
+                          flex: '1',
+                          'min-width': '0',
+                          'max-width': '200px',
+                        }}
                         placeholder={
                           isNoto()
                             ? notoName

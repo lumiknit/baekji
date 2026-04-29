@@ -11,6 +11,7 @@ interface DropdownProps {
   title?: string;
   class?: string;
   triggerClass?: string;
+  triggerAriaLabel?: string;
   align?: 'left' | 'right';
   open?: Accessor<boolean>;
   onOpenChange?: (v: boolean) => void;
@@ -59,7 +60,12 @@ const Dropdown: Component<DropdownProps> = (props) => {
       onPointerDown={stopProp}
       onClick={stopProp}
     >
-      <button class={`dropdown-trigger${props.triggerClass ? ` ${props.triggerClass}` : ''}`} onClick={toggle} title={props.title}>
+      <button
+        class={`dropdown-trigger${props.triggerClass ? ` ${props.triggerClass}` : ''}`}
+        onClick={toggle}
+        title={props.title}
+        aria-label={props.triggerAriaLabel}
+      >
         {props.trigger}
       </button>
       <Show when={open()}>

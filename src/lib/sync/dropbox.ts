@@ -129,7 +129,9 @@ export async function list(
 
   let entries: any[] = json.entries;
   if (opts.prefix) {
-    entries = entries.filter((e: any) => (e.name as string).startsWith(opts.prefix!));
+    entries = entries.filter((e: any) =>
+      (e.name as string).startsWith(opts.prefix!),
+    );
   }
 
   return entries
@@ -142,7 +144,11 @@ export async function list(
 const SAFE_FILENAME_RE = /^[A-Za-z0-9_.\-]+$/;
 
 function assertSafeFilename(name: string): void {
-  if (!SAFE_FILENAME_RE.test(name) || name.startsWith('.') || name.includes('..')) {
+  if (
+    !SAFE_FILENAME_RE.test(name) ||
+    name.startsWith('.') ||
+    name.includes('..')
+  ) {
     throw new Error(`Invalid filename: "${name}"`);
   }
 }

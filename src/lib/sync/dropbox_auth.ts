@@ -80,7 +80,11 @@ export async function handleCallback(code: string): Promise<void> {
   let token = await exchangeCode(cfg, code, pkceState);
   try {
     const account = await getCurrentAccount(token);
-    token = { ...token, displayName: account.displayName, email: account.email };
+    token = {
+      ...token,
+      displayName: account.displayName,
+      email: account.email,
+    };
   } catch {
     // account info is best-effort; don't fail the whole login
   }

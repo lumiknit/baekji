@@ -43,14 +43,14 @@ const AboutPage: Component = () => {
       <hr class="separator-line" />
       <h3 class="m-0">Privacy</h3>
       <p class="opacity-60 text-sm">
-        Baekji collects no data. By default, everything you write is stored
-        only on this device using IndexedDB — no servers, no analytics, no
-        third parties.
+        Baekji collects no data. By default, everything you write is stored only
+        on this device using IndexedDB — no servers, no analytics, no third
+        parties.
       </p>
       <p class="opacity-60 text-sm">
-        If you enable cloud sync (e.g. Dropbox), files are read from and
-        written to the app folder of your own account on that service. No data
-        is shared with anyone else.
+        If you enable cloud sync (e.g. Dropbox), files are read from and written
+        to the app folder of your own account on that service. No data is shared
+        with anyone else.
       </p>
       <p class="opacity-60 text-sm">
         If you clear your browser data, your content will be permanently lost.

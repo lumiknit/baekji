@@ -25,6 +25,12 @@
   font-size: 0.875em;
 }
 
+/* Disable the global a:hover underline inside the sidebar */
+.sidebar a:hover {
+  border-bottom: none;
+  color: inherit;
+}
+
 .sidebar-nav {
   padding-left: 44px; /* leave room for the floating toggle */
   display: flex;
@@ -93,7 +99,9 @@
   align-items: center;
   justify-content: center;
 }
-.sidebar-toggle:hover { background: transparent; }
+.sidebar-toggle:hover {
+  background: transparent;
+}
 .sidebar-toggle > .btn-pad {
   display: flex;
   align-items: center;
@@ -103,7 +111,9 @@
   border-radius: var(--r);
 }
 .sidebar-toggle:hover > .btn-pad,
-.sidebar-toggle.active > .btn-pad { background: var(--border); }
+.sidebar-toggle.active > .btn-pad {
+  background: var(--border);
+}
 
 @media (max-width: 768px) {
   .sidebar {

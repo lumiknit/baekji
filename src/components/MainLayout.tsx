@@ -1,5 +1,13 @@
 import type { Component } from 'solid-js';
-import { createEffect, createMemo, Match, Show, Switch, onMount, onCleanup } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  Match,
+  Show,
+  Switch,
+  onMount,
+  onCleanup,
+} from 'solid-js';
 import {
   isSidebarOpen,
   setSidebarOpen,
@@ -74,7 +82,9 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
         <div class="sidebar-nav">
           <A href="/settings" class="sb-nav-btn" title={s('common.settings')}>
             <div class="btn-pad">
-              <span class="icon"><TbFillSettings /></span>
+              <span class="icon">
+                <TbFillSettings />
+              </span>
               <Show when={!isNarrow()}>{s('common.settings')}</Show>
             </div>
           </A>
@@ -86,7 +96,9 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
             title={s('sidebar.project_list')}
           >
             <div class="btn-pad">
-              <span class="icon"><TbOutlineCarouselVertical /></span>
+              <span class="icon">
+                <TbOutlineCarouselVertical />
+              </span>
               <Show when={!isNarrow()}>{s('sidebar.project_list')}</Show>
             </div>
           </button>
@@ -116,10 +128,14 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
         <div class="btn-pad">
           <Switch>
             <Match when={isSidebarOpen()}>
-              <span class="icon"><TbFillLayoutSidebarLeftCollapse /></span>
+              <span class="icon">
+                <TbFillLayoutSidebarLeftCollapse />
+              </span>
             </Match>
             <Match when={!isSidebarOpen()}>
-              <span class="icon"><TbOutlineLayoutSidebarLeftExpand /></span>
+              <span class="icon">
+                <TbOutlineLayoutSidebarLeftExpand />
+              </span>
             </Match>
           </Switch>
         </div>

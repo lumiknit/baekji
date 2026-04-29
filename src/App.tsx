@@ -35,7 +35,9 @@ const App: Component = () => {
           // Delay toast until after the router has mounted
           setTimeout(() => {
             const key = err?.message ?? '';
-            const msg = key.startsWith('dropbox.') ? s(key) : s('dropbox.error_auth_callback');
+            const msg = key.startsWith('dropbox.')
+              ? s(key)
+              : s('dropbox.error_auth_callback');
             toast.error(msg, { duration: 6000 });
           }, 500);
         }

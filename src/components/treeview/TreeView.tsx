@@ -19,11 +19,7 @@ import { For, Show, createEffect, createSignal } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 
 import { s } from '../../lib/i18n';
-import {
-  showBackup,
-  showConfirm,
-  showPrompt,
-} from '../../state/modal';
+import { showBackup, showConfirm, showPrompt } from '../../state/modal';
 import {
   createTreeNode,
   deleteTreeNode,
@@ -40,7 +36,6 @@ import { TreeCtxKey } from './context';
 import { useDragDrop } from './drag_drop';
 import { openImportFileDialog } from './import_file';
 import TreeItem from './TreeItem';
-
 
 const TreeView: Component = () => {
   const navigate = useNavigate();
@@ -189,10 +184,7 @@ const TreeView: Component = () => {
                 class="sidebar-project-header"
                 onContextMenu={handleProjectContextMenu}
               >
-                <A
-                  href={`/nodes/${p().pjVerId}`}
-                  class="tree-project-link"
-                >
+                <A href={`/nodes/${p().pjVerId}`} class="tree-project-link">
                   <div class="btn-pad">
                     <span class="tree-project-name">{p().label}</span>
                   </div>
@@ -208,42 +200,67 @@ const TreeView: Component = () => {
                         title={s('common.backup')}
                       >
                         <div class="btn-pad">
-                          <span class="icon"><TbOutlineCloud /></span>
+                          <span class="icon">
+                            <TbOutlineCloud />
+                          </span>
                         </div>
                       </button>
                       <Dropdown
                         triggerClass="sb-icon-btn"
+                        triggerAriaLabel={s('common.more_actions')}
                         align="right"
                         open={projectMenuOpen}
                         onOpenChange={setProjectMenuOpen}
                         trigger={
                           <div class="btn-pad">
-                            <span class="icon"><TbOutlineDotsVertical /></span>
+                            <span class="icon">
+                              <TbOutlineDotsVertical />
+                            </span>
                           </div>
                         }
                         items={[
                           {
                             label: (
-                              <><span class="icon"><TbOutlineSearch /></span>{' '}{s('common.search')}</>
+                              <>
+                                <span class="icon">
+                                  <TbOutlineSearch />
+                                </span>{' '}
+                                {s('common.search')}
+                              </>
                             ),
                             onSelect: () => navigate('/search'),
                           },
                           { separator: true as const },
                           {
                             label: (
-                              <><span class="icon"><TbOutlineFilePlus /></span>{' '}{s('common.new_sheet')}</>
+                              <>
+                                <span class="icon">
+                                  <TbOutlineFilePlus />
+                                </span>{' '}
+                                {s('common.new_sheet')}
+                              </>
                             ),
                             onSelect: () => addRootChild('sheet'),
                           },
                           {
                             label: (
-                              <><span class="icon"><TbOutlineFolderPlus /></span>{' '}{s('common.new_group')}</>
+                              <>
+                                <span class="icon">
+                                  <TbOutlineFolderPlus />
+                                </span>{' '}
+                                {s('common.new_group')}
+                              </>
                             ),
                             onSelect: () => addRootChild('group'),
                           },
                           {
                             label: (
-                              <><span class="icon"><TbOutlineFileImport /></span>{' '}{s('common.import_file')}</>
+                              <>
+                                <span class="icon">
+                                  <TbOutlineFileImport />
+                                </span>{' '}
+                                {s('common.import_file')}
+                              </>
                             ),
                             onSelect: () => {
                               const rootId = meta()?.pjVerId;
@@ -253,38 +270,71 @@ const TreeView: Component = () => {
                           { separator: true as const },
                           {
                             label: (
-                              <><span class="icon"><TbOutlineReportAnalytics /></span>{' '}{s('common.analysis')}</>
+                              <>
+                                <span class="icon">
+                                  <TbOutlineReportAnalytics />
+                                </span>{' '}
+                                {s('common.analysis')}
+                              </>
                             ),
-                            onSelect: () => navigate(`/nodes/${p().pjVerId}/analysis`),
+                            onSelect: () =>
+                              navigate(`/nodes/${p().pjVerId}/analysis`),
                           },
                           {
                             label: (
-                              <><span class="icon"><TbOutlineFolderSearch /></span>{' '}{s('tree.expand_all')}</>
+                              <>
+                                <span class="icon">
+                                  <TbOutlineFolderSearch />
+                                </span>{' '}
+                                {s('tree.expand_all')}
+                              </>
                             ),
-                            onSelect: () => setAllGroupsOpen(projectTree.nodes, true),
+                            onSelect: () =>
+                              setAllGroupsOpen(projectTree.nodes, true),
                           },
                           {
                             label: (
-                              <><span class="icon"><TbOutlineFolderMinus /></span>{' '}{s('tree.collapse_all')}</>
+                              <>
+                                <span class="icon">
+                                  <TbOutlineFolderMinus />
+                                </span>{' '}
+                                {s('tree.collapse_all')}
+                              </>
                             ),
-                            onSelect: () => setAllGroupsOpen(projectTree.nodes, false),
+                            onSelect: () =>
+                              setAllGroupsOpen(projectTree.nodes, false),
                           },
                           {
                             label: (
-                              <><span class="icon"><TbOutlineColorSwatch /></span>{' '}{s('common.color')}</>
+                              <>
+                                <span class="icon">
+                                  <TbOutlineColorSwatch />
+                                </span>{' '}
+                                {s('common.color')}
+                              </>
                             ),
                             onSelect: () => setMode('color'),
                           },
                           { separator: true as const },
                           {
                             label: (
-                              <><span class="icon"><TbOutlineCloud /></span>{' '}{s('common.backup')}</>
+                              <>
+                                <span class="icon">
+                                  <TbOutlineCloud />
+                                </span>{' '}
+                                {s('common.backup')}
+                              </>
                             ),
                             onSelect: () => showBackup(p().pjVerId, p().label),
                           },
                           {
                             label: (
-                              <><span class="icon"><TbOutlinePencil /></span>{' '}{s('common.rename')}</>
+                              <>
+                                <span class="icon">
+                                  <TbOutlinePencil />
+                                </span>{' '}
+                                {s('common.rename')}
+                              </>
                             ),
                             onSelect: handleRenameProject,
                           },
@@ -298,7 +348,9 @@ const TreeView: Component = () => {
                       class="btn-border btn-sm"
                       onClick={() => setMode('normal')}
                     >
-                      <span class="icon"><TbOutlineCheck /></span>{' '}
+                      <span class="icon">
+                        <TbOutlineCheck />
+                      </span>{' '}
                       {s('common.done')}
                     </button>
                   </div>

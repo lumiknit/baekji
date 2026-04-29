@@ -6,17 +6,14 @@ import {
 } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
 import { createResource, createSignal, For, Show } from 'solid-js';
-import {
-  getAllVersionRoots,
-  setActiveVersion,
-} from '../lib/doc/db';
+import { getAllVersionRoots, setActiveVersion } from '../lib/doc/db';
 import { createProject as createProjectInDB } from '../lib/doc/db_helper';
 import { s } from '../lib/i18n';
+import { formatRelativeDate } from '../lib/format_date';
 import { showPrompt } from '../state/modal';
 import { setActivePjVerId, setSidebarView } from '../state/workspace';
 import Dropdown from './Dropdown';
 import { openImportBakDialog } from '../lib/import_bak';
-
 
 const ProjectList: Component = () => {
   const navigate = useNavigate();
@@ -64,18 +61,6 @@ const ProjectList: Component = () => {
     openImportBakDialog(navigate, refetch);
   };
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    const now = new Date();
-    const diff = now.getTime() - d.getTime();
-    if (diff < 60_000) return s('time.just_now');
-    if (diff < 3600_000)
-      return s('time.minutes_ago', { n: Math.floor(diff / 60_000) });
-    if (diff < 86400_000)
-      return s('time.hours_ago', { n: Math.floor(diff / 3600_000) });
-    return d.toLocaleDateString();
-  };
-
   return (
     <div class="project-list">
       <div class="project-list-header">
@@ -88,10 +73,13 @@ const ProjectList: Component = () => {
         />
         <Dropdown
           triggerClass="sb-icon-btn"
+          triggerAriaLabel={s('common.more_actions')}
           align="right"
           trigger={
             <div class="btn-pad">
-              <span class="icon"><TbOutlineDotsVertical /></span>
+              <span class="icon">
+                <TbOutlineDotsVertical />
+              </span>
             </div>
           }
           items={[
@@ -107,13 +95,17 @@ const ProjectList: Component = () => {
       <div class="project-list-items">
         <button class="project-list-new-btn" onClick={createProject}>
           <div class="btn-pad">
-            <span class="icon"><TbOutlinePlus /></span>
+            <span class="icon">
+              <TbOutlinePlus />
+            </span>
             {s('project.new_project')}
           </div>
         </button>
         <button class="project-list-new-btn" onClick={importBackup}>
           <div class="btn-pad">
-            <span class="icon"><TbOutlineFileImport /></span>
+            <span class="icon">
+              <TbOutlineFileImport />
+            </span>
             {s('home.backup_import')}
           </div>
         </button>
@@ -127,11 +119,22 @@ const ProjectList: Component = () => {
                 class="project-list-item"
                 classList={{ 'project-list-item--inactive': !p.active }}
                 title={`project: ${p.projectId}\nversion: ${p.id}`}
+                role="button"
+                tabIndex={0}
+                aria-label={p.label}
                 onClick={() =>
                   p.active
                     ? openProject(p.id)
                     : activateAndOpen(p.projectId, p.id)
                 }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    p.active
+                      ? openProject(p.id)
+                      : activateAndOpen(p.projectId, p.id);
+                  }
+                }}
               >
                 <div class="btn-pad">
                   <div class="project-list-item-label">{p.label}</div>
@@ -141,7 +144,7 @@ const ProjectList: Component = () => {
                         {s('project.inactive')}
                       </span>
                     </Show>
-                    {formatDate(p.updatedAt)}
+                    {formatRelativeDate(p.updatedAt)}
                   </div>
                 </div>
               </div>

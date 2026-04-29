@@ -28,6 +28,7 @@ import { closeModal } from '../../state/modal';
 import { deviceId } from '../../state/workspace';
 import { importBakBlob, openImportBakDialog } from '../../lib/import_bak';
 import { s } from '../../lib/i18n';
+import { formatRelativeDate } from '../../lib/format_date';
 import type { SyncFile } from '../../lib/sync/interface';
 
 declare const __APP_VERSION__: string;
@@ -46,7 +47,11 @@ const LocalBackup: Component<Props> = (props) => {
   const filename = `${sanitizeFilename(props.projectLabel)}_${timestampSuffix()}.gz`;
 
   const [blob] = createResource(async () => {
-    const bak = await exportVersionAsBak(props.pjVerId, __APP_VERSION__, deviceId());
+    const bak = await exportVersionAsBak(
+      props.pjVerId,
+      __APP_VERSION__,
+      deviceId(),
+    );
     const data = await serializeBak(bak);
     return bakToBlob(data);
   });
@@ -90,14 +95,18 @@ const LocalBackup: Component<Props> = (props) => {
           disabled={blob.loading}
           onClick={handleDownload}
         >
-          <Show when={blob.loading} fallback={s('common.download')}>...</Show>
+          <Show when={blob.loading} fallback={s('common.download')}>
+            ...
+          </Show>
         </button>
         <button
           class="btn-primary btn-sm"
           disabled={blob.loading}
           onClick={handleShare}
         >
-          <Show when={blob.loading} fallback={s('common.share')}>...</Show>
+          <Show when={blob.loading} fallback={s('common.share')}>
+            ...
+          </Show>
         </button>
       </div>
     </div>
@@ -114,10 +123,15 @@ const DropboxBackup: Component<Props> = (props) => {
   const navigate = useNavigate();
 
   const [tokenVersion, setTokenVersion] = createSignal(0);
-  const token = createMemo(() => { tokenVersion(); return loadToken(); });
+  const token = createMemo(() => {
+    tokenVersion();
+    return loadToken();
+  });
   const isLoggedIn = () => !!token();
 
-  const [uploadStatus, setUploadStatus] = createSignal<'idle' | 'busy' | 'done' | 'error'>('idle');
+  const [uploadStatus, setUploadStatus] = createSignal<
+    'idle' | 'busy' | 'done' | 'error'
+  >('idle');
   const [listTrigger, setListTrigger] = createSignal(0);
   const [files] = createResource(listTrigger, async (n) => {
     if (n === 0) return null;
@@ -127,19 +141,29 @@ const DropboxBackup: Component<Props> = (props) => {
       all.sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime());
       return all.slice(0, 5);
     } catch (err: any) {
-      toast.error(s('dropbox.error_list', { msg: err?.message ?? String(err) }));
+      toast.error(
+        s('dropbox.error_list', { msg: err?.message ?? String(err) }),
+      );
       throw err;
     }
   });
   const [downloadingId, setDownloadingId] = createSignal<string | null>(null);
 
   const handleLogin = () => beginOAuth();
-  const handleLogout = () => { clearToken(); setListTrigger(0); setTokenVersion((v) => v + 1); };
+  const handleLogout = () => {
+    clearToken();
+    setListTrigger(0);
+    setTokenVersion((v) => v + 1);
+  };
 
   const handleUpload = async () => {
     setUploadStatus('busy');
     try {
-      const bak = await exportVersionAsBak(props.pjVerId, __APP_VERSION__, deviceId());
+      const bak = await exportVersionAsBak(
+        props.pjVerId,
+        __APP_VERSION__,
+        deviceId(),
+      );
       const data = await serializeBak(bak);
       const blob = bakToBlob(data);
       const tok = await ensureToken();
@@ -148,7 +172,9 @@ const DropboxBackup: Component<Props> = (props) => {
       setTimeout(() => setUploadStatus('idle'), 1500);
     } catch (err: any) {
       setUploadStatus('error');
-      toast.error(s('dropbox.error_upload', { msg: err?.message ?? String(err) }));
+      toast.error(
+        s('dropbox.error_upload', { msg: err?.message ?? String(err) }),
+      );
     }
   };
 
@@ -161,7 +187,9 @@ const DropboxBackup: Component<Props> = (props) => {
       await importBakBlob(blob, file.name, navigate);
     } catch (err: any) {
       setDownloadingId(null);
-      toast.error(s('dropbox.error_download', { msg: err?.message ?? String(err) }));
+      toast.error(
+        s('dropbox.error_download', { msg: err?.message ?? String(err) }),
+      );
     }
   };
 
@@ -170,15 +198,9 @@ const DropboxBackup: Component<Props> = (props) => {
     if (diff <= 0) return s('dropbox.expiry_expired');
     const h = Math.floor(diff / 3_600_000);
     const m = Math.floor((diff % 3_600_000) / 60_000);
-    return h > 0 ? s('dropbox.expiry_hours', { h, m }) : s('dropbox.expiry_minutes', { m });
-  };
-
-  const formatDate = (d: Date) => {
-    const diff = Date.now() - d.getTime();
-    if (diff < 60_000) return s('time.just_now');
-    if (diff < 3_600_000) return s('time.minutes_ago', { n: Math.floor(diff / 60_000) });
-    if (diff < 86_400_000) return s('time.hours_ago', { n: Math.floor(diff / 3_600_000) });
-    return d.toLocaleDateString();
+    return h > 0
+      ? s('dropbox.expiry_hours', { h, m })
+      : s('dropbox.expiry_minutes', { m });
   };
 
   const expiryWarning = createMemo(() => {
@@ -213,7 +235,9 @@ const DropboxBackup: Component<Props> = (props) => {
             <div class="flex-1 overflow-hidden">
               <Show
                 when={token()?.displayName || token()?.email}
-                fallback={<span class="opacity-60">{s('dropbox.no_account_info')}</span>}
+                fallback={
+                  <span class="opacity-60">{s('dropbox.no_account_info')}</span>
+                }
               >
                 <Show when={token()?.displayName}>
                   <div class="bold">{token()!.displayName}</div>
@@ -256,8 +280,12 @@ const DropboxBackup: Component<Props> = (props) => {
             onClick={handleUpload}
           >
             <Switch>
-              <Match when={uploadStatus() === 'busy'}>{s('dropbox.saving')}</Match>
-              <Match when={uploadStatus() === 'done'}>{s('dropbox.save_done')}</Match>
+              <Match when={uploadStatus() === 'busy'}>
+                {s('dropbox.saving')}
+              </Match>
+              <Match when={uploadStatus() === 'done'}>
+                {s('dropbox.save_done')}
+              </Match>
               <Match when={true}>{s('dropbox.save_project')}</Match>
             </Switch>
           </button>
@@ -282,7 +310,10 @@ const DropboxBackup: Component<Props> = (props) => {
                 </p>
               }
             >
-              <p class="opacity-60" style={{ 'font-size': 'var(--fs-sm)', margin: '0' }}>
+              <p
+                class="opacity-60"
+                style={{ 'font-size': 'var(--fs-sm)', margin: '0' }}
+              >
                 {s('dropbox.list_hint')}
               </p>
               <For each={files() ?? []}>
@@ -298,9 +329,12 @@ const DropboxBackup: Component<Props> = (props) => {
                       fallback={
                         <>
                           <div style={{ 'font-size': 'var(--fs-sm)' }}>
-                            {formatDate(file.modifiedAt)}
+                            {formatRelativeDate(file.modifiedAt)}
                           </div>
-                          <div class="opacity-60" style={{ 'font-size': 'var(--fs-xs, 0.75em)' }}>
+                          <div
+                            class="opacity-60"
+                            style={{ 'font-size': 'var(--fs-xs, 0.75em)' }}
+                          >
                             {file.name}
                           </div>
                         </>
@@ -327,8 +361,17 @@ const BackupModal: Component<Props> = (props) => {
       <h3 style={{ margin: '0 0 var(--sp-3)' }}>{props.projectLabel}</h3>
       <LocalBackup pjVerId={props.pjVerId} projectLabel={props.projectLabel} />
       <Show when={hasDropbox}>
-        <hr style={{ margin: 'var(--sp-4) 0', border: 'none', 'border-top': '1px solid var(--border)' }} />
-        <DropboxBackup pjVerId={props.pjVerId} projectLabel={props.projectLabel} />
+        <hr
+          style={{
+            margin: 'var(--sp-4) 0',
+            border: 'none',
+            'border-top': '1px solid var(--border)',
+          }}
+        />
+        <DropboxBackup
+          pjVerId={props.pjVerId}
+          projectLabel={props.projectLabel}
+        />
       </Show>
       <div class="modal-actions">
         <button class="btn-secondary" onClick={() => closeModal(null)}>

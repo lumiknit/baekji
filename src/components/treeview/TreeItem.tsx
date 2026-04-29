@@ -75,6 +75,16 @@ const TreeItem: Component<TreeItemProps> = (props) => {
     setGroupOpen(props.id, !isOpen());
   };
 
+  const handleActivate = () => {
+    if (ctx.mode() !== 'normal') return;
+    if (ctx.selectedIds().size > 0) ctx.clearSelection();
+    const n = node();
+    if (!n) return;
+    if (n.type === 'sheet') navigate(`/nodes/${n.id}`);
+    else if (isActive()) setGroupOpen(props.id, !isOpen());
+    else navigate(`/nodes/${n.id}`);
+  };
+
   const handleSelect = (e: MouseEvent) => {
     if (ctx.mode() !== 'normal') return;
     if (e.shiftKey) {
@@ -82,12 +92,7 @@ const TreeItem: Component<TreeItemProps> = (props) => {
       ctx.toggleSelect(props.id, true, props.parentId);
       return;
     }
-    if (ctx.selectedIds().size > 0) ctx.clearSelection();
-    const n = node();
-    if (!n) return;
-    if (n.type === 'sheet') navigate(`/nodes/${n.id}`);
-    else if (isActive()) setGroupOpen(props.id, !isOpen());
-    else navigate(`/nodes/${n.id}`);
+    handleActivate();
   };
 
   const addChild = async (type: 'group' | 'sheet') => {
@@ -225,7 +230,16 @@ const TreeItem: Component<TreeItemProps> = (props) => {
             data-item-id={props.id}
             data-parent-id={props.parentId}
             data-item-type={n().type}
+            role="button"
+            tabIndex={0}
+            aria-label={n().label || s('common.untitled')}
             onClick={handleSelect}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleActivate();
+              }
+            }}
             onContextMenu={handleContextMenu}
             onPointerDown={(e) => ctx.startDrag(props.id, props.parentId, e)}
           >
@@ -233,182 +247,191 @@ const TreeItem: Component<TreeItemProps> = (props) => {
               class="tree-row-inner"
               style={{ opacity: props.hidden ? '0.75' : undefined }}
             >
-            <button
-              class="tree-toggle"
-              style={{ color: labelColor() }}
-              onClick={handleToggle}
-            >
-              <Switch>
-                <Match when={n().type === 'group'}>
-                  <Dynamic
-                    component={
-                      isOpen() ? TbOutlineChevronDown : TbOutlineChevronRight
-                    }
-                  />
-                  <span class="icon"><TbOutlineFolder /></span>
-                </Match>
-                <Match when>
-                  <span class="icon"><TbOutlineFileText /></span>
-                </Match>
-              </Switch>
-            </button>
-
-            <span
-              class="tree-label"
-              style={{
-                'font-style': n().label ? 'normal' : 'italic',
-                color: labelColor(),
-              }}
-            >
-              {n().label || s('common.untitled')}
-            </span>
-
-            <Show when={ctx.mode() === 'color'}>
-              <div
-                class="flex items-center gap-4"
-                onClick={(e) => e.stopPropagation()}
+              <button
+                class="tree-toggle"
+                style={{ color: labelColor() }}
+                onClick={handleToggle}
               >
-                <input
-                  type="color"
-                  class="tree-color-input"
-                  onInput={(e) => handleColorChange(e.currentTarget.value)}
-                />
-                <Show when={n().color && n().color!.s > 0}>
-                  <button class="tree-color-clear" onClick={handleColorClear}>
-                    ✕
-                  </button>
-                </Show>
-              </div>
-            </Show>
+                <Switch>
+                  <Match when={n().type === 'group'}>
+                    <Dynamic
+                      component={
+                        isOpen() ? TbOutlineChevronDown : TbOutlineChevronRight
+                      }
+                    />
+                    <span class="icon">
+                      <TbOutlineFolder />
+                    </span>
+                  </Match>
+                  <Match when>
+                    <span class="icon">
+                      <TbOutlineFileText />
+                    </span>
+                  </Match>
+                </Switch>
+              </button>
 
-            <Show when={ctx.mode() === 'normal'}>
-              <Dropdown
-                class={`tree-actions${!isActive() ? ' tree-actions--hidden' : ''}`}
-                triggerClass="sb-icon-btn"
-                align="right"
-                open={dropdownOpen}
-                onOpenChange={setDropdownOpen}
-                trigger={
-                  <div class="btn-pad">
-                    <span class="icon"><TbOutlineDotsVertical /></span>
-                  </div>
-                }
-                items={[
-                  ...(n().type === 'group'
-                    ? [
-                        {
-                          label: (
-                            <>
-                              <span class="icon">
-                                <TbOutlineFilePlus />
-                              </span>{' '}
-                              {s('common.new_sheet')}
-                            </>
-                          ),
-                          onSelect: () => addChild('sheet'),
-                        },
-                        {
-                          label: (
-                            <>
-                              <span class="icon">
-                                <TbOutlineFolderPlus />
-                              </span>{' '}
-                              {s('common.new_group')}
-                            </>
-                          ),
-                          onSelect: () => addChild('group'),
-                        },
-                        {
-                          label: (
-                            <>
-                              <span class="icon">
-                                <TbOutlineFileImport />
-                              </span>{' '}
-                              {s('common.import_file')}
-                            </>
-                          ),
-                          onSelect: () => openImportFileDialog(props.id),
-                        },
-                        { separator: true as const },
-                      ]
-                    : []),
-                  {
-                    label: (
-                      <>
-                        <span class="icon">
-                          <TbOutlineReportAnalytics />
-                        </span>{' '}
-                        {s('common.analysis')}
-                      </>
-                    ),
-                    onSelect: () => navigate(`/nodes/${props.id}/analysis`),
-                  },
-                  {
-                    label: (
-                      <>
-                        <span class="icon">
-                          <TbOutlineDeviceFloppy />
-                        </span>{' '}
-                        {s('common.export')}
-                      </>
-                    ),
-                    onSelect: () => showExport(props.id),
-                  },
-                  { separator: true as const },
-                  ...(n().type === 'group'
-                    ? [
-                        {
-                          label: (
-                            <>
-                              <span class="icon">
-                                <TbOutlinePencil />
-                              </span>{' '}
-                              {s('common.rename')}
-                            </>
-                          ),
-                          onSelect: renameNode,
-                        },
-                        {
-                          label: (
-                            <>
-                              <span class="icon">
-                                <TbOutlineArrowMerge />
-                              </span>{' '}
-                              {s('tree.merge_to_sheet')}
-                            </>
-                          ),
-                          onSelect: mergeGroupToSheet,
-                        },
-                      ]
-                    : [
-                        {
-                          label: (
-                            <>
-                              <span class="icon">
-                                <TbOutlineArrowMerge />
-                              </span>{' '}
-                              {s('tree.merge_down')}
-                            </>
-                          ),
-                          onSelect: mergeSheetDown,
-                        },
-                      ]),
-                  {
-                    label: (
-                      <span class="btn-danger">
-                        <span class="icon">
-                          <TbFillTrash />
-                        </span>{' '}
-                        {s('common.delete')}
+              <span
+                class="tree-label"
+                style={{
+                  'font-style': n().label ? 'normal' : 'italic',
+                  color: labelColor(),
+                }}
+              >
+                {n().label || s('common.untitled')}
+              </span>
+
+              <Show when={ctx.mode() === 'color'}>
+                <div
+                  class="flex items-center gap-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="color"
+                    class="tree-color-input"
+                    onInput={(e) => handleColorChange(e.currentTarget.value)}
+                  />
+                  <Show when={n().color && n().color!.s > 0}>
+                    <button class="tree-color-clear" onClick={handleColorClear}>
+                      ✕
+                    </button>
+                  </Show>
+                </div>
+              </Show>
+
+              <Show when={ctx.mode() === 'normal'}>
+                <Dropdown
+                  class={`tree-actions${!isActive() ? ' tree-actions--hidden' : ''}`}
+                  triggerClass="sb-icon-btn"
+                  triggerAriaLabel={s('common.more_actions')}
+                  align="right"
+                  open={dropdownOpen}
+                  onOpenChange={setDropdownOpen}
+                  trigger={
+                    <div class="btn-pad">
+                      <span class="icon">
+                        <TbOutlineDotsVertical />
                       </span>
-                    ),
-                    onSelect: handleDelete,
-                  },
-                ]}
-              />
-            </Show>
-            </div>{/* tree-row-inner */}
-          </div>{/* tree-row */}
+                    </div>
+                  }
+                  items={[
+                    ...(n().type === 'group'
+                      ? [
+                          {
+                            label: (
+                              <>
+                                <span class="icon">
+                                  <TbOutlineFilePlus />
+                                </span>{' '}
+                                {s('common.new_sheet')}
+                              </>
+                            ),
+                            onSelect: () => addChild('sheet'),
+                          },
+                          {
+                            label: (
+                              <>
+                                <span class="icon">
+                                  <TbOutlineFolderPlus />
+                                </span>{' '}
+                                {s('common.new_group')}
+                              </>
+                            ),
+                            onSelect: () => addChild('group'),
+                          },
+                          {
+                            label: (
+                              <>
+                                <span class="icon">
+                                  <TbOutlineFileImport />
+                                </span>{' '}
+                                {s('common.import_file')}
+                              </>
+                            ),
+                            onSelect: () => openImportFileDialog(props.id),
+                          },
+                          { separator: true as const },
+                        ]
+                      : []),
+                    {
+                      label: (
+                        <>
+                          <span class="icon">
+                            <TbOutlineReportAnalytics />
+                          </span>{' '}
+                          {s('common.analysis')}
+                        </>
+                      ),
+                      onSelect: () => navigate(`/nodes/${props.id}/analysis`),
+                    },
+                    {
+                      label: (
+                        <>
+                          <span class="icon">
+                            <TbOutlineDeviceFloppy />
+                          </span>{' '}
+                          {s('common.export')}
+                        </>
+                      ),
+                      onSelect: () => showExport(props.id),
+                    },
+                    { separator: true as const },
+                    ...(n().type === 'group'
+                      ? [
+                          {
+                            label: (
+                              <>
+                                <span class="icon">
+                                  <TbOutlinePencil />
+                                </span>{' '}
+                                {s('common.rename')}
+                              </>
+                            ),
+                            onSelect: renameNode,
+                          },
+                          {
+                            label: (
+                              <>
+                                <span class="icon">
+                                  <TbOutlineArrowMerge />
+                                </span>{' '}
+                                {s('tree.merge_to_sheet')}
+                              </>
+                            ),
+                            onSelect: mergeGroupToSheet,
+                          },
+                        ]
+                      : [
+                          {
+                            label: (
+                              <>
+                                <span class="icon">
+                                  <TbOutlineArrowMerge />
+                                </span>{' '}
+                                {s('tree.merge_down')}
+                              </>
+                            ),
+                            onSelect: mergeSheetDown,
+                          },
+                        ]),
+                    {
+                      label: (
+                        <span class="btn-danger">
+                          <span class="icon">
+                            <TbFillTrash />
+                          </span>{' '}
+                          {s('common.delete')}
+                        </span>
+                      ),
+                      onSelect: handleDelete,
+                    },
+                  ]}
+                />
+              </Show>
+            </div>
+            {/* tree-row-inner */}
+          </div>
+          {/* tree-row */}
 
           <Show when={showAfter()}>
             <div class="tree-insert-line" />
