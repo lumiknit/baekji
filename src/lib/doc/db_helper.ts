@@ -13,9 +13,9 @@ import type { BakImportResult } from './backup';
 import type { SheetContent, SheetNode } from './v0';
 import { genUnorderedId } from '../uuid';
 import { ChangeSet, Text } from '@codemirror/state';
-import { getShortLabel, extractDocLabel } from '../pm_content';
+import { getShortLabel } from '../markdown';
 
-export { getShortLabel, extractDocLabel };
+export { getShortLabel };
 
 // ─── Markdown-native load/save (CodeMirror editor) ───────────
 
@@ -35,7 +35,12 @@ export async function loadMarkdownSheetState(
 ): Promise<MarkdownSheetState> {
   const content = await getSheetContent(nodeId);
   if (!content) {
-    return { markdown: '', selection: DEFAULT_SELECTION, contentId: null, nextDeltaSeq: 0 };
+    return {
+      markdown: '',
+      selection: DEFAULT_SELECTION,
+      contentId: null,
+      nextDeltaSeq: 0,
+    };
   }
 
   const deltas = await getSheetDeltas(content.id);
@@ -55,7 +60,7 @@ export async function loadMarkdownSheetState(
     const changes = (delta as { changes?: unknown }).changes;
     if (!changes) continue;
     doc = (ChangeSet.fromJSON(changes) as ChangeSet).apply(doc);
-    selection = (delta as { selection?: { anchor: number; head: number } }).selection ?? selection;
+    selection = delta.selection ?? selection;
   }
   return {
     markdown: doc.toString(),
@@ -72,7 +77,12 @@ export async function saveMarkdownSheet(
   selection: { anchor: number; head: number },
 ): Promise<{ contentId: string; label: string }> {
   const contentId = genUnorderedId();
-  const newContent: SheetContent = { id: contentId, nodeId, markdown, selection };
+  const newContent: SheetContent = {
+    id: contentId,
+    nodeId,
+    markdown,
+    selection,
+  };
   await updateSheetSnapshotAtomic(newContent);
   return { contentId, label: getShortLabel(markdown) };
 }
@@ -122,9 +132,9 @@ export async function getSheetContentAsMarkdown(
 
   let doc = Text.of(content.markdown.split('\n'));
   for (const delta of deltas) {
-    const changes = (delta as { changes?: unknown }).changes;
+    const changes = delta.changes;
     if (!changes) continue;
-    doc = (ChangeSet.fromJSON(changes) as ChangeSet).apply(doc);
+    doc = ChangeSet.fromJSON(changes).apply(doc);
   }
   return doc.toString();
 }

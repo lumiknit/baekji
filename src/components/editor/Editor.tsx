@@ -8,6 +8,7 @@ import { ChangeSet } from '@codemirror/state';
 import { getNode, putNode, createNodeAtomic, moveNodeAtomic } from '../../lib/doc/db';
 import { loadMarkdownSheetState, saveMarkdownSheet, saveDeltaMarkdownSheet } from '../../lib/doc/db_helper';
 import { s } from '../../lib/i18n';
+import { getShortLabel } from '../../lib/markdown';
 import { updateSheetMeta, findParentId, fetchProjectTree } from '../../state/project_tree';
 import { activePjVerId } from '../../state/workspace';
 import { settings } from '../../state/settings';
@@ -102,6 +103,18 @@ const Editor: Component<EditorProps> = (props) => {
       await saveDeltaMarkdownSheet(currentContentId, seq, changesToSave.toJSON(), { anchor, head });
       nextDeltaSeq++;
       deltasSinceSnapshot++;
+
+      const data = sheet();
+      if (data) {
+        const markdown = view.state.doc.toString();
+        const label = getShortLabel(markdown);
+        if (label !== data.node.label) {
+          const now = new Date().toISOString();
+          await putNode({ ...data.node, label, updatedAt: now });
+          updateSheetMeta(data.node.id, label, markdown.slice(0, 200));
+        }
+      }
+
       setIsDirty(false);
     } catch (err) {
       pendingChanges = changesToSave; // restore on failure

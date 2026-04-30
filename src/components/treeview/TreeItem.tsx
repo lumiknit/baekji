@@ -22,9 +22,9 @@ import { hexToHsl, nodeColorToCss } from '../../lib/color';
 import {
   collectGroupMarkdown,
   getSheetContentAsMarkdown,
-  getShortLabel,
   saveMarkdownSheet,
 } from '../../lib/doc/db_helper';
+import { getShortLabel } from '../../lib/markdown';
 import { s } from '../../lib/i18n';
 import { showConfirm, showExport, showPrompt } from '../../state/modal';
 import {

@@ -40,7 +40,7 @@ export default defineConfig({
           chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js',
         manualChunks(id) {
           if (id.includes('src/lib/sw.ts')) return undefined;
-          if (id.includes('prosemirror')) return 'prosemirror';
+          if (id.includes('codemirror')) return 'codemirror';
           if (id.includes('solid')) return 'solid';
         },
       },

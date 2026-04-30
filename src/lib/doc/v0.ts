@@ -131,6 +131,11 @@ export type BakProject = z.infer<typeof bakProjectSchema>;
 
 // Doc structures
 
+export const sheetSelection = z
+  .object({ anchor: z.number(), head: z.number() })
+  .describe('Selection state of the sheet, with anchor and head positions');
+export type SheetSelection = z.infer<typeof sheetSelection>;
+
 /**
  * Sheet Content (Snapshot)
  *
@@ -141,10 +146,7 @@ export const sheetContentSchema = z.object({
   id: idSchema.describe('Unique snapshot ID, regenerated on each save'),
   nodeId: idSchema.describe('Node ID of the sheet node'),
   markdown: z.string().describe('Markdown serialized content'),
-  selection: z
-    .object({ anchor: z.number(), head: z.number() })
-    .optional()
-    .describe('Selection state'),
+  selection: sheetSelection.describe('Selection state at the time of snapshot'),
 });
 export type SheetContent = z.infer<typeof sheetContentSchema>;
 
