@@ -11,6 +11,7 @@ import {
   type SyncFile,
   type SyncToken,
 } from './interface';
+import { logError } from '../../state/log';
 
 const AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
 const TOKEN_URL = 'https://api.dropboxapi.com/oauth2/token';
@@ -78,7 +79,7 @@ function headerJson(obj: unknown): string {
 // ─── Error helper ─────────────────────────────────────────────
 
 function dbxError(msg: string, cause?: unknown): never {
-  console.error('[Dropbox]', msg, cause);
+  logError('Dropbox', cause || msg);
   throw new Error(msg);
 }
 

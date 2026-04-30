@@ -116,7 +116,9 @@
     "preview": "Preview",
     "back": "Back",
     "sheets": "sheets",
-    "groups": "groups"
+    "groups": "groups",
+    "manuscript_papers": "MS Paper",
+    "reading_time": "Reading Time"
   },
   "about": {
     "shortcuts_title": "Keyboard Shortcuts",

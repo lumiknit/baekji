@@ -1,14 +1,16 @@
 /* ─── Analysis Page ───────────────────────────────── */
 
 .analysis-header {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
   margin-bottom: var(--sp-6);
+  min-width: 0;
 }
 
 .analysis-header h1 {
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .analysis-options {
@@ -18,12 +20,36 @@
   font-size: var(--fs-sm);
 }
 
-.analysis-summary {
-  display: flex;
+.analysis-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--sp-4);
-  padding: var(--sp-3) var(--sp-4);
   margin-bottom: var(--sp-4);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-3) var(--sp-4);
   font-size: var(--fs-sm);
+}
+
+.summary-item .label {
+  opacity: 0.6;
+  font-size: var(--fs-xs);
+  margin-bottom: var(--sp-1);
+}
+
+.summary-item .value {
+  font-weight: bold;
+  font-size: var(--fs-lg);
+}
+
+.summary-item .value-group {
+  display: flex;
+  gap: var(--sp-2);
+  font-weight: bold;
+  font-size: var(--fs-md);
 }
 
 .analysis-loading {
@@ -33,27 +59,32 @@
 
 .analysis-table-wrap {
   overflow-x: auto;
+  margin: 0 calc(var(--sp-4) * -1);
+  padding: 0 var(--sp-4);
 }
 
 .analysis-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-sm);
+  table-layout: fixed; /* Essential for ellipsis inside table cells */
 }
 
 .analysis-table th,
 .analysis-table td {
-  padding: var(--sp-2);
+  padding: var(--sp-2) var(--sp-1);
   border-bottom: 1px solid var(--border);
-}
-
-.analysis-table th {
-  text-align: left;
 }
 
 .analysis-table th:not(:first-child),
 .analysis-table td:not(:first-child) {
   text-align: right;
+  width: 80px; /* Fixed ratio for stats */
+  white-space: nowrap;
+}
+
+.analysis-table th {
+  text-align: left;
 }
 
 .analysis-table tbody tr {
@@ -69,4 +100,22 @@
   display: flex;
   align-items: center;
   gap: var(--sp-1);
+  overflow: hidden;
+}
+
+.analysis-table .cell-name .label-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+@media (max-width: 480px) {
+  .analysis-table {
+    font-size: 12px;
+  }
+  .analysis-table th:not(:first-child),
+  .analysis-table td:not(:first-child) {
+    width: 25%;
+  }
 }

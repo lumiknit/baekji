@@ -151,8 +151,10 @@
 }
 
 /* Sizing aliases */
-.max-w-800 {
+.max-w-720 {
+  width: min(100%, 720px);
   max-width: 720px;
+  contain: inline-size;
 }
 
 /* Cursor */

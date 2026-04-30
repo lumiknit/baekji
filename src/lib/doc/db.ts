@@ -54,6 +54,14 @@ function getDB(): Promise<IDBPDatabase> {
         });
         appState.createIndex('by-scope-scopeId', ['scope', 'scopeId']);
       },
+      terminated() {
+        dbPromise = null;
+      },
+    }).then((db) => {
+      db.onclose = () => {
+        dbPromise = null;
+      };
+      return db;
     });
   }
   return dbPromise;

@@ -29,6 +29,7 @@ import { closeModal } from '../../state/modal';
 import { deviceId } from '../../state/workspace';
 import { importBakBlob, openImportBakDialog } from '../../lib/import_bak';
 import { s } from '../../lib/i18n';
+import { logError } from '../../state/log';
 import { formatRelativeDate } from '../../lib/format_date';
 import type { SyncFile } from '../../lib/sync/interface';
 
@@ -170,7 +171,7 @@ const DropboxBackup: Component<Props> = (props) => {
         all.sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime());
         return all.slice(0, 10);
       } catch (err) {
-        console.error('[BackupModal] list failed', err);
+        logError('BackupModal:list', err);
         toast.error(s('dropbox.error_list', { msg: String(err) }));
         throw err;
       }
@@ -200,7 +201,7 @@ const DropboxBackup: Component<Props> = (props) => {
       setUploadStatus('done');
       setTimeout(() => setUploadStatus('idle'), 1500);
     } catch (err) {
-      console.error('[BackupModal] upload failed', err);
+      logError('BackupModal:upload', err);
       toast.error(s('dropbox.error_upload', { msg: String(err) }));
       setUploadStatus('error');
     }
@@ -214,7 +215,7 @@ const DropboxBackup: Component<Props> = (props) => {
       closeModal(null);
       await importBakBlob(blob, file.name, navigate);
     } catch (err) {
-      console.error('[BackupModal] download failed', err);
+      logError('BackupModal:download', err);
       toast.error(s('dropbox.error_download', { msg: String(err) }));
       setDownloadingId(null);
     }

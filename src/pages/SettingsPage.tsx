@@ -61,7 +61,7 @@ const SettingsPage: Component = () => {
   };
 
   return (
-    <div class="p-16 mt-32 max-w-800 m-auto">
+    <div class="p-16 mt-32 max-w-720 m-auto">
       <div class="flex items-center justify-between">
         <h1 class="m-0">{s('settings.title')}</h1>
         <A href="/about" class="btn-skeleton">
@@ -294,6 +294,11 @@ const SettingsPage: Component = () => {
                 {s('settings.reset_button')}
               </button>
             </div>
+          </div>
+          <div class="mt-32 opacity-50 text-center">
+            <A href="/logs" class="btn-skeleton">
+              View System Logs
+            </A>
           </div>
         </section>
       </div>

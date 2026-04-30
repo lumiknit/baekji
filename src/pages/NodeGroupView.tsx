@@ -150,7 +150,7 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
   };
 
   return (
-    <div class="p-16 mt-32 max-w-800 m-auto">
+    <div class="p-16 mt-32 max-w-720 m-auto">
       <Show when={!projectTree.loading}>
         <div class="page-header">
           <h1 class="flex items-center gap-8">

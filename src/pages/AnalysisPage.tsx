@@ -1,13 +1,19 @@
 import type { Component } from 'solid-js';
-import { createSignal, createEffect, For, Show, Switch, Match } from 'solid-js';
-import { useParams, A } from '@solidjs/router';
 import {
-  loadMarkdownSheetState,
-  saveMarkdownSheet,
-} from '../lib/doc/db_helper';
+  createSignal,
+  createEffect,
+  For,
+  Show,
+  Switch,
+  Match,
+  untrack,
+} from 'solid-js';
+import { useParams, A } from '@solidjs/router';
+import { loadMarkdownSheetState } from '../lib/doc/db_helper';
 import { projectTree } from '../state/project_tree';
 import type { TreeNodeMeta } from '../state/project_tree';
 import { s } from '../lib/i18n';
+import { logError } from '../state/log';
 import toast from 'solid-toast';
 import { TbFillFolderOpen, TbOutlineFile } from 'solid-icons/tb';
 
@@ -16,7 +22,6 @@ interface RowStats {
   label: string;
   type: 'group' | 'sheet';
   depth: number;
-  bytes: number;
   chars: number;
   charsNoSpace: number;
   words: number;
@@ -25,13 +30,15 @@ interface RowStats {
 function calcText(
   text: string,
   includeSpace: boolean,
-): { bytes: number; chars: number; charsNoSpace: number; words: number } {
+): { chars: number; charsNoSpace: number; words: number } {
   const noSpace = text.replace(/\s/g, '');
+  // Filter out markdown symbols and punctuation for word count
+  // We match sequences of letters and numbers
+  const wordsMatch = text.match(/[\p{L}\p{N}]+/gu);
   return {
-    bytes: new TextEncoder().encode(text).length,
     chars: includeSpace ? text.length : noSpace.length,
     charsNoSpace: noSpace.length,
-    words: text.trim() === '' ? 0 : text.trim().split(/\s+/).length,
+    words: wordsMatch?.length ?? 0,
   };
 }
 
@@ -39,15 +46,18 @@ function collectNodes(
   nodes: Record<string, TreeNodeMeta>,
   id: string,
   depth: number,
+  visited: Set<string> = new Set(),
 ): { id: string; type: 'group' | 'sheet'; depth: number }[] {
   const node = nodes[id];
-  if (!node) return [];
+  if (!node || visited.has(id)) return [];
+  visited.add(id);
+
   if (node.type === 'sheet') return [{ id, type: 'sheet', depth }];
   const result: { id: string; type: 'group' | 'sheet'; depth: number }[] = [
     { id, type: 'group', depth },
   ];
   for (const childId of node.children) {
-    result.push(...collectNodes(nodes, childId, depth + 1));
+    result.push(...collectNodes(nodes, childId, depth + 1, visited));
   }
   return result;
 }
@@ -65,46 +75,50 @@ const AnalysisPage: Component = () => {
 
   const runAnalysis = async () => {
     const nodes = projectTree.nodes;
-    if (!nodes[nodeId()] || loading()) return;
+    const targetId = nodeId();
+    if (!nodes[targetId] || loading()) return;
 
     setLoading(true);
     setRows([]);
 
     try {
-      const flat = collectNodes(nodes, nodeId(), 0);
+      const flat = collectNodes(nodes, targetId, 0);
       const statsMap: Record<
         string,
-        { bytes: number; chars: number; charsNoSpace: number; words: number }
+        { chars: number; charsNoSpace: number; words: number }
       > = {};
 
-      for (const item of flat) {
-        if (item.type === 'sheet') {
-          const state = await loadMarkdownSheetState(item.id);
-          if (state.nextDeltaSeq > 0) {
-            await saveMarkdownSheet(item.id, state.markdown, state.selection);
-          }
-          statsMap[item.id] = calcText(state.markdown, includeSpace());
-        }
+      const sheetItems = flat.filter((item) => item.type === 'sheet');
+
+      // Fetch in small chunks to avoid overwhelming IndexedDB on mobile
+      const chunkSize = 5;
+      for (let i = 0; i < sheetItems.length; i += chunkSize) {
+        const chunk = sheetItems.slice(i, i + chunkSize);
+        await Promise.all(
+          chunk.map(async (item) => {
+            const state = await loadMarkdownSheetState(item.id);
+            statsMap[item.id] = calcText(state.markdown, includeSpace());
+          }),
+        );
       }
 
+      // Bottom-up aggregation for groups
       for (let i = flat.length - 1; i >= 0; i--) {
         const item = flat[i];
         if (item.type === 'group') {
           const node = nodes[item.id];
-          let bytes = 0,
-            chars = 0,
+          let chars = 0,
             charsNoSpace = 0,
             words = 0;
           for (const childId of node?.children ?? []) {
             const cs = statsMap[childId];
             if (cs) {
-              bytes += cs.bytes;
               chars += cs.chars;
               charsNoSpace += cs.charsNoSpace;
               words += cs.words;
             }
           }
-          statsMap[item.id] = { bytes, chars, charsNoSpace, words };
+          statsMap[item.id] = { chars, charsNoSpace, words };
         }
       }
 
@@ -115,7 +129,6 @@ const AnalysisPage: Component = () => {
           type: item.type,
           depth: item.depth,
           ...(statsMap[item.id] ?? {
-            bytes: 0,
             chars: 0,
             charsNoSpace: 0,
             words: 0,
@@ -123,7 +136,7 @@ const AnalysisPage: Component = () => {
         })),
       );
     } catch (err) {
-      console.error('[AnalysisPage] runAnalysis failed', err);
+      logError('AnalysisPage:runAnalysis', err);
       toast.error(String(err));
     } finally {
       setLoading(false);
@@ -131,9 +144,15 @@ const AnalysisPage: Component = () => {
   };
 
   createEffect(() => {
-    includeSpace();
-    if (!projectTree.loading && projectTree.nodes[nodeId()]) {
-      runAnalysis();
+    // Track dependencies
+    const id = nodeId();
+    const isReady = !projectTree.loading && !!projectTree.nodes[id];
+    const spaces = includeSpace();
+
+    if (isReady) {
+      // Use untrack to prevent runAnalysis internal signal reads/writes
+      // from causing an infinite loop in this effect.
+      untrack(() => runAnalysis());
     }
   });
 
@@ -141,10 +160,22 @@ const AnalysisPage: Component = () => {
 
   const total = () => rows().find((r) => r.id === nodeId());
 
+  const manuscriptPapers = (chars: number) =>
+    (chars / 200).toLocaleString(undefined, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+
+  const readingTime = (chars: number, words: number) => {
+    const minByChars = Math.ceil(chars / 700);
+    const minByWords = Math.ceil(words / 225);
+    return { minByChars, minByWords };
+  };
+
   return (
-    <div class="p-16 mt-32 max-w-800 m-auto">
+    <div class="p-16 mt-32 max-w-720 m-auto w-full">
+      <A href={backHref()}>←</A>
       <div class="analysis-header">
-        <A href={backHref()}>←</A>
         <h1>
           {rootLabel()} — {s('common.analysis')}
         </h1>
@@ -163,16 +194,30 @@ const AnalysisPage: Component = () => {
 
       <Show when={total()}>
         {(t) => (
-          <div class="analysis-summary btn-border">
-            <span>
-              <b>{t().bytes}</b> bytes
-            </span>
-            <span>
-              <b>{t().chars}</b> {s('stats.characters')}
-            </span>
-            <span>
-              <b>{t().words}</b> {s('stats.words')}
-            </span>
+          <div class="analysis-summary-grid">
+            <div class="summary-item btn-border">
+              <span class="label">{s('stats.characters')}</span>
+              <span class="value">{t().chars.toLocaleString()}</span>
+            </div>
+            <div class="summary-item btn-border">
+              <span class="label">{s('stats.words')}</span>
+              <span class="value">{t().words.toLocaleString()}</span>
+            </div>
+            <div class="summary-item btn-border">
+              <span class="label">{s('stats.manuscript_papers')}</span>
+              <span class="value">{manuscriptPapers(t().charsNoSpace)}</span>
+            </div>
+            <div class="summary-item btn-border">
+              <span class="label">{s('stats.reading_time')}</span>
+              <span class="value-group">
+                <span>
+                  {readingTime(t().chars, t().words).minByChars}m (char)
+                </span>
+                <span>
+                  {readingTime(t().chars, t().words).minByWords}m (word)
+                </span>
+              </span>
+            </div>
           </div>
         )}
       </Show>
@@ -187,7 +232,6 @@ const AnalysisPage: Component = () => {
             <thead>
               <tr>
                 <th>{s('analysis.col_name')}</th>
-                <th>bytes</th>
                 <th>{s('stats.characters')}</th>
                 <th>{s('stats.words')}</th>
               </tr>
@@ -212,11 +256,10 @@ const AnalysisPage: Component = () => {
                           </span>
                         </Match>
                       </Switch>
-                      {row.label}
+                      <span class="label-text">{row.label}</span>
                     </td>
-                    <td>{row.bytes}</td>
-                    <td>{row.chars}</td>
-                    <td>{row.words}</td>
+                    <td>{row.chars.toLocaleString()}</td>
+                    <td>{row.words.toLocaleString()}</td>
                   </tr>
                 )}
               </For>

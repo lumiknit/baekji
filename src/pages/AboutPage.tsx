@@ -4,7 +4,7 @@ import { s } from '../lib/i18n';
 
 const AboutPage: Component = () => {
   return (
-    <div class="mt-32 p-16 max-w-800 m-auto">
+    <div class="mt-32 p-16 max-w-720 m-auto">
       <h1>{__APP_NAME__}</h1>
       <p class="opacity-60">{s('home.subtitle')}</p>
       <p class="opacity-60">v{__APP_VERSION__}</p>

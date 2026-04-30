@@ -21,6 +21,7 @@ import {
 import type { ExportFormat } from '../../lib/doc/export';
 import { projectTree } from '../../state/project_tree';
 import { s } from '../../lib/i18n';
+import { logError } from '../../state/log';
 
 interface Props {
   nodeId: string;
@@ -51,7 +52,7 @@ const ExportModal: Component<Props> = (props) => {
     try {
       await fn();
     } catch (err) {
-      console.error('[ExportModal]', err);
+      logError('ExportModal', err);
       toast.error(String(err));
     } finally {
       setBusy(false);

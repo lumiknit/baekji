@@ -118,7 +118,9 @@
     "preview": "미리보기",
     "back": "뒤로",
     "sheets": "시트",
-    "groups": "그룹"
+    "groups": "그룹",
+    "manuscript_papers": "원고지",
+    "reading_time": "읽기 시간"
   },
   "about": {
     "shortcuts_title": "단축키",

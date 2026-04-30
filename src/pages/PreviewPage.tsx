@@ -103,7 +103,7 @@ const PreviewPage: Component = () => {
   });
 
   return (
-    <div class="p-16 mt-32 max-w-800 m-auto">
+    <div class="p-16 mt-32 max-w-720 m-auto">
       <div class="flex items-center gap-16" style={{ 'margin-bottom': '32px' }}>
         <A href={`/nodes/${nodeId()}`}>←</A>
         <span>{s('stats.preview')}</span>

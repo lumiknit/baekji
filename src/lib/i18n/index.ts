@@ -1,4 +1,5 @@
 import { createSignal } from 'solid-js';
+import { logError } from '../../state/log';
 
 /**
  * ParsedDict holds an array of split strings for each key.
@@ -77,7 +78,7 @@ export async function initI18n() {
     setDict(newDict);
     document.documentElement.lang = targetLocale;
   } catch (err) {
-    console.error('Failed to load i18n dictionary', err);
+    logError('i18n:init', err);
     const fallback = await import('./en.json');
     const fallbackDict: ParsedDict = {};
     flattenAndParse(fallback.default, '', fallbackDict);

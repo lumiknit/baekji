@@ -80,7 +80,7 @@ const SearchPage: Component = () => {
   };
 
   return (
-    <div class="p-16 mt-32 max-w-800 m-auto overflow-x-hidden">
+    <div class="p-16 mt-32 max-w-720 m-auto overflow-x-hidden">
       <div class="page-header mb-24">
         <A href={backHref()}>←</A>
         <h1>{s('common.search')}</h1>

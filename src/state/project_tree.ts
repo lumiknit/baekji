@@ -13,6 +13,7 @@ import {
 } from '../lib/doc/db';
 import type { GroupNode, SheetNode, SheetContent } from '../lib/doc/v0';
 import { genUnorderedId } from '../lib/uuid';
+import { logError } from './log';
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -142,7 +143,7 @@ export async function fetchProjectTree(pjVerId: string): Promise<void> {
       loading: false,
     });
   } catch (err) {
-    console.error('fetchProjectTree failed:', err);
+    logError('project_tree:fetchProjectTree', err);
     setTree('loading', false);
   }
 }

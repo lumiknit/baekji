@@ -23,6 +23,7 @@ import {
   saveDeltaMarkdownSheet,
 } from '../../lib/doc/db_helper';
 import { s } from '../../lib/i18n';
+import { logError } from '../../state/log';
 import { getShortLabel } from '../../lib/markdown';
 import {
   updateSheetMeta,
@@ -103,7 +104,7 @@ const Editor: Component<EditorProps> = (props) => {
       setIsDirty(false);
       if (notify) toast.success(s('editor.saved'));
     } catch (err) {
-      console.error('Save failed:', err);
+      logError('Editor:save', err);
       toast.error(s('editor.saveFailed'));
     } finally {
       saveInFlight = false;
@@ -135,7 +136,7 @@ const Editor: Component<EditorProps> = (props) => {
       setIsDirty(false);
     } catch (err) {
       pendingChanges = changesToSave; // restore on failure
-      console.error('Delta save failed:', err);
+      logError('Editor:softSave:delta', err);
       toast.error(s('editor.saveFailed'));
       return;
     }
@@ -155,7 +156,7 @@ const Editor: Component<EditorProps> = (props) => {
         }
       }
     } catch (err) {
-      console.error('Label update failed:', err);
+      logError('Editor:softSave:label', err);
     }
   };
 
@@ -308,7 +309,7 @@ const Editor: Component<EditorProps> = (props) => {
 
       navigate(`/nodes/${newId}`);
     } catch (err) {
-      console.error('[Editor] doSplit failed', err);
+      logError('Editor:doSplit', err);
       toast.error(s('editor.saveFailed'));
     }
   };

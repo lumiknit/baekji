@@ -12,15 +12,18 @@ import PreviewPage from './pages/PreviewPage';
 import SearchPage from './pages/SearchPage';
 import SettingsPage from './pages/SettingsPage';
 import PausedPage from './pages/PausedPage';
+import LogsPage from './pages/LogsPage';
 import { updateRootStyle } from './state/settings';
 import { activePjVerId } from './state/workspace';
 import { projectTree } from './state/project_tree';
 import { initTabSync, notifyProjectOpen } from './lib/sync';
 import { handleCallback } from './lib/sync/dropbox_auth';
 import { s } from './lib/i18n';
+import { logError, logInfo } from './state/log';
 
 const App: Component = () => {
   onMount(() => {
+    logInfo('App initialized');
     initTabSync();
 
     (async () => {
@@ -31,7 +34,7 @@ const App: Component = () => {
         try {
           await handleCallback(code);
         } catch (err: any) {
-          console.error('Dropbox callback failed:', err);
+          logError('App:DropboxCallback', err);
           // Delay toast until after the router has mounted
           setTimeout(() => {
             const key = err?.message ?? '';
@@ -78,6 +81,7 @@ const App: Component = () => {
         <Route path="/settings" component={SettingsPage} />
         <Route path="/about" component={AboutPage} />
         <Route path="/paused" component={PausedPage} />
+        <Route path="/logs" component={LogsPage} />
       </HashRouter>
     </>
   );
