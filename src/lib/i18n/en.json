@@ -159,6 +159,7 @@
       "message_with_name": "The project \"{{name}}\" was opened in another tab. To prevent data corruption, editing in this tab has been suspended.",
       "go_home": "Go to Home"
     },
+    "theme_title": "Theme",
     "theme_light": "Light Mode Theme",
     "theme_dark": "Dark Mode Theme",
     "theme_default": "Default",

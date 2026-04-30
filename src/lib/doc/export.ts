@@ -9,6 +9,15 @@ export function sanitizeFilename(name: string): string {
   return name.slice(0, 128).replace(/[{}\x00-\x20\\/:*?"<>|_]+/g, '_');
 }
 
+export function bakTitleSlug(label: string): string {
+  return (
+    label
+      .replace(/[\x00-,.-\/:-@\[-`{-\x7f]+/g, '_')
+      .slice(0, 16)
+      .replace(/_+$/, '') || '_'
+  );
+}
+
 export function timestampSuffix(): string {
   const now = new Date();
   const y = now.getFullYear().toString().slice(2);

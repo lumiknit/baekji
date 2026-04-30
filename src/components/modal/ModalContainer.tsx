@@ -40,6 +40,7 @@ const ModalContainer: Component = () => {
             <Show when={state().type === 'backup'}>
               <BackupModal
                 pjVerId={state().pjVerId!}
+                projectId={state().projectId!}
                 projectLabel={state().projectLabel!}
               />
             </Show>

@@ -34,6 +34,7 @@ export interface TreeNodeMeta {
 
 export interface ProjectInfo {
   pjVerId: string; // versionRoot node ID
+  projectId: string;
   label: string;
   updatedAt: string;
   exportedAt?: string;
@@ -129,6 +130,7 @@ export async function fetchProjectTree(pjVerId: string): Promise<void> {
     setTree({
       meta: {
         pjVerId,
+        projectId: versionRoot.projectId,
         label: versionRoot.label,
         updatedAt: versionRoot.updatedAt,
         exportedAt: versionRoot.exportedAt,
@@ -137,7 +139,8 @@ export async function fetchProjectTree(pjVerId: string): Promise<void> {
       nodes: nodeMap,
       loading: false,
     });
-  } catch {
+  } catch (err) {
+    console.error('fetchProjectTree failed:', err);
     setTree('loading', false);
   }
 }

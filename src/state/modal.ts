@@ -29,6 +29,7 @@ interface ModalState {
   imageMeta?: { src: string; alt: string };
   nodeId?: string;
   pjVerId?: string;
+  projectId?: string;
   projectLabel?: string;
   importCompareMeta?: {
     existing: VersionCompareMeta;
@@ -68,6 +69,7 @@ export const showExport = (nodeId: string): Promise<null> => {
 
 export const showBackup = (
   pjVerId: string,
+  projectId: string,
   projectLabel: string,
 ): Promise<null> => {
   return new Promise((resolve) => {
@@ -76,6 +78,7 @@ export const showBackup = (
       title: '',
       message: '',
       pjVerId,
+      projectId,
       projectLabel,
       resolve,
     });

@@ -466,7 +466,8 @@ const Editor: Component<EditorProps> = (props) => {
           }
         }}
       >
-        <span class="editor-section-label">SOF</span>
+        {/* SOD/EOD: start/end-of-document markers, intentionally not translated */}
+        <span class="editor-section-label">SOD</span>
         <hr class="separator-line flex-1" />
       </div>
 
@@ -485,7 +486,7 @@ const Editor: Component<EditorProps> = (props) => {
           }
         }}
       >
-        <span class="editor-section-label">EOF</span>
+        <span class="editor-section-label">EOD</span>
         <hr class="separator-line flex-1" />
       </div>
 

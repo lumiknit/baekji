@@ -1,3 +1,4 @@
+import toast from 'solid-toast';
 import { parseBak, prepareBakImport } from '../../lib/doc/backup';
 import { commitBakImport, importTextAsSheet } from '../../lib/doc/db_helper';
 import { fetchProjectTree, projectTree } from '../../state/project_tree';
@@ -22,7 +23,12 @@ export function openImportFileDialog(parentId: string): void {
         return;
       }
     } else {
-      await importTextAsSheet(text, file.name, pjVerId, parentId);
+      try {
+        await importTextAsSheet(text, file.name, pjVerId, parentId);
+      } catch (err: any) {
+        toast.error(`Import failed: ${err?.message ?? String(err)}`);
+        return;
+      }
     }
     await fetchProjectTree(pjVerId);
   };

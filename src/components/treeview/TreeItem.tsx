@@ -64,12 +64,18 @@ const TreeItem: Component<TreeItemProps> = (props) => {
   const isDragging = () => ctx.draggingId() === props.id;
   const isSelected = () => ctx.selectedIds().has(props.id);
   const dt = ctx.dropTarget;
-  const showBefore = () =>
-    dt()?.kind === 'before' && (dt() as any).itemId === props.id;
-  const showAfter = () =>
-    dt()?.kind === 'after' && (dt() as any).itemId === props.id;
-  const showInto = () =>
-    dt()?.kind === 'into' && (dt() as any).groupId === props.id;
+  const showBefore = () => {
+    const d = dt();
+    return d?.kind === 'before' && d.itemId === props.id;
+  };
+  const showAfter = () => {
+    const d = dt();
+    return d?.kind === 'after' && d.itemId === props.id;
+  };
+  const showInto = () => {
+    const d = dt();
+    return d?.kind === 'into' && d.groupId === props.id;
+  };
 
   const handleToggle = (e: MouseEvent) => {
     e.stopPropagation();

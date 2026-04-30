@@ -71,7 +71,7 @@ const SettingsPage: Component = () => {
 
       <div class="mt-32 flex flex-column gap-16">
         <section>
-          <h3>Theme</h3>
+          <h3>{s('settings.theme_title')}</h3>
           <div class="mt-32 flex flex-column gap-16">
             <For
               each={

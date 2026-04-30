@@ -198,7 +198,11 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
             <button
               class="btn-border"
               onClick={() =>
-                showBackup(meta()?.pjVerId ?? '', meta()?.label ?? '')
+                showBackup(
+                  meta()?.pjVerId ?? '',
+                  meta()?.projectId ?? '',
+                  meta()?.label ?? '',
+                )
               }
             >
               <span class="icon">
@@ -301,6 +305,22 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
                 {meta()?.updatedAt
                   ? new Date(meta()!.updatedAt).toLocaleString()
                   : '—'}
+              </span>
+            </div>
+            <div class="version-meta-row">
+              <span class="version-meta-key">Project ID</span>
+              <span
+                style={{ 'font-family': 'monospace', 'font-size': '0.85em' }}
+              >
+                {meta()?.projectId ?? '—'}
+              </span>
+            </div>
+            <div class="version-meta-row">
+              <span class="version-meta-key">Node ID</span>
+              <span
+                style={{ 'font-family': 'monospace', 'font-size': '0.85em' }}
+              >
+                {props.nodeId}
               </span>
             </div>
             <Show when={meta()?.exportedAt}>

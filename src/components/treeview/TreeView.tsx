@@ -214,7 +214,9 @@ const TreeView: Component = () => {
                     <div class="tree-project-header-btns">
                       <button
                         class="sb-icon-btn"
-                        onClick={() => showBackup(p().pjVerId, p().label)}
+                        onClick={() =>
+                          showBackup(p().pjVerId, p().projectId, p().label)
+                        }
                         title={s('common.backup')}
                       >
                         <div class="btn-pad">
@@ -343,7 +345,8 @@ const TreeView: Component = () => {
                                 {s('common.backup')}
                               </>
                             ),
-                            onSelect: () => showBackup(p().pjVerId, p().label),
+                            onSelect: () =>
+                              showBackup(p().pjVerId, p().projectId, p().label),
                           },
                           {
                             label: (

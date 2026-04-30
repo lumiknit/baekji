@@ -162,6 +162,7 @@
       "message_with_name": "다른 탭에서 \"{{name}}\" 프로젝트를 열었습니다. 데이터 충돌을 방지하기 위해 이 탭의 편집을 중단합니다.",
       "go_home": "메인 페이지로 이동"
     },
+    "theme_title": "테마",
     "theme_light": "라이트 모드 테마",
     "theme_dark": "다크 모드 테마",
     "theme_default": "기본",
