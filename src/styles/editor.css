@@ -86,6 +86,10 @@
   background: var(--border);
 }
 
+.editor-tool-charcount {
+  font-size: var(--fs-xs);
+}
+
 /* ─── Editor Stats Overlay (legacy) ──────────────── */
 
 .editor-stats-overlay {

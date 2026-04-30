@@ -14,7 +14,7 @@
 
 - **Local-first** — all data lives in your browser's IndexedDB; no account or server needed
 - **Project → Group → Sheet** hierarchy for organizing writing
-- **Rich-text editor** powered by ProseMirror with markdown shorthand input
+- **Markdown editor** with live preview — write Markdown directly, rendered as you type
 - **Export** — combine sheets into a single Markdown, HTML, or plain-text file; share or download
 - **Backup & restore** — export/import a full project as a single `.json` file
 - **Search** — full-text search across all sheets in a project, with regex support

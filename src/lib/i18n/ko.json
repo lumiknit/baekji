@@ -20,6 +20,7 @@
     "backup_download": "백업 다운로드",
     "backup_import_local": "로컬에서 불러오기",
     "share": "공유",
+    "copy": "클립보드에 복사",
     "import_file": "파일에서 불러오기",
     "analysis": "분석",
     "empty": "항목이 없습니다",

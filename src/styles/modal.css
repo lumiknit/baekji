@@ -72,6 +72,84 @@
   margin-bottom: var(--sp-1);
 }
 
+/* ─── Backup Modal ───────────────────────────────── */
+
+.backup-divider {
+  margin: var(--sp-4) 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.backup-section-title {
+  margin: 0;
+}
+
+.backup-token-box {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  font-size: var(--fs-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.backup-token-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.backup-token-actions {
+  display: flex;
+  gap: var(--sp-1);
+  flex-shrink: 0;
+}
+
+.backup-expiry {
+  font-size: var(--fs-xs, 0.75em);
+  opacity: 0.6;
+}
+
+.backup-expiry-warn {
+  color: var(--accent, #e07);
+}
+
+.backup-show-all-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.backup-list-hint {
+  font-size: var(--fs-sm);
+  margin: 0;
+  opacity: 0.6;
+}
+
+.backup-file-btn {
+  text-align: left;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.backup-file-title {
+  font-size: var(--fs-sm);
+}
+
+.backup-file-meta {
+  font-size: var(--fs-xs, 0.75em);
+  opacity: 0.6;
+}
+
+.backup-file-name {
+  word-break: break-all;
+}
+
 .modal-input {
   width: 100%;
   padding: var(--sp-2);

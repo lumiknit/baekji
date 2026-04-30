@@ -14,7 +14,15 @@ import {
   TbOutlineReportAnalytics,
 } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
-import { createSignal, For, Match, Show, Switch, useContext } from 'solid-js';
+import {
+  createMemo,
+  createSignal,
+  For,
+  Match,
+  Show,
+  Switch,
+  useContext,
+} from 'solid-js';
 import { useLocation, useNavigate } from '@solidjs/router';
 import toast from 'solid-toast';
 
@@ -62,19 +70,14 @@ const TreeItem: Component<TreeItemProps> = (props) => {
 
   const isDragging = () => ctx.draggingId() === props.id;
   const isSelected = () => ctx.selectedIds().has(props.id);
-  const dt = ctx.dropTarget;
-  const showBefore = () => {
-    const d = dt();
-    return d?.kind === 'before' && d.itemId === props.id;
-  };
-  const showAfter = () => {
-    const d = dt();
-    return d?.kind === 'after' && d.itemId === props.id;
-  };
-  const showInto = () => {
-    const d = dt();
-    return d?.kind === 'into' && d.groupId === props.id;
-  };
+  const dropHighlight = createMemo(() => {
+    const d = ctx.dropTarget();
+    return {
+      before: d?.kind === 'before' && d.itemId === props.id,
+      after: d?.kind === 'after' && d.itemId === props.id,
+      into: d?.kind === 'into' && d.groupId === props.id,
+    };
+  });
 
   const handleToggle = (e: MouseEvent) => {
     e.stopPropagation();
@@ -230,14 +233,14 @@ const TreeItem: Component<TreeItemProps> = (props) => {
           class="tree-node"
           classList={{ 'tree-node--dragging': isDragging() }}
         >
-          <Show when={showBefore()}>
+          <Show when={dropHighlight().before}>
             <div class="tree-insert-line" />
           </Show>
 
           <div
             class="tree-row"
             classList={{
-              'tree-row--drop-into': showInto(),
+              'tree-row--drop-into': dropHighlight().into,
               'tree-row--active': isActive(),
               'tree-row--selected': isSelected(),
             }}
@@ -448,7 +451,7 @@ const TreeItem: Component<TreeItemProps> = (props) => {
           </div>
           {/* tree-row */}
 
-          <Show when={showAfter()}>
+          <Show when={dropHighlight().after}>
             <div class="tree-insert-line" />
           </Show>
 

@@ -10,8 +10,8 @@ import {
   maybeRefresh,
   getCurrentAccount,
   type DropboxConfig,
-  type DropboxPkceState,
 } from './dropbox';
+import { syncTokenSchema, dropboxPkceStateSchema } from './interface';
 import type { SyncToken } from './interface';
 
 const TOKEN_KEY = 'dbx_token';
@@ -32,7 +32,9 @@ function getDropboxConfig(): DropboxConfig {
 export function loadToken(): SyncToken | null {
   try {
     const raw = localStorage.getItem(TOKEN_KEY);
-    return raw ? (JSON.parse(raw) as SyncToken) : null;
+    if (!raw) return null;
+    const parsed = syncTokenSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }
@@ -74,10 +76,10 @@ export async function handleCallback(code: string): Promise<void> {
   const cfg = getDropboxConfig();
   const raw = sessionStorage.getItem(PKCE_KEY);
   if (!raw) throw new Error('dropbox.error_pkce_missing');
-  const pkceState = JSON.parse(raw) as DropboxPkceState;
-  if (!pkceState.codeVerifier) throw new Error('dropbox.error_pkce_missing');
+  const pkceState = dropboxPkceStateSchema.safeParse(JSON.parse(raw));
+  if (!pkceState.success) throw new Error('dropbox.error_pkce_missing');
   sessionStorage.removeItem(PKCE_KEY);
-  let token = await exchangeCode(cfg, code, pkceState);
+  let token = await exchangeCode(cfg, code, pkceState.data);
   try {
     const account = await getCurrentAccount(token);
     token = {

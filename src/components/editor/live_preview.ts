@@ -423,39 +423,33 @@ export const livePreviewTheme = EditorView.theme({
 
   // Headings — match typo.css sizing
   '.cm-line.cm-md-h1': {
-    fontSize: '1.8em',
+    fontSize: '2em',
     fontWeight: '900',
-    lineHeight: '1.3',
     color: 'var(--text-bold, inherit)',
   },
   '.cm-line.cm-md-h2': {
-    fontSize: '1.5em',
+    fontSize: '1.75em',
     fontWeight: '900',
-    lineHeight: '1.3',
     color: 'var(--text-bold, inherit)',
   },
   '.cm-line.cm-md-h3': {
-    fontSize: '1.4em',
+    fontSize: '1.5em',
     fontWeight: '800',
-    lineHeight: '1.3',
     color: 'var(--text-bold, inherit)',
   },
   '.cm-line.cm-md-h4': {
-    fontSize: '1.3em',
+    fontSize: '1.4em',
     fontWeight: 'bold',
-    lineHeight: '1.3',
     color: 'var(--text-bold, inherit)',
   },
   '.cm-line.cm-md-h5': {
-    fontSize: '1.1em',
+    fontSize: '1.25em',
     fontWeight: 'bold',
-    lineHeight: '1.3',
     color: 'var(--text-bold, inherit)',
   },
   '.cm-line.cm-md-h6': {
-    fontSize: '1.0em',
+    fontSize: '1.125em',
     fontWeight: 'bold',
-    lineHeight: '1.3',
     color: 'var(--md-mark, #888)',
   },
 
@@ -503,7 +497,6 @@ export const livePreviewTheme = EditorView.theme({
     width: '100%',
     height: '0',
     borderTop: '1px solid var(--md-mark, #888)',
-    margin: '0.5em 0',
   },
 
   // Bullet mark: hide the raw "-"/"*" and inject "•" via ::before.

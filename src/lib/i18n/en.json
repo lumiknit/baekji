@@ -20,6 +20,7 @@
     "backup_download": "Backup Download",
     "backup_import_local": "Load from Local",
     "share": "Share",
+    "copy": "Copy to Clipboard",
     "import_file": "Import from File",
     "analysis": "Analysis",
     "empty": "Nothing here yet",

@@ -1,5 +1,5 @@
 import type { Accessor, Component, JSX } from 'solid-js';
-import { createEffect, createSignal, For, onCleanup, Show } from 'solid-js';
+import { createSignal, For, onCleanup, Show } from 'solid-js';
 
 export type DropdownItem =
   | { label: string | JSX.Element; onSelect: () => void }
@@ -38,14 +38,7 @@ const Dropdown: Component<DropdownProps> = (props) => {
 
   const toggle = () => setOpen(!open());
 
-  createEffect(() => {
-    if (open()) {
-      document.addEventListener('mousedown', handleOutsideClick);
-    } else {
-      document.removeEventListener('mousedown', handleOutsideClick);
-    }
-  });
-
+  document.addEventListener('mousedown', handleOutsideClick);
   onCleanup(() =>
     document.removeEventListener('mousedown', handleOutsideClick),
   );

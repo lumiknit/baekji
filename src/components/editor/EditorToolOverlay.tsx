@@ -67,7 +67,9 @@ const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
           {
             label: (
               <>
-                <span class="icon"><TbOutlineDeviceFloppy size={14} /></span>
+                <span class="icon">
+                  <TbOutlineDeviceFloppy size={14} />
+                </span>
                 {s('editor.save')}
               </>
             ),
@@ -76,7 +78,9 @@ const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
           {
             label: (
               <>
-                <span class="icon"><TbOutlineArrowsSplit size={14} /></span>
+                <span class="icon">
+                  <TbOutlineArrowsSplit size={14} />
+                </span>
                 {s('editor.split')}
               </>
             ),
@@ -85,7 +89,9 @@ const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
           {
             label: (
               <>
-                <span class="icon"><TbOutlineAnalyze size={14} /></span>
+                <span class="icon">
+                  <TbOutlineAnalyze size={14} />
+                </span>
                 {s('editor.analysis')}
               </>
             ),

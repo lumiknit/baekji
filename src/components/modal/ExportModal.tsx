@@ -1,7 +1,9 @@
 import type { Component } from 'solid-js';
 import { createSignal } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
+import toast from 'solid-toast';
 import {
+  TbOutlineClipboard,
   TbOutlineDeviceFloppy,
   TbOutlineEye,
   TbOutlinePrinter,
@@ -28,6 +30,7 @@ const ExportModal: Component<Props> = (props) => {
   const navigate = useNavigate();
   const [includeHidden, setIncludeHidden] = createSignal(false);
   const [format, setFormat] = createSignal<ExportFormat>('md');
+  const [busy, setBusy] = createSignal(false);
 
   const label = () => {
     const isRoot = props.nodeId === projectTree.meta?.pjVerId;
@@ -42,33 +45,53 @@ const ExportModal: Component<Props> = (props) => {
   const getBlob = () =>
     buildExportBlob(props.nodeId, format(), includeHidden());
 
-  const handleDownload = async () => {
+  const wrap = (fn: () => Promise<void>) => async () => {
+    if (busy()) return;
+    setBusy(true);
+    try {
+      await fn();
+    } catch (err) {
+      console.error('[ExportModal]', err);
+      toast.error(String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDownload = wrap(async () => {
     const { blob, ext } = await getBlob();
     downloadBlob(
       blob,
       `${sanitizeFilename(label())}_${timestampSuffix()}.${ext}`,
     );
     closeModal(null);
-  };
+  });
 
-  const handleShare = async () => {
+  const handleShare = wrap(async () => {
     const { blob, ext } = await getBlob();
     await shareBlob(
       blob,
       `${sanitizeFilename(label())}_${timestampSuffix()}.${ext}`,
     );
     closeModal(null);
-  };
+  });
 
   const handlePreview = () => {
     navigate(`/nodes/${props.nodeId}/preview`);
     closeModal(null);
   };
 
-  const handlePrint = async () => {
+  const handlePrint = wrap(async () => {
     await printExport(props.nodeId, includeHidden());
     closeModal(null);
-  };
+  });
+
+  const handleCopy = wrap(async () => {
+    const { blob } = await getBlob();
+    const text = await blob.text();
+    await navigator.clipboard.writeText(text);
+    closeModal(null);
+  });
 
   return (
     <>
@@ -106,13 +129,29 @@ const ExportModal: Component<Props> = (props) => {
             <TbOutlineEye />
           </span>
         </button>
-        <button class="btn-border" onClick={handlePrint} title="Print">
+        <button
+          class="btn-border"
+          disabled={busy()}
+          onClick={handleCopy}
+          title={s('common.copy')}
+        >
+          <span class="icon">
+            <TbOutlineClipboard />
+          </span>
+        </button>
+        <button
+          class="btn-border"
+          disabled={busy()}
+          onClick={handlePrint}
+          title="Print"
+        >
           <span class="icon">
             <TbOutlinePrinter />
           </span>
         </button>
         <button
           class="btn-border"
+          disabled={busy()}
           onClick={handleShare}
           title={s('common.share')}
         >
@@ -126,7 +165,7 @@ const ExportModal: Component<Props> = (props) => {
         <button class="btn-secondary" onClick={() => closeModal(null)}>
           {s('common.cancel')}
         </button>
-        <button class="btn-primary" onClick={handleDownload}>
+        <button class="btn-primary" disabled={busy()} onClick={handleDownload}>
           <span class="icon">
             <TbOutlineDeviceFloppy />
           </span>{' '}

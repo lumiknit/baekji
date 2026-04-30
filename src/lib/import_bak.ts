@@ -17,6 +17,7 @@ import { showConfirm, showImportCompare } from '../state/modal';
 import { s } from './i18n';
 import type { VersionCompareMeta } from '../state/modal';
 import { setActivePjVerId, setSidebarView } from '../state/workspace';
+import { genUnorderedId } from './uuid';
 
 declare const __APP_VERSION__: string;
 
@@ -78,14 +79,23 @@ export async function importBakBlob(
       const choice = await showImportCompare(existing, incoming);
       if (choice === 'cancel') return false;
 
+      if (choice === 'separate') {
+        // Assign a fresh projectId so this becomes a truly independent project.
+        const newProjectId = genUnorderedId();
+        result.projectId = newProjectId;
+        result.versionRoot.projectId = newProjectId;
+        result.versionRoot.active = true;
+      }
+
       await commitBakImport(result);
       refetch?.();
+
       if (choice === 'overwrite') {
         await setActiveVersion(result.projectId, result.versionRoot.id);
-        setActivePjVerId(result.versionRoot.id);
-        setSidebarView('tree');
-        navigate(`/nodes/${result.versionRoot.id}`);
       }
+      setActivePjVerId(result.versionRoot.id);
+      setSidebarView('tree');
+      navigate(`/nodes/${result.versionRoot.id}`);
       return true;
     }
 

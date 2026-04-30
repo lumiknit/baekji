@@ -1,6 +1,6 @@
 # The Editor
 
-The editor supports **Markdown**-style formatting as you type.
+All writing is done in **plain Markdown**. The editor renders it as you type — headings, bold, lists, and so on appear styled, but the underlying content is always Markdown text.
 
 ## Inline styles
 
@@ -24,14 +24,18 @@ Start a line with `#`, `##`, or `###` followed by a space.
 - Start a line with `>` for a blockquote.
 - Start a line with ` ``` ` for a code block.
 
-## Toolbar
+## Top-right toolbar
 
-The toolbar at the top gives quick access to formatting, links, images, and more. On mobile, it stays pinned above the keyboard.
+The **`...`** button in the top-right corner opens a menu with:
+
+- **Save** — force-save the current sheet immediately
+- **Split** — split the sheet at the cursor into two sheets
+- **Analysis** — jump to the character/word count page
+
+The same area shows a character count and a save-status indicator (a spinner while unsaved, a checkmark when saved).
 
 ## Keyboard shortcuts
 
 - `Ctrl / ⌘ + S` — Save
 - `Ctrl / ⌘ + Z` — Undo
-- `Ctrl / ⌘ + Y` — Redo
-- `Ctrl / ⌘ + B` — Bold
-- `Ctrl / ⌘ + I` — Italic
+- `Ctrl / ⌘ + Y` / `Ctrl / ⌘ + Shift + Z` — Redo

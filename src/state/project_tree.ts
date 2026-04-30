@@ -26,6 +26,7 @@ export interface TreeNodeMeta {
   type: 'group' | 'sheet';
   label: string;
   updatedAt: string;
+  parentId: string;
   children: string[]; // sorted by orderKey (built from parentId index)
   preview?: string;
   color?: NodeColor;
@@ -73,6 +74,7 @@ function toMeta(
     type: node.type,
     label: node.label,
     updatedAt: node.updatedAt,
+    parentId: node.parentId,
     children: node.type === 'group' ? childIds : [],
     preview,
     color:
@@ -123,6 +125,7 @@ export async function fetchProjectTree(pjVerId: string): Promise<void> {
       type: 'group',
       label: versionRoot.label,
       updatedAt: versionRoot.updatedAt,
+      parentId: '',
       children: rootChildIds,
     };
 
@@ -155,10 +158,7 @@ createRoot(() => {
 // ─── Helpers ─────────────────────────────────────────────────
 
 export function findParentId(targetId: string): string | null {
-  for (const [id, node] of Object.entries(tree.nodes)) {
-    if (node.type === 'group' && node.children.includes(targetId)) return id;
-  }
-  return null;
+  return tree.nodes[targetId]?.parentId || null;
 }
 
 export function updateSheetMeta(

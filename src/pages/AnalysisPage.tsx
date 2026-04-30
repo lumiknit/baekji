@@ -8,6 +8,7 @@ import {
 import { projectTree } from '../state/project_tree';
 import type { TreeNodeMeta } from '../state/project_tree';
 import { s } from '../lib/i18n';
+import toast from 'solid-toast';
 import { TbFillFolderOpen, TbOutlineFile } from 'solid-icons/tb';
 
 interface RowStats {
@@ -64,62 +65,69 @@ const AnalysisPage: Component = () => {
 
   const runAnalysis = async () => {
     const nodes = projectTree.nodes;
-    if (!nodes[nodeId()]) return;
+    if (!nodes[nodeId()] || loading()) return;
 
     setLoading(true);
     setRows([]);
 
-    const flat = collectNodes(nodes, nodeId(), 0);
-    const statsMap: Record<
-      string,
-      { bytes: number; chars: number; charsNoSpace: number; words: number }
-    > = {};
+    try {
+      const flat = collectNodes(nodes, nodeId(), 0);
+      const statsMap: Record<
+        string,
+        { bytes: number; chars: number; charsNoSpace: number; words: number }
+      > = {};
 
-    for (const item of flat) {
-      if (item.type === 'sheet') {
-        const state = await loadMarkdownSheetState(item.id);
-        if (state.nextDeltaSeq > 0) {
-          await saveMarkdownSheet(item.id, state.markdown, state.selection);
-        }
-        statsMap[item.id] = calcText(state.markdown, includeSpace());
-      }
-    }
-
-    for (const item of [...flat].reverse()) {
-      if (item.type === 'group') {
-        const node = nodes[item.id];
-        let bytes = 0,
-          chars = 0,
-          charsNoSpace = 0,
-          words = 0;
-        for (const childId of node?.children ?? []) {
-          const cs = statsMap[childId];
-          if (cs) {
-            bytes += cs.bytes;
-            chars += cs.chars;
-            charsNoSpace += cs.charsNoSpace;
-            words += cs.words;
+      for (const item of flat) {
+        if (item.type === 'sheet') {
+          const state = await loadMarkdownSheetState(item.id);
+          if (state.nextDeltaSeq > 0) {
+            await saveMarkdownSheet(item.id, state.markdown, state.selection);
           }
+          statsMap[item.id] = calcText(state.markdown, includeSpace());
         }
-        statsMap[item.id] = { bytes, chars, charsNoSpace, words };
       }
-    }
 
-    setRows(
-      flat.map((item) => ({
-        id: item.id,
-        label: nodes[item.id]?.label || s('common.untitled'),
-        type: item.type,
-        depth: item.depth,
-        ...(statsMap[item.id] ?? {
-          bytes: 0,
-          chars: 0,
-          charsNoSpace: 0,
-          words: 0,
-        }),
-      })),
-    );
-    setLoading(false);
+      for (let i = flat.length - 1; i >= 0; i--) {
+        const item = flat[i];
+        if (item.type === 'group') {
+          const node = nodes[item.id];
+          let bytes = 0,
+            chars = 0,
+            charsNoSpace = 0,
+            words = 0;
+          for (const childId of node?.children ?? []) {
+            const cs = statsMap[childId];
+            if (cs) {
+              bytes += cs.bytes;
+              chars += cs.chars;
+              charsNoSpace += cs.charsNoSpace;
+              words += cs.words;
+            }
+          }
+          statsMap[item.id] = { bytes, chars, charsNoSpace, words };
+        }
+      }
+
+      setRows(
+        flat.map((item) => ({
+          id: item.id,
+          label: nodes[item.id]?.label || s('common.untitled'),
+          type: item.type,
+          depth: item.depth,
+          ...(statsMap[item.id] ?? {
+            bytes: 0,
+            chars: 0,
+            charsNoSpace: 0,
+            words: 0,
+          }),
+        })),
+      );
+    } catch (err) {
+      console.error('[AnalysisPage] runAnalysis failed', err);
+      toast.error(String(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   createEffect(() => {

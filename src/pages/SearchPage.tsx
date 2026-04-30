@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js';
 import { For, Show } from 'solid-js';
 import { useNavigate, A } from '@solidjs/router';
-import { getSheetContent } from '../lib/doc/db';
+import { getSheetContentAsMarkdown } from '../lib/doc/db_helper';
 import { projectTree } from '../state/project_tree';
 import type { TreeNodeMeta } from '../state/project_tree';
 import { searchState, setSearchState } from '../state/search';
@@ -58,9 +58,9 @@ const SearchPage: Component = () => {
     const found: typeof searchState.results = [];
 
     for (const id of sheets) {
-      const sc = await getSheetContent(id);
+      const markdown = await getSheetContentAsMarkdown(id);
       const label = projectTree.nodes[id]?.label || s('common.untitled');
-      const snippet = matcher(sc?.content ?? '');
+      const snippet = matcher(markdown);
       if (snippet !== null) {
         found.push({ id, label, snippet });
         setSearchState('results', [...found]);

@@ -91,7 +91,7 @@ const LocalBackup: Component<Props> = (props) => {
 
   return (
     <div class="flex flex-column gap-8">
-      <h4 style={{ margin: 0 }}>{s('common.backup')}</h4>
+      <h4 class="backup-section-title">{s('common.backup')}</h4>
       <div class="flex gap-8 flex-wrap">
         <button class="btn-border btn-sm" onClick={handleImport}>
           {s('common.backup_import_local')}
@@ -169,10 +169,9 @@ const DropboxBackup: Component<Props> = (props) => {
         });
         all.sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime());
         return all.slice(0, 10);
-      } catch (err: any) {
-        toast.error(
-          s('dropbox.error_list', { msg: err?.message ?? String(err) }),
-        );
+      } catch (err) {
+        console.error('[BackupModal] list failed', err);
+        toast.error(s('dropbox.error_list', { msg: String(err) }));
         throw err;
       }
     },
@@ -200,11 +199,10 @@ const DropboxBackup: Component<Props> = (props) => {
       await upload(tok, bakFilename(props.projectId, props.projectLabel), blob);
       setUploadStatus('done');
       setTimeout(() => setUploadStatus('idle'), 1500);
-    } catch (err: any) {
+    } catch (err) {
+      console.error('[BackupModal] upload failed', err);
+      toast.error(s('dropbox.error_upload', { msg: String(err) }));
       setUploadStatus('error');
-      toast.error(
-        s('dropbox.error_upload', { msg: err?.message ?? String(err) }),
-      );
     }
   };
 
@@ -215,11 +213,10 @@ const DropboxBackup: Component<Props> = (props) => {
       const blob = await download(tok, file.name);
       closeModal(null);
       await importBakBlob(blob, file.name, navigate);
-    } catch (err: any) {
+    } catch (err) {
+      console.error('[BackupModal] download failed', err);
+      toast.error(s('dropbox.error_download', { msg: String(err) }));
       setDownloadingId(null);
-      toast.error(
-        s('dropbox.error_download', { msg: err?.message ?? String(err) }),
-      );
     }
   };
 
@@ -240,7 +237,7 @@ const DropboxBackup: Component<Props> = (props) => {
 
   return (
     <div class="flex flex-column gap-8">
-      <h4 style={{ margin: 0 }}>Dropbox</h4>
+      <h4 class="backup-section-title">Dropbox</h4>
 
       <Show when={!isLoggedIn()}>
         <p class="text-base opacity-60">{s('dropbox.not_connected')}</p>
@@ -250,18 +247,8 @@ const DropboxBackup: Component<Props> = (props) => {
       </Show>
 
       <Show when={isLoggedIn()}>
-        <div
-          style={{
-            padding: 'var(--sp-2) var(--sp-3)',
-            border: '1px solid var(--border)',
-            'border-radius': 'var(--r)',
-            'font-size': 'var(--fs-sm)',
-            display: 'flex',
-            'flex-direction': 'column',
-            gap: 'var(--sp-1)',
-          }}
-        >
-          <div class="flex items-center gap-8">
+        <div class="backup-token-box">
+          <div class="backup-token-row">
             <div class="flex-1 overflow-hidden">
               <Show
                 when={token()?.displayName || token()?.email}
@@ -277,7 +264,7 @@ const DropboxBackup: Component<Props> = (props) => {
                 </Show>
               </Show>
             </div>
-            <div class="flex gap-4" style={{ 'flex-shrink': '0' }}>
+            <div class="backup-token-actions">
               <a
                 href="https://www.dropbox.com/home"
                 target="_blank"
@@ -293,11 +280,7 @@ const DropboxBackup: Component<Props> = (props) => {
             </div>
           </div>
           <div
-            class="opacity-60"
-            style={{
-              'font-size': 'var(--fs-xs, 0.75em)',
-              color: expiryWarning() ? 'var(--accent, #e07)' : undefined,
-            }}
+            class={`backup-expiry${expiryWarning() ? ' backup-expiry-warn' : ''}`}
           >
             {token() ? formatExpiry(token()!.expiresAt) : ''}
           </div>
@@ -330,10 +313,7 @@ const DropboxBackup: Component<Props> = (props) => {
           </button>
         </div>
 
-        <label
-          class="flex items-center gap-8 cursor-pointer"
-          style={{ 'font-size': 'var(--fs-sm)' }}
-        >
+        <label class="backup-show-all-label">
           <input
             type="checkbox"
             checked={showAll()}
@@ -347,22 +327,16 @@ const DropboxBackup: Component<Props> = (props) => {
             <Show
               when={(files() ?? []).length > 0}
               fallback={
-                <p class="opacity-60 text-base" style={{ margin: '0' }}>
+                <p class="opacity-60 text-base backup-list-hint">
                   {s('dropbox.no_files')}
                 </p>
               }
             >
-              <p
-                class="opacity-60"
-                style={{ 'font-size': 'var(--fs-sm)', margin: '0' }}
-              >
-                {s('dropbox.list_hint')}
-              </p>
+              <p class="backup-list-hint">{s('dropbox.list_hint')}</p>
               <For each={files() ?? []}>
                 {(file) => (
                   <button
-                    class="btn-border"
-                    style={{ 'text-align': 'left', width: '100%' }}
+                    class="btn-border backup-file-btn"
                     disabled={!!downloadingId()}
                     onClick={() => handleLoadFile(file)}
                   >
@@ -372,17 +346,15 @@ const DropboxBackup: Component<Props> = (props) => {
                         const parsed = parseBakFilename(file.name);
                         return (
                           <>
-                            <div style={{ 'font-size': 'var(--fs-sm)' }}>
+                            <div class="backup-file-title">
                               {parsed
                                 ? parsed.title
                                 : formatRelativeDate(file.modifiedAt)}
                             </div>
-                            <div
-                              class="opacity-60"
-                              style={{ 'font-size': 'var(--fs-xs, 0.75em)' }}
-                            >
+                            <div class="backup-file-meta">
                               {parsed ? parsed.date : ''}
-                              {parsed ? ' · ' : ''}
+                            </div>
+                            <div class="backup-file-meta backup-file-name">
                               {file.name}
                             </div>
                           </>
@@ -407,20 +379,14 @@ const DropboxBackup: Component<Props> = (props) => {
 const BackupModal: Component<Props> = (props) => {
   return (
     <>
-      <h3 style={{ margin: '0 0 var(--sp-3)' }}>{props.projectLabel}</h3>
+      <h3>{props.projectLabel}</h3>
       <LocalBackup
         pjVerId={props.pjVerId}
         projectId={props.projectId}
         projectLabel={props.projectLabel}
       />
       <Show when={hasDropbox}>
-        <hr
-          style={{
-            margin: 'var(--sp-4) 0',
-            border: 'none',
-            'border-top': '1px solid var(--border)',
-          }}
-        />
+        <hr class="backup-divider" />
         <DropboxBackup
           pjVerId={props.pjVerId}
           projectId={props.projectId}

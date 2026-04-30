@@ -11,7 +11,7 @@ It provides a focused environment for writing that requires little to no documen
 ### Goals
 
 - Manage writing in a Project → Group → Sheet structure
-- Simple markdown-based rich-text editor
+- Markdown editor with live preview
 - Easy export and sharing
 - No installation required — works in any browser on desktop or mobile
 - PWA support for offline use like a native app
@@ -32,7 +32,7 @@ Baekji organizes all writing in a **Project → Group → Sheet** hierarchy.
 
 - **Project**: The top-level unit, containing groups and sheets.
 - **Group**: A folder-like container for sheets and sub-groups.
-- **Sheet**: A single piece of writing, stored as markdown.
+- **Sheet**: A single piece of writing, written and stored as Markdown.
 
 Groups and sheets work similarly to folders and files. They form a tree and can be freely nested. Items are not sorted automatically — you can reorder them by dragging with a mouse, or long-pressing on touch devices.
 
@@ -40,7 +40,7 @@ All data is saved automatically in the browser and persists unless you explicitl
 
 ### Sidebar
 
-The sidebar can be opened and closed with the button in the top-left corner. The keyboard shortcut is `Ctrl+\` (macOS: `Cmd+\`).
+The sidebar can be opened and closed with the button in the top-left corner.
 
 At the top of the sidebar you can switch between the **project list** and the **current project tree**.
 
@@ -70,18 +70,14 @@ Group names are for organizational purposes only and are not included in exporte
 
 A sheet is equivalent to a file in other applications. Sheets have no explicit title — the first line of the content is used as the display name.
 
-The editor is a rich-text editor, but does not support arbitrary fonts, font sizes, or general formatting. Only a set of markdown-compatible formats are supported: headings, bold, italic, strikethrough, lists, blockquotes, and code blocks.
+The editor is a **plain Markdown editor with live preview**. There is no toolbar for formatting — you write Markdown directly and the editor renders it as you type:
 
-**Formatting can be applied in two ways:**
+- `# ` → Heading 1, `## ` → Heading 2, `### ` → Heading 3
+- `- ` or `* ` → Bullet list, `1. ` → Numbered list
+- `**bold**`, `*italic*`, `~~strikethrough~~`, `` `code` ``
+- `> ` → Blockquote, ` ``` ` → Code block
 
-1. Using the **toolbar** at the top of the editor
-2. Markdown shorthand input (only for rules enabled in Settings):
-   - `# ` → Heading 1, `## ` → Heading 2, `### ` → Heading 3
-   - `- ` or `* ` → Bullet list, `1. ` → Numbered list
-   - `**bold**`, `*italic*`, `~~strikethrough~~`, `` `code` ``
-   - `> ` → Blockquote, ` ``` ` → Code block
-
-The status bar at the bottom of the editor shows the last saved time and character/word counts. Clicking it navigates to the analysis page.
+The top-right overlay shows a character count and save status. The **`...`** button there opens a menu for Save, Split (split at cursor into two sheets), and Analysis.
 
 When you reopen a sheet, the cursor is restored to where you left off.
 
@@ -107,14 +103,11 @@ The following can be configured in Settings:
 
 ### Keyboard Shortcuts
 
-| Shortcut                 | Action         |
-| ------------------------ | -------------- |
-| `Ctrl+S` / `Cmd+S`       | Save           |
-| `Ctrl+\` / `Cmd+\`       | Toggle sidebar |
-| `Ctrl+Z` / `Cmd+Z`       | Undo           |
-| `Ctrl+Y` / `Cmd+Shift+Z` | Redo           |
-| `Ctrl+B` / `Cmd+B`       | Bold           |
-| `Ctrl+I` / `Cmd+I`       | Italic         |
+| Shortcut                 | Action |
+| ------------------------ | ------ |
+| `Ctrl+S` / `Cmd+S`       | Save   |
+| `Ctrl+Z` / `Cmd+Z`       | Undo   |
+| `Ctrl+Y` / `Cmd+Shift+Z` | Redo   |
 
 ### Colors
 

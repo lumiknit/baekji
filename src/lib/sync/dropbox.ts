@@ -1,26 +1,12 @@
 /**
  * Dropbox backup helper (PKCE OAuth, app folder)
- *
- * Usage:
- *   const cfg = { clientId: '...', redirectUri: '...' };
- *
- *   // 1. Start auth
- *   const { url, state } = await startAuth(cfg);
- *   sessionStorage.setItem('dbx_pkce', JSON.stringify(state));
- *   location.href = url;
- *
- *   // 2. On callback page, exchange code
- *   const state = JSON.parse(sessionStorage.getItem('dbx_pkce')!);
- *   const token = await exchangeCode(cfg, params.get('code')!, state);
- *
- *   // 3. Use
- *   const token2 = await maybeRefresh(cfg, token);
- *   await upload(token2, 'snapshot-2024.gz', blob);
  */
 
+import { z } from 'zod/v4';
 import {
   generateCodeVerifier,
   generateCodeChallenge,
+  dropboxPkceStateSchema,
   type ListOptions,
   type SyncFile,
   type SyncToken,
@@ -36,11 +22,77 @@ export interface DropboxConfig {
   redirectUri: string;
 }
 
-export interface DropboxPkceState {
-  codeVerifier: string;
+export type DropboxPkceState = import('zod/v4').infer<
+  typeof dropboxPkceStateSchema
+>;
+
+// ─── Zod schemas ──────────────────────────────────────────────
+
+const tokenResponseSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string().optional(),
+  expires_in: z.number().optional(),
+});
+
+const oauthErrorSchema = z.object({
+  error: z.string().optional(),
+  error_description: z.string().optional(),
+});
+
+const fileEntrySchema = z.object({
+  '.tag': z.string().optional(),
+  id: z.string().optional(),
+  name: z.string(),
+  path_lower: z.string().optional(),
+  client_modified: z.string().optional(),
+  server_modified: z.string().optional(),
+  size: z.number().optional(),
+});
+
+const listFolderResponseSchema = z.object({
+  entries: z.array(z.record(z.string(), z.unknown())),
+  cursor: z.string(),
+  has_more: z.boolean(),
+});
+
+const accountResponseSchema = z.object({
+  name: z.object({ display_name: z.string() }),
+  email: z.string(),
+});
+
+const apiErrorSchema = z.object({
+  error_summary: z.string().optional(),
+  error: z.unknown().optional(),
+});
+
+// ─── Helpers ──────────────────────────────────────────────────
+
+/** JSON.stringify that escapes non-ASCII as \uXXXX, safe for HTTP headers. */
+function headerJson(obj: unknown): string {
+  return JSON.stringify(obj).replace(
+    /[\x80-\uffff]/g,
+    (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  );
 }
 
-// --- Auth ---
+// ─── Error helper ─────────────────────────────────────────────
+
+function dbxError(msg: string, cause?: unknown): never {
+  console.error('[Dropbox]', msg, cause);
+  throw new Error(msg);
+}
+
+function parseApiError(json: unknown): string {
+  const parsed = apiErrorSchema.safeParse(json);
+  if (parsed.success) {
+    return (
+      parsed.data.error_summary ?? JSON.stringify(parsed.data.error ?? json)
+    );
+  }
+  return JSON.stringify(json);
+}
+
+// ─── Auth ─────────────────────────────────────────────────────
 
 export async function startAuth(
   cfg: DropboxConfig,
@@ -77,27 +129,49 @@ export async function exchangeCode(
     }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error_description ?? json.error);
-  return tokenFromJson(json);
+  if (!res.ok) {
+    const err = oauthErrorSchema.safeParse(json);
+    dbxError(
+      err.success
+        ? (err.data.error_description ?? err.data.error ?? 'OAuth error')
+        : JSON.stringify(json),
+      json,
+    );
+  }
+  const parsed = tokenResponseSchema.safeParse(json);
+  if (!parsed.success) dbxError('Invalid token response', parsed.error);
+  return tokenFromParsed(parsed.data);
 }
 
 export async function refreshToken(
   cfg: DropboxConfig,
   token: SyncToken,
 ): Promise<SyncToken> {
-  if (!token.refreshToken) throw new Error('No refresh token');
+  if (!token.refreshToken) dbxError('No refresh token available');
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       client_id: cfg.clientId,
       grant_type: 'refresh_token',
-      refresh_token: token.refreshToken,
+      refresh_token: token.refreshToken!,
     }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error_description ?? json.error);
-  return { ...tokenFromJson(json), refreshToken: token.refreshToken };
+  if (!res.ok) {
+    const err = oauthErrorSchema.safeParse(json);
+    dbxError(
+      err.success
+        ? (err.data.error_description ??
+            err.data.error ??
+            'Token refresh failed')
+        : JSON.stringify(json),
+      json,
+    );
+  }
+  const parsed = tokenResponseSchema.safeParse(json);
+  if (!parsed.success) dbxError('Invalid token response', parsed.error);
+  return { ...tokenFromParsed(parsed.data), refreshToken: token.refreshToken };
 }
 
 /** Refresh only if within 60 s of expiry */
@@ -109,7 +183,7 @@ export async function maybeRefresh(
   return refreshToken(cfg, token);
 }
 
-// --- File operations ---
+// ─── File operations ──────────────────────────────────────────
 
 /** List files in the app folder root, optionally filtered by prefix */
 export async function list(
@@ -125,50 +199,42 @@ export async function list(
     body: JSON.stringify({ path: '', limit: opts.limit ?? 100 }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(JSON.stringify(json.error));
+  if (!res.ok) dbxError(`List failed: ${parseApiError(json)}`, json);
 
-  let entries: any[] = json.entries;
+  const parsed = listFolderResponseSchema.safeParse(json);
+  if (!parsed.success)
+    dbxError('Unexpected list_folder response', parsed.error);
+
+  let entries = parsed.data.entries;
   if (opts.prefix) {
-    entries = entries.filter((e: any) =>
-      (e.name as string).startsWith(opts.prefix!),
+    entries = entries.filter(
+      (e) =>
+        typeof e['name'] === 'string' &&
+        (e['name'] as string).startsWith(opts.prefix!),
     );
   }
 
   return entries
-    .filter((e: any) => e['.tag'] === 'file')
-    .sort((a: any, b: any) => a.name.localeCompare(b.name))
-    .map(fileFromJson);
+    .filter((e) => e['.tag'] === 'file')
+    .map((e) => {
+      const f = fileEntrySchema.safeParse(e);
+      if (!f.success) dbxError('Unexpected file entry shape', f.error);
+      return fileFromParsed(f.data);
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Allowed filename pattern: alphanumeric, hyphens, underscores, dots only. No path separators. */
-const SAFE_FILENAME_RE = /^[A-Za-z0-9_.\-]+$/;
-
-function assertSafeFilename(name: string): void {
-  if (
-    !SAFE_FILENAME_RE.test(name) ||
-    name.startsWith('.') ||
-    name.includes('..')
-  ) {
-    throw new Error(`Invalid filename: "${name}"`);
-  }
-}
-
-/**
- * Upload a Blob to the app folder.
- * @param name filename, e.g. 'snapshot-2024.gz'
- */
 export async function upload(
   token: SyncToken,
   name: string,
   blob: Blob,
 ): Promise<SyncFile> {
-  assertSafeFilename(name);
   const res = await fetch(`${CONTENT_URL}/files/upload`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token.accessToken}`,
       'Content-Type': 'application/octet-stream',
-      'Dropbox-API-Arg': JSON.stringify({
+      'Dropbox-API-Arg': headerJson({
         path: `/${name}`,
         mode: 'overwrite',
         autorename: false,
@@ -178,8 +244,11 @@ export async function upload(
     body: blob,
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(JSON.stringify(json.error));
-  return fileFromJson(json);
+  if (!res.ok) dbxError(`Upload failed: ${parseApiError(json)}`, json);
+
+  const parsed = fileEntrySchema.safeParse(json);
+  if (!parsed.success) dbxError('Unexpected upload response', parsed.error);
+  return fileFromParsed(parsed.data);
 }
 
 /** Download a file by name and return as Blob */
@@ -188,19 +257,19 @@ export async function download(token: SyncToken, name: string): Promise<Blob> {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token.accessToken}`,
-      'Dropbox-API-Arg': JSON.stringify({ path: `/${name}` }),
+      'Dropbox-API-Arg': headerJson({ path: `/${name}` }),
     },
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(`Download failed: ${JSON.stringify(err)}`);
+    dbxError(`Download failed: ${parseApiError(err)}`, err);
   }
   return res.blob();
 }
 
-// --- Account ---
+// ─── Account ──────────────────────────────────────────────────
 
-interface DropboxAccount {
+export interface DropboxAccount {
   displayName: string;
   email: string;
 }
@@ -217,28 +286,34 @@ export async function getCurrentAccount(
     body: 'null',
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(JSON.stringify(json.error));
+  if (!res.ok) dbxError(`Get account failed: ${parseApiError(json)}`, json);
+
+  const parsed = accountResponseSchema.safeParse(json);
+  if (!parsed.success) dbxError('Unexpected account response', parsed.error);
   return {
-    displayName: json.name?.display_name ?? '',
-    email: json.email ?? '',
+    displayName: parsed.data.name.display_name,
+    email: parsed.data.email,
   };
 }
 
-// --- Internal ---
+// ─── Internal ─────────────────────────────────────────────────
 
-function tokenFromJson(json: any): SyncToken {
+type TokenParsed = z.infer<typeof tokenResponseSchema>;
+type FileParsed = z.infer<typeof fileEntrySchema>;
+
+function tokenFromParsed(d: TokenParsed): SyncToken {
   return {
-    accessToken: json.access_token,
-    refreshToken: json.refresh_token,
-    expiresAt: Date.now() + (json.expires_in ?? 14400) * 1000,
+    accessToken: d.access_token,
+    refreshToken: d.refresh_token,
+    expiresAt: Date.now() + (d.expires_in ?? 14400) * 1000,
   };
 }
 
-function fileFromJson(f: any): SyncFile {
+function fileFromParsed(f: FileParsed): SyncFile {
   return {
-    id: f.id ?? f.path_lower,
+    id: f.id ?? f.path_lower ?? f.name,
     name: f.name,
-    modifiedAt: new Date(f.client_modified ?? f.server_modified),
+    modifiedAt: new Date(f.client_modified ?? f.server_modified ?? 0),
     size: f.size,
   };
 }

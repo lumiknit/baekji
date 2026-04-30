@@ -248,32 +248,6 @@ const Editor: Component<EditorProps> = (props) => {
     const data = sheet();
     if (!data) return;
 
-    const cursorPos = view.state.selection.main.from;
-    const doc = view.state.doc;
-    const cursorLine = doc.lineAt(cursorPos);
-
-    const topMarkdown = doc.sliceString(0, cursorLine.from).replace(/\n+$/, '');
-    const bottomMarkdown = doc.sliceString(cursorLine.from);
-
-    // Save current (top) content
-    const { contentId, label } = await saveMarkdownSheet(
-      data.node.id,
-      topMarkdown,
-      { anchor: 0, head: 0 },
-    );
-    currentContentId = contentId;
-    nextDeltaSeq = 0;
-    deltasSinceSnapshot = 0;
-    pendingChanges = null;
-
-    const now = new Date().toISOString();
-    if (label !== data.node.label) {
-      await putNode({ ...data.node, label, updatedAt: now });
-      updateSheetMeta(data.node.id, label, topMarkdown.slice(0, 200));
-    }
-    setIsDirty(false);
-
-    // Create new sibling sheet with bottom content
     const parentId = findParentId(data.node.id);
     const vid = activePjVerId();
     if (!parentId || !vid) {
@@ -281,30 +255,62 @@ const Editor: Component<EditorProps> = (props) => {
       return;
     }
 
-    const newId = genUnorderedId();
-    const newNode: SheetNode = {
-      id: newId,
-      pjVerId: vid,
-      parentId,
-      label: getShortLabel(bottomMarkdown),
-      updatedAt: now,
-      type: 'sheet',
-      visual: { colorH: 0, colorS: 0 },
-      tags: [],
-      orderKey: 0,
-    };
-    const newContent: SheetContent = {
-      id: genUnorderedId(),
-      nodeId: newId,
-      markdown: bottomMarkdown,
-      selection: { anchor: 0, head: 0 },
-    };
+    const cursorPos = view.state.selection.main.from;
+    const doc = view.state.doc;
+    const cursorLine = doc.lineAt(cursorPos);
 
-    await createNodeAtomic(newNode, newContent);
-    await moveNodeAtomic(newId, parentId, data.node.id);
-    await fetchProjectTree(vid);
+    const topMarkdown = doc.sliceString(0, cursorLine.from).replace(/\n+$/, '');
+    const bottomMarkdown = doc.sliceString(cursorLine.from);
+    const now = new Date().toISOString();
 
-    navigate(`/nodes/${newId}`);
+    try {
+      // 1. Create new sibling sheet with bottom content first (original is untouched)
+      const newId = genUnorderedId();
+      const newNode: SheetNode = {
+        id: newId,
+        pjVerId: vid,
+        parentId,
+        label: getShortLabel(bottomMarkdown),
+        updatedAt: now,
+        type: 'sheet',
+        visual: { colorH: 0, colorS: 0 },
+        tags: [],
+        orderKey: 0,
+      };
+      const newContent: SheetContent = {
+        id: genUnorderedId(),
+        nodeId: newId,
+        markdown: bottomMarkdown,
+        selection: { anchor: 0, head: 0 },
+      };
+      await createNodeAtomic(newNode, newContent);
+
+      // 2. Save current (top) content
+      const { contentId, label } = await saveMarkdownSheet(
+        data.node.id,
+        topMarkdown,
+        { anchor: 0, head: 0 },
+      );
+      currentContentId = contentId;
+      nextDeltaSeq = 0;
+      deltasSinceSnapshot = 0;
+      pendingChanges = null;
+      setIsDirty(false);
+
+      if (label !== data.node.label) {
+        await putNode({ ...data.node, label, updatedAt: now });
+        updateSheetMeta(data.node.id, label, topMarkdown.slice(0, 200));
+      }
+
+      // 3. Move new sheet to position after current
+      await moveNodeAtomic(newId, parentId, data.node.id);
+      await fetchProjectTree(vid);
+
+      navigate(`/nodes/${newId}`);
+    } catch (err) {
+      console.error('[Editor] doSplit failed', err);
+      toast.error(s('editor.saveFailed'));
+    }
   };
 
   const scrollToEdge = (edge: 'start' | 'end') => {

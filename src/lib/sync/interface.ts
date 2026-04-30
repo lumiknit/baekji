@@ -1,11 +1,18 @@
-export interface SyncToken {
-  accessToken: string;
-  refreshToken?: string;
-  /** ms timestamp */
-  expiresAt: number;
-  displayName?: string;
-  email?: string;
-}
+import { z } from 'zod/v4';
+
+export const syncTokenSchema = z.object({
+  accessToken: z.string(),
+  refreshToken: z.string().optional(),
+  expiresAt: z.number(),
+  displayName: z.string().optional(),
+  email: z.string().optional(),
+});
+
+export type SyncToken = z.infer<typeof syncTokenSchema>;
+
+export const dropboxPkceStateSchema = z.object({
+  codeVerifier: z.string(),
+});
 
 export interface SyncFile {
   id: string;

@@ -1,7 +1,8 @@
 import type { Component } from 'solid-js';
 import { createResource, For, Show } from 'solid-js';
 import { useParams, A } from '@solidjs/router';
-import { getNode, getAllNodesInVersion, getSheetContent } from '../lib/doc/db';
+import { getNode, getAllNodesInVersion } from '../lib/doc/db';
+import { getSheetContentAsMarkdown } from '../lib/doc/db_helper';
 import MarkdownIt from 'markdown-it';
 
 const mdit = new MarkdownIt({ html: false, linkify: true, typographer: true });
@@ -57,19 +58,17 @@ const PreviewPage: Component = () => {
 
     const dataNodes = await getAllNodesInVersion(rootId);
 
+    const orderKeyMap = new Map(dataNodes.map((n) => [n.id, n.orderKey ?? 0]));
     const childrenMap = new Map<string, string[]>();
     for (const n of dataNodes) {
       const siblings = childrenMap.get(n.parentId) ?? [];
       siblings.push(n.id);
       childrenMap.set(n.parentId, siblings);
     }
-    for (const [pid, children] of childrenMap) {
-      children.sort((a, b) => {
-        const na = dataNodes.find((n) => n.id === a);
-        const nb = dataNodes.find((n) => n.id === b);
-        return (na?.orderKey ?? 0) - (nb?.orderKey ?? 0);
-      });
-      childrenMap.set(pid, children);
+    for (const children of childrenMap.values()) {
+      children.sort(
+        (a, b) => (orderKeyMap.get(a) ?? 0) - (orderKeyMap.get(b) ?? 0),
+      );
     }
 
     const map: Record<string, PreviewNodeData> = {};
@@ -83,12 +82,12 @@ const PreviewPage: Component = () => {
 
     for (const n of dataNodes) {
       if (n.type === 'sheet') {
-        const sc = await getSheetContent(n.id);
+        const markdown = await getSheetContentAsMarkdown(n.id);
         map[n.id] = {
           id: n.id,
           type: 'sheet',
           children: [],
-          content: sc?.content ?? '',
+          content: markdown,
         };
       } else {
         map[n.id] = {
@@ -107,9 +106,7 @@ const PreviewPage: Component = () => {
     <div class="p-16 mt-32 max-w-800 m-auto">
       <div class="flex items-center gap-16" style={{ 'margin-bottom': '32px' }}>
         <A href={`/nodes/${nodeId()}`}>←</A>
-        <span style={{ opacity: '0.5', 'font-size': '14px' }}>
-          {s('stats.preview')}
-        </span>
+        <span>{s('stats.preview')}</span>
       </div>
       <Show when={nodeMap()}>
         {(map) => <PreviewNode id={nodeId()} nodeMap={map()} />}
