@@ -1,39 +1,20 @@
 import { useNavigate } from '@solidjs/router';
-import { TbOutlineCircleCheck } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
-import {
-  createEffect,
-  createResource,
-  createSignal,
-  onCleanup,
-  onMount,
-  Show,
-} from 'solid-js';
-import { undo, redo, undoDepth, redoDepth } from 'prosemirror-history';
-import { EditorState, TextSelection } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
-import { Step } from 'prosemirror-transform';
-import { getNode, putNode } from '../../lib/doc/db';
-import { loadSheetState, softSave, hardSave } from '../../lib/doc/db_helper';
-import { s } from '../../lib/i18n';
-import {
-  createTreeNode,
-  deleteTreeNode,
-  projectTree,
-  updateSheetMeta,
-} from '../../state/project_tree';
-import { settings } from '../../state/settings';
-import CircularProgress from '../CircularProgress';
-import { buildPlugins, extractDocLabel, pmSchema } from './helpers';
-import { formatCompact } from '../../lib/number';
-import { buildOptimizedStepJSONs } from './step_helper';
+import { createEffect, createResource, createSignal, onCleanup, onMount } from 'solid-js';
+import { EditorView } from '@codemirror/view';
+import { undo, redo } from '@codemirror/commands';
 import toast from 'solid-toast';
-import EditorToolbar from './EditorToolbar';
-import { showConfirm, showImage, showLink } from '../../state/modal';
-
-import 'prosemirror-view/style/prosemirror.css';
-
-const SOFT_SAVE_STEP_LIMIT = 128;
+import { ChangeSet } from '@codemirror/state';
+import { getNode, putNode, createNodeAtomic, moveNodeAtomic } from '../../lib/doc/db';
+import { loadMarkdownSheetState, saveMarkdownSheet, saveDeltaMarkdownSheet } from '../../lib/doc/db_helper';
+import { s } from '../../lib/i18n';
+import { updateSheetMeta, findParentId, fetchProjectTree } from '../../state/project_tree';
+import { activePjVerId } from '../../state/workspace';
+import { settings } from '../../state/settings';
+import { genUnorderedId } from '../../lib/uuid';
+import type { SheetNode, SheetContent } from '../../lib/doc/v0';
+import { buildExtensions, createEditorState } from './cm_setup';
+import EditorToolOverlay from './EditorToolOverlay';
 
 interface EditorProps {
   sheetId: string;
@@ -44,277 +25,128 @@ const Editor: Component<EditorProps> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let view: EditorView | undefined;
   let saveInFlight = false;
+  let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
-  // Step buffer for soft save
-  let stepBuffer: Step[] = [];
-  let currentSeq = 0;
-  let deltaStepCount = 0;
-
-  const DELTA_HARD_SAVE_THRESHOLD = 256;
+  // Delta-save state
+  let currentContentId: string | null = null;
+  let nextDeltaSeq = 0;
+  let pendingChanges: ChangeSet | null = null;
+  let deltasSinceSnapshot = 0;
+  // After DELTA_THRESHOLD soft saves, do a full snapshot on the next autosave.
+  const DELTA_THRESHOLD = 20;
 
   const [sheet] = createResource(
     () => props.sheetId,
     async (id) => {
       const node = await getNode(id);
       if (!node || node.type !== 'sheet') return undefined;
-      const state = await loadSheetState(id);
-      return {
-        node,
-        contentJSON: state.pmJSON,
-        selection: state.selection,
-        state,
-      };
+      const state = await loadMarkdownSheetState(id);
+      return { node, ...state };
     },
   );
-  const [isDirty, setIsDirty] = createSignal(false);
-  const [canUndo, setCanUndo] = createSignal(false);
-  const [canRedo, setCanRedo] = createSignal(false);
 
-  const updateHistoryState = (state: EditorState) => {
-    setCanUndo(undoDepth(state) > 0);
-    setCanRedo(redoDepth(state) > 0);
-  };
-  const [nodeSize, setNodeSize] = createSignal(0);
+  const [isDirty, setIsDirty] = createSignal(false);
+  const [charCount, setCharCount] = createSignal(0);
   const [autosaveEndTime, setAutosaveEndTime] = createSignal<Date | null>(null);
 
-  const getPlugins = () =>
-    buildPlugins(s('editor.placeholder'), settings.mdRules ?? ({} as any));
-
-  // Soft save: flush step buffer to IDB
-  const flushStepBuffer = () => {
-    if (!view || stepBuffer.length === 0) return;
-    if (saveInFlight) {
-      toast.error(s('editor.saveBusy'));
-      return;
-    }
+  /** Full snapshot save — always writes the complete markdown to DB. */
+  const save = async (notify = false) => {
+    if (!view || saveInFlight) return;
     const data = sheet();
     if (!data) return;
 
-    const steps = buildOptimizedStepJSONs(stepBuffer);
-    stepBuffer = [];
-    const seq = currentSeq++;
-    const { anchor, head } = view.state.selection;
-    const { node } = data;
-    const doc = view.state.doc;
-    const autoLabel = extractDocLabel(doc);
-    const now = new Date().toISOString();
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+
+    const markdown = view.state.doc.toString();
+    const { from: anchor, to: head } = view.state.selection.main;
 
     saveInFlight = true;
     setAutosaveEndTime(null);
-    void (async () => {
-      try {
-        await softSave(node.id, steps, { anchor, head }, seq);
-        deltaStepCount += steps.length;
-        if (autoLabel && autoLabel !== node.label) {
-          await putNode({ ...node, label: autoLabel, updatedAt: now });
-          updateSheetMeta(node.id, autoLabel, autoLabel);
-        }
-        setIsDirty(false);
-        if (deltaStepCount >= DELTA_HARD_SAVE_THRESHOLD) {
-          freeze();
-        }
-      } catch (err) {
-        console.error('Soft save failed:', err);
-        toast.error(s('editor.saveFailed'));
-      } finally {
-        saveInFlight = false;
+    pendingChanges = null;
+    try {
+      const { contentId, label } = await saveMarkdownSheet(data.node.id, markdown, { anchor, head });
+      currentContentId = contentId;
+      nextDeltaSeq = 0;
+      deltasSinceSnapshot = 0;
+
+      const now = new Date().toISOString();
+      if (label !== data.node.label) {
+        await putNode({ ...data.node, label, updatedAt: now });
+        updateSheetMeta(data.node.id, label, markdown.slice(0, 200));
       }
-    })();
+      setIsDirty(false);
+      if (notify) toast.success(s('editor.saved'));
+    } catch (err) {
+      console.error('Save failed:', err);
+      toast.error(s('editor.saveFailed'));
+    } finally {
+      saveInFlight = false;
+    }
   };
 
-  // Hard save: create new snapshot, clear deltas, update node label
-  const freeze = () => {
-    if (!view) return;
-    if (saveInFlight) {
-      toast.error(s('editor.saveBusy'));
+  /** Soft delta save — appends a composed ChangeSet to the current snapshot. */
+  const softSave = async () => {
+    if (!view || !pendingChanges || saveInFlight) return;
+    if (!currentContentId || deltasSinceSnapshot >= DELTA_THRESHOLD) {
+      await save();
       return;
     }
-    const data = sheet();
-    if (!data) return;
 
-    // Flush any buffered steps into the current doc JSON for hard save
-    const docJSON = view.state.doc.toJSON();
-    const { anchor, head } = view.state.selection;
-    const { node } = data;
-    const now = new Date().toISOString();
+    const changesToSave = pendingChanges;
+    pendingChanges = null;
+    const { from: anchor, to: head } = view.state.selection.main;
+    const seq = nextDeltaSeq;
 
-    stepBuffer = []; // discard buffered steps — hard save uses full doc
-    deltaStepCount = 0;
-    saveInFlight = true;
-    setAutosaveEndTime(null);
-    void (async () => {
-      try {
-        const { markdown, autoLabel } = await hardSave(node.id, docJSON, {
-          anchor,
-          head,
-        });
-        await putNode({ ...node, label: autoLabel, updatedAt: now });
-        updateSheetMeta(node.id, autoLabel, markdown.slice(0, 200));
-        setIsDirty(false);
-      } catch (err) {
-        console.error('Hard save failed:', err);
-        toast.error(s('editor.saveFailed'));
-      } finally {
-        saveInFlight = false;
-      }
-    })();
+    try {
+      await saveDeltaMarkdownSheet(currentContentId, seq, changesToSave.toJSON(), { anchor, head });
+      nextDeltaSeq++;
+      deltasSinceSnapshot++;
+      setIsDirty(false);
+    } catch (err) {
+      pendingChanges = changesToSave; // restore on failure
+      console.error('Delta save failed:', err);
+      toast.error(s('editor.saveFailed'));
+    }
   };
 
-  let softSaveTimer: ReturnType<typeof setTimeout> | undefined;
-  const triggerSoftSave = () => {
-    clearTimeout(softSaveTimer);
+  const triggerAutosave = () => {
+    clearTimeout(saveTimer);
     setAutosaveEndTime(new Date(Date.now() + settings.autosaveInterval * 1000));
-    softSaveTimer = setTimeout(
-      flushStepBuffer,
-      settings.autosaveInterval * 1000,
-    );
+    saveTimer = setTimeout(softSave, settings.autosaveInterval * 1000);
   };
+
+  const extensions = buildExtensions({
+    placeholderText: s('editor.placeholder'),
+    onChange: (changes) => {
+      pendingChanges = pendingChanges ? pendingChanges.compose(changes) : changes;
+      setIsDirty(true);
+      setCharCount(view?.state.doc.length ?? 0);
+      triggerAutosave();
+    },
+    onSave: () => void save(true),
+    getTypewriterMode: () => settings.typewriterMode,
+  });
 
   const applySheetToView = (data: NonNullable<ReturnType<typeof sheet>>) => {
     if (!view) return;
-    const doc = pmSchema.nodeFromJSON(data.contentJSON);
-    const docSize = doc.content.size;
-    const saved = data.selection;
-    const anchor = Math.min(saved?.anchor ?? docSize, docSize);
-    const head = Math.min(saved?.head ?? anchor, docSize);
-    const selection = TextSelection.create(doc, anchor, head);
-    view.updateState(
-      EditorState.create({
-        doc,
-        schema: pmSchema,
-        plugins: getPlugins(),
-        selection,
-      }),
-    );
-
-    // Restore seq state from loaded sheet
-    currentSeq = data.state.nextSeq;
-    stepBuffer = [];
-    deltaStepCount = 0;
-
+    const state = createEditorState(data.markdown, data.selection, extensions);
+    view.setState(state);
     view.focus();
-    view.dispatch(view.state.tr.scrollIntoView());
-    updateHistoryState(view.state);
-    setNodeSize(doc.nodeSize);
+
+    currentContentId = data.contentId;
+    nextDeltaSeq = data.nextDeltaSeq;
+    deltasSinceSnapshot = data.nextDeltaSeq; // count existing deltas toward threshold
+    pendingChanges = null;
+
+    setCharCount(data.markdown.length);
     setIsDirty(false);
-
-    if (data.state.partialLoad) {
-      toast.error(s('editor.deltaCorrupt'), { duration: 6000 });
-    }
-
-    // Hard save on first open if there are pending deltas
-    if (data.state.nextSeq > 0) {
-      freeze();
-    }
   };
 
   onMount(() => {
     if (!editorRef) return;
-    view = new EditorView(editorRef, {
-      state: EditorState.create({ schema: pmSchema, plugins: getPlugins() }),
-      dispatchTransaction(tr) {
-        const newState = view!.state.apply(tr);
-        view!.updateState(newState);
-        updateHistoryState(newState);
 
-        if (tr.docChanged) {
-          if (settings.typewriterMode) {
-            const { $from } = newState.selection;
-            const pos = $from.pos;
-            // Use a small timeout to ensure DOM has updated
-            setTimeout(() => {
-              if (!view) return;
-              try {
-                const coords = view.coordsAtPos(pos);
-                const viewportHeight = window.innerHeight;
-                const targetY = viewportHeight / 2;
-                const diff = coords.top - targetY;
-
-                // Only scroll if offset is significant to avoid jitter
-                if (Math.abs(diff) > 10) {
-                  window.scrollBy({ top: diff, behavior: 'smooth' });
-                }
-              } catch (e) {
-                // coordsAtPos can fail if pos is not in view or invalid
-              }
-            }, 0);
-          }
-          setNodeSize(newState.doc.nodeSize);
-          stepBuffer.push(...tr.steps);
-          setIsDirty(true);
-          if (stepBuffer.length >= SOFT_SAVE_STEP_LIMIT) {
-            flushStepBuffer();
-          } else {
-            triggerSoftSave();
-          }
-        }
-      },
-      handleDOMEvents: {
-        blur: () => {
-          flushStepBuffer();
-          return false;
-        },
-      },
-      handleClick(v, pos) {
-        const linkMark = pmSchema.marks.link;
-        const $pos = v.state.doc.resolve(pos);
-        const link = $pos.marks().find((m) => m.type === linkMark);
-        if (!link) return false;
-
-        // Find range of this link mark
-        const doc = v.state.doc;
-        let from = pos,
-          to = pos;
-        while (
-          from > 0 &&
-          doc
-            .resolve(from - 1)
-            .marks()
-            .some(
-              (m) => m.type === linkMark && m.attrs.href === link.attrs.href,
-            )
-        )
-          from--;
-        while (
-          to < doc.content.size &&
-          doc
-            .resolve(to)
-            .marks()
-            .some(
-              (m) => m.type === linkMark && m.attrs.href === link.attrs.href,
-            )
-        )
-          to++;
-
-        void showLink(link.attrs.href as string).then((url) => {
-          if (url === null) return;
-          const tr = v.state.tr;
-          if (url === '') tr.removeMark(from, to, linkMark);
-          else tr.addMark(from, to, linkMark.create({ href: url }));
-          v.dispatch(tr);
-          v.focus();
-        });
-        return true;
-      },
-      handleDoubleClick(v, pos) {
-        const node = v.state.doc.nodeAt(pos);
-        if (node?.type !== pmSchema.nodes.image) return false;
-        void showImage({
-          src: node.attrs.src as string,
-          alt: (node.attrs.alt as string) ?? '',
-        }).then((result) => {
-          if (!result) return;
-          v.dispatch(
-            v.state.tr.setNodeMarkup(pos, undefined, {
-              src: result.src,
-              alt: result.alt,
-            }),
-          );
-          v.focus();
-        });
-        return true;
-      },
-    });
+    view = new EditorView({ parent: editorRef });
 
     const data = sheet();
     if (data) applySheetToView(data);
@@ -323,9 +155,11 @@ const Editor: Component<EditorProps> = (props) => {
       if (isDirty()) e.preventDefault();
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      // Ctrl/Cmd+S is already handled inside CM6 keymap, but this catches
+      // the case where the editor is not focused.
+      if ((e.ctrlKey || e.metaKey) && e.key === 's' && !e.defaultPrevented) {
         e.preventDefault();
-        freeze();
+        void save(true);
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -341,174 +175,118 @@ const Editor: Component<EditorProps> = (props) => {
     if (data && view) applySheetToView(data);
   });
 
-  createEffect(() => {
-    JSON.stringify(settings.mdRules); // track
-    if (!view) return;
-    view.updateState(view.state.reconfigure({ plugins: getPlugins() }));
-  });
-
   onCleanup(() => {
-    clearTimeout(softSaveTimer);
-    flushStepBuffer();
+    clearTimeout(saveTimer);
+    void save();
     view?.destroy();
   });
 
-  const exec = (
-    cmd: (state: EditorState, dispatch: (tr: any) => void) => boolean,
-  ) => {
-    if (view) {
-      try {
-        cmd(view.state, view.dispatch);
-      } catch (e) {
-        console.warn('editor cmd failed:', e);
-      }
-      view.focus();
-    }
+  const doUndo = () => {
+    if (view) undo(view);
   };
 
-  const handleLink = async () => {
-    if (!view) return;
-    const { from, to, empty } = view.state.selection;
-    if (empty) {
-      toast(s('editor.selectTextFirst'));
-      return;
-    }
-    const linkMark = pmSchema.marks.link;
-    let existingHref = '';
-    view.state.doc.nodesBetween(from, to, (node) => {
-      const mark = node.marks.find((m) => m.type === linkMark);
-      if (mark) existingHref = mark.attrs.href as string;
-    });
-    const url = await showLink(existingHref);
-    if (url === null) return;
-    const tr = view.state.tr;
-    if (url === '') {
-      tr.removeMark(from, to, linkMark);
-    } else {
-      tr.addMark(from, to, linkMark.create({ href: url }));
-    }
-    view.dispatch(tr);
-    view.focus();
+  const doRedo = () => {
+    if (view) redo(view);
   };
 
-  const handleImage = async () => {
-    if (!view) return;
-    const result = await showImage();
-    if (!result) return;
-    const node = pmSchema.nodes.image.create({
-      src: result.src,
-      alt: result.alt,
-    });
-    view.dispatch(view.state.tr.replaceSelectionWith(node));
-    view.focus();
-  };
-
-  const handleSplit = async () => {
+  const doSplit = async () => {
     if (!view) return;
     const data = sheet();
     if (!data) return;
 
-    const confirmed = await showConfirm(
-      s('modal.split_title'),
-      s('modal.split_confirm'),
-    );
-    if (!confirmed) return;
-
-    const parentId = Object.entries(projectTree.nodes).find(([, n]) =>
-      n.children?.includes(props.sheetId),
-    )?.[0];
-    if (!parentId) return;
-
-    const anchor = view.state.selection.anchor;
+    const cursorPos = view.state.selection.main.from;
     const doc = view.state.doc;
-    const firstDoc = doc.cut(0, anchor);
-    const secondDoc = doc.cut(anchor);
+    const cursorLine = doc.lineAt(cursorPos);
 
-    const firstLabel = extractDocLabel(firstDoc) || data.node.label;
-    const secondLabel = extractDocLabel(secondDoc) || data.node.label;
+    const topMarkdown = doc.sliceString(0, cursorLine.from).replace(/\n+$/, '');
+    const bottomMarkdown = doc.sliceString(cursorLine.from);
 
-    const firstId = await createTreeNode('sheet', parentId, firstLabel);
-    if (!firstId) return;
-    await hardSave(firstId, firstDoc.toJSON(), { anchor: 0, head: 0 });
+    // Save current (top) content
+    const { contentId, label } = await saveMarkdownSheet(data.node.id, topMarkdown, { anchor: 0, head: 0 });
+    currentContentId = contentId;
+    nextDeltaSeq = 0;
+    deltasSinceSnapshot = 0;
+    pendingChanges = null;
 
-    const secondId = await createTreeNode('sheet', parentId, secondLabel);
-    if (!secondId) return;
-    await hardSave(secondId, secondDoc.toJSON(), { anchor: 0, head: 0 });
+    const now = new Date().toISOString();
+    if (label !== data.node.label) {
+      await putNode({ ...data.node, label, updatedAt: now });
+      updateSheetMeta(data.node.id, label, topMarkdown.slice(0, 200));
+    }
+    setIsDirty(false);
 
-    navigate(`/nodes/${secondId}`);
-    await deleteTreeNode(props.sheetId);
+    // Create new sibling sheet with bottom content
+    const parentId = findParentId(data.node.id);
+    const vid = activePjVerId();
+    if (!parentId || !vid) {
+      toast.error(s('editor.saveFailed'));
+      return;
+    }
+
+    const newId = genUnorderedId();
+    const newNode: SheetNode = {
+      id: newId,
+      pjVerId: vid,
+      parentId,
+      label: '',
+      updatedAt: now,
+      type: 'sheet',
+      visual: { colorH: 0, colorS: 0 },
+      tags: [],
+      orderKey: 0,
+    };
+    const newContent: SheetContent = {
+      id: genUnorderedId(),
+      nodeId: newId,
+      markdown: bottomMarkdown,
+      selection: { anchor: 0, head: 0 },
+    };
+
+    await createNodeAtomic(newNode, newContent);
+    await moveNodeAtomic(newId, parentId, data.node.id);
+    await fetchProjectTree(vid);
+
+    navigate(`/nodes/${newId}`);
+  };
+
+  const scrollToEdge = (edge: 'start' | 'end') => {
+    if (!view) return;
+    const pos = edge === 'start' ? 0 : view.state.doc.length;
+    view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+    view.focus();
   };
 
   return (
     <div class="editor-container">
-      <EditorToolbar
-        canUndo={canUndo()}
-        canRedo={canRedo()}
-        isDirty={isDirty()}
-        onUndo={() => exec(undo)}
-        onRedo={() => exec(redo)}
-        onExec={exec}
-        onSave={freeze}
-        onLink={handleLink}
-        onImage={handleImage}
-        onSplit={handleSplit}
-      />
-
       <div
         class="editor-section-marker editor-section-marker--start"
-        onClick={() => {
-          if (view) {
-            const tr = view.state.tr.setSelection(
-              TextSelection.create(view.state.doc, 0),
-            );
-            view.dispatch(tr.scrollIntoView());
-            view.focus();
-          }
-        }}
+        onClick={() => scrollToEdge('start')}
       >
         {/* SOD/EOD: start/end-of-document markers, intentionally not translated */}
         <span class="editor-section-label">SOD</span>
         <hr class="separator-line flex-1" />
       </div>
 
-      <div ref={editorRef} class="prosemirror-editor typo" />
+      <div ref={editorRef} class="cm-editor-wrap typo" />
 
       <div
         class="editor-section-marker editor-section-marker--end"
-        onClick={() => {
-          if (view) {
-            const size = view.state.doc.content.size;
-            const tr = view.state.tr.setSelection(
-              TextSelection.create(view.state.doc, size),
-            );
-            view.dispatch(tr.scrollIntoView());
-            view.focus();
-          }
-        }}
+        onClick={() => scrollToEdge('end')}
       >
         <span class="editor-section-label">EOD</span>
         <hr class="separator-line flex-1" />
       </div>
 
-      <div class="editor-stats-overlay">
-        <div class="flex items-center gap-12">
-          <button
-            class="editor-stats-btn"
-            onClick={() => navigate(`/nodes/${props.sheetId}/analysis`)}
-          >
-            <span>
-              {s('editor.size', { count: formatCompact(nodeSize()) })}
-            </span>
-          </button>
-          <Show when={isDirty()} fallback={<TbOutlineCircleCheck size={14} />}>
-            <CircularProgress
-              endTime={autosaveEndTime()}
-              size={14}
-              strokeWidth={0.4}
-            />
-          </Show>
-        </div>
-      </div>
+      <EditorToolOverlay
+        charCount={charCount}
+        isDirty={isDirty}
+        autosaveEndTime={autosaveEndTime}
+        onUndo={doUndo}
+        onRedo={doRedo}
+        onSave={() => void save(true)}
+        onSplit={() => void doSplit()}
+        onAnalysis={() => navigate(`/nodes/${props.sheetId}/analysis`)}
+      />
     </div>
   );
 };

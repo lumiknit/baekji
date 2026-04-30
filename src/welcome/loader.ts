@@ -5,8 +5,7 @@ import customizeMd from './customize.md?raw';
 import notesMd from './notes.md?raw';
 
 import { createNodeAtomic, ORDER_GAP, putNode } from '../lib/doc/db';
-import { hardSave } from '../lib/doc/db_helper';
-import { markdownToDoc } from '../lib/pm_content';
+import { saveMarkdownSheet } from '../lib/doc/db_helper';
 import { genUnorderedId } from '../lib/uuid';
 
 interface NodeSpec {
@@ -73,29 +72,19 @@ export async function createWelcomeProject(): Promise<{
         });
         if (spec.children) await buildNodes(spec.children, id);
       } else {
-        await createNodeAtomic(
-          {
-            id,
-            pjVerId,
-            parentId,
-            label: spec.label,
-            type: 'sheet',
-            updatedAt: now,
-            orderKey: orderKey++,
-            visual: { colorH: 0, colorS: 0 },
-            tags: [],
-          },
-          {
-            id: genUnorderedId(),
-            nodeId: id,
-            pmJSON: {},
-            markdown: '',
-            selection: { anchor: 0, head: 0 },
-          },
-        );
+        await createNodeAtomic({
+          id,
+          pjVerId,
+          parentId,
+          label: spec.label,
+          type: 'sheet',
+          updatedAt: now,
+          orderKey: orderKey++,
+          visual: { colorH: 0, colorS: 0 },
+          tags: [],
+        });
         if (spec.markdown) {
-          const doc = markdownToDoc(spec.markdown);
-          await hardSave(id, doc.toJSON(), { anchor: 0, head: 0 });
+          await saveMarkdownSheet(id, spec.markdown, { anchor: 0, head: 0 });
         }
         if (!firstSheetId) firstSheetId = id;
       }

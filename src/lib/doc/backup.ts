@@ -9,10 +9,8 @@ import type {
 import { z } from 'zod/v4';
 import { bakProjectSchema } from './v0';
 import { getVersionRoots, getAllNodesInVersion, getNode } from './db';
-import { pmParser, pmSchema } from './pm';
 import { genUnorderedId } from '../uuid';
 import { getSheetContentAsMarkdown } from './db_helper';
-// pmParser/pmSchema used in prepareBakImport for markdown → pmJSON conversion
 
 type VersionRootNode = z.infer<typeof docVersionRootSchema>;
 type DataNode = GroupNode | SheetNode;
@@ -178,16 +176,9 @@ export async function prepareBakImport(
           visual: { colorH: 0, colorS: 0 },
           tags: [],
         } satisfies SheetNode);
-        let pmDocJSON: unknown;
-        try {
-          pmDocJSON = pmParser.parse(child.content).toJSON();
-        } catch {
-          pmDocJSON = pmSchema.topNodeType.createAndFill()!.toJSON();
-        }
         sheetContents.push({
           id: genUnorderedId(),
           nodeId: newId,
-          pmJSON: pmDocJSON,
           markdown: child.content,
           selection: { head: 0, anchor: 0 },
         } satisfies SheetContent);

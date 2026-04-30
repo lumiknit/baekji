@@ -12,7 +12,6 @@ import {
   createNodeAtomic,
 } from '../lib/doc/db';
 import type { GroupNode, SheetNode, SheetContent } from '../lib/doc/v0';
-import { pmSchema } from '../lib/doc/pm';
 import { genUnorderedId } from '../lib/uuid';
 
 // ─── Types ─────────────────────────────────────────────────────
@@ -207,8 +206,8 @@ export async function createTreeNode(
     sheetContent = {
       id: genUnorderedId(),
       nodeId: newId,
-      pmJSON: pmSchema.topNodeType.createAndFill()!.toJSON(),
       markdown: '',
+      selection: { anchor: 0, head: 0 },
     };
   }
   await createNodeAtomic(newNode, sheetContent);

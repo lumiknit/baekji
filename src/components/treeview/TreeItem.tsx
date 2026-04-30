@@ -23,9 +23,8 @@ import {
   collectGroupMarkdown,
   getSheetContentAsMarkdown,
   getShortLabel,
-  hardSave,
+  saveMarkdownSheet,
 } from '../../lib/doc/db_helper';
-import { markdownToDoc } from '../../lib/pm_content';
 import { s } from '../../lib/i18n';
 import { showConfirm, showExport, showPrompt } from '../../state/modal';
 import {
@@ -161,12 +160,11 @@ const TreeItem: Component<TreeItemProps> = (props) => {
     if (!confirmed) return;
 
     const markdown = await collectGroupMarkdown(props.id, projectTree.nodes);
-    const doc = markdownToDoc(markdown);
     const label = getShortLabel(markdown) || n.label;
 
     const newId = await createTreeNode('sheet', props.parentId, label);
     if (!newId) return;
-    await hardSave(newId, doc.toJSON(), { anchor: 0, head: 0 });
+    await saveMarkdownSheet(newId, markdown, { anchor: 0, head: 0 });
     navigate(`/nodes/${newId}`);
     await deleteTreeNode(props.id);
   };
@@ -196,12 +194,11 @@ const TreeItem: Component<TreeItemProps> = (props) => {
     const md1 = (await getSheetContentAsMarkdown(props.id)).trim();
     const md2 = (await getSheetContentAsMarkdown(nextId)).trim();
     const merged = [md1, md2].filter(Boolean).join('\n\n');
-    const doc = markdownToDoc(merged);
     const label = getShortLabel(merged) || n.label;
 
     const newId = await createTreeNode('sheet', props.parentId, label);
     if (!newId) return;
-    await hardSave(newId, doc.toJSON(), { anchor: 0, head: 0 });
+    await saveMarkdownSheet(newId, merged, { anchor: 0, head: 0 });
     navigate(`/nodes/${newId}`);
     await deleteTreeNode(props.id);
     await deleteTreeNode(nextId);

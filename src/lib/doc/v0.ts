@@ -140,11 +140,11 @@ export type BakProject = z.infer<typeof bakProjectSchema>;
 export const sheetContentSchema = z.object({
   id: idSchema.describe('Unique snapshot ID, regenerated on each save'),
   nodeId: idSchema.describe('Node ID of the sheet node'),
-  pmJSON: z.unknown().describe('ProseMirror doc.toJSON()'),
   markdown: z.string().describe('Markdown serialized content'),
   selection: z
     .object({ anchor: z.number(), head: z.number() })
-    .describe('Selection state after all steps applied'),
+    .optional()
+    .describe('Selection state'),
 });
 export type SheetContent = z.infer<typeof sheetContentSchema>;
 
@@ -153,14 +153,18 @@ export type SheetContent = z.infer<typeof sheetContentSchema>;
  *
  * Key: ['contentId', 'seq']. Index on 'contentId'.
  * Appended on each soft save; cleared on hard save.
+ *
+ * `changes` (CM6 ChangeSet).
  */
 export const sheetDeltaSchema = z.object({
   contentId: idSchema.describe('ID of the corresponding SheetContent snapshot'),
   seq: z.number().describe('Sequence number starting from 0'),
-  steps: z.array(z.unknown()).describe('ProseMirror Step objects as JSON'),
+  changes: z
+    .unknown()
+    .describe('CM6 ChangeSet.toJSON() — composed changes since last snapshot'),
   selection: z
     .object({ anchor: z.number(), head: z.number() })
-    .describe('Selection state after all steps applied'),
+    .describe('Selection state after changes applied'),
 });
 export type SheetDelta = z.infer<typeof sheetDeltaSchema>;
 

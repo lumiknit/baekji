@@ -12,16 +12,80 @@ import {
 import type { BakImportResult } from './backup';
 import type { SheetContent, SheetNode } from './v0';
 import { genUnorderedId } from '../uuid';
-import {
-  pmSchema,
-  replayDeltas,
-  docToMarkdown,
-  markdownToDoc,
-  getShortLabel,
-  extractDocLabel,
-} from '../pm_content';
+import { ChangeSet, Text } from '@codemirror/state';
+import { getShortLabel, extractDocLabel } from '../pm_content';
 
 export { getShortLabel, extractDocLabel };
+
+// ─── Markdown-native load/save (CodeMirror editor) ───────────
+
+export interface MarkdownSheetState {
+  markdown: string;
+  selection: { anchor: number; head: number };
+  /** contentId of the current snapshot; new CM6 deltas are appended to this */
+  contentId: string | null;
+  /** next seq number for delta saves (= number of existing CM6 deltas) */
+  nextDeltaSeq: number;
+}
+
+const DEFAULT_SELECTION = { anchor: 0, head: 0 };
+
+export async function loadMarkdownSheetState(
+  nodeId: string,
+): Promise<MarkdownSheetState> {
+  const content = await getSheetContent(nodeId);
+  if (!content) {
+    return { markdown: '', selection: DEFAULT_SELECTION, contentId: null, nextDeltaSeq: 0 };
+  }
+
+  const deltas = await getSheetDeltas(content.id);
+  if (deltas.length === 0) {
+    return {
+      markdown: content.markdown,
+      selection: content.selection ?? DEFAULT_SELECTION,
+      contentId: content.id,
+      nextDeltaSeq: 0,
+    };
+  }
+
+  // CM6 deltas — apply each ChangeSet to reconstruct current document
+  let doc = Text.of(content.markdown.split('\n'));
+  let selection = content.selection ?? DEFAULT_SELECTION;
+  for (const delta of deltas) {
+    const changes = (delta as { changes?: unknown }).changes;
+    if (!changes) continue;
+    doc = (ChangeSet.fromJSON(changes) as ChangeSet).apply(doc);
+    selection = (delta as { selection?: { anchor: number; head: number } }).selection ?? selection;
+  }
+  return {
+    markdown: doc.toString(),
+    selection,
+    contentId: content.id,
+    nextDeltaSeq: deltas.length,
+  };
+}
+
+/** Hard save: write a full markdown snapshot, clear all deltas. Returns new contentId and auto-label. */
+export async function saveMarkdownSheet(
+  nodeId: string,
+  markdown: string,
+  selection: { anchor: number; head: number },
+): Promise<{ contentId: string; label: string }> {
+  const contentId = genUnorderedId();
+  const newContent: SheetContent = { id: contentId, nodeId, markdown, selection };
+  await updateSheetSnapshotAtomic(newContent);
+  return { contentId, label: getShortLabel(markdown) };
+}
+
+/** Soft save: append a CM6 ChangeSet delta to the current snapshot. */
+export async function saveDeltaMarkdownSheet(
+  contentId: string,
+  seq: number,
+  changes: unknown,
+  selection: { anchor: number; head: number },
+): Promise<void> {
+  await putSheetDelta({ contentId, seq, changes, selection });
+}
 
 // ─── Project Creation ─────────────────────────────────────────
 
@@ -45,120 +109,6 @@ export async function createProject(label: string): Promise<NewProjectIds> {
   return { projectId, pjVerId };
 }
 
-// ─── Load Sheet State ─────────────────────────────────────────
-
-export interface SheetState {
-  pmJSON: unknown;
-  nextSeq: number;
-  contentId: string | null;
-  selection: { anchor: number; head: number };
-  partialLoad?: boolean;
-}
-
-export async function loadSheetState(nodeId: string): Promise<SheetState> {
-  const emptyDoc = pmSchema.topNodeType.createAndFill()!.toJSON();
-
-  const content = await getSheetContent(nodeId);
-  if (!content) {
-    return {
-      pmJSON: emptyDoc,
-      nextSeq: 0,
-      contentId: null,
-      selection: { anchor: 0, head: 0 },
-    };
-  }
-
-  const deltas = await getSheetDeltas(content.id);
-  if (deltas.length === 0) {
-    return {
-      pmJSON: content.pmJSON,
-      nextSeq: 0,
-      contentId: content.id,
-      selection: content.selection,
-    };
-  }
-
-  const baseDoc = pmSchema.nodeFromJSON(content.pmJSON);
-  const { doc, lastGoodIdx, partialLoad, selection } = replayDeltas(
-    baseDoc,
-    deltas,
-    content.selection,
-  );
-
-  return {
-    pmJSON: doc.toJSON(),
-    nextSeq: lastGoodIdx + 1,
-    contentId: content.id,
-    selection,
-    partialLoad,
-  };
-}
-
-// ─── Soft Save ────────────────────────────────────────────────
-
-export async function softSave(
-  nodeId: string,
-  steps: object[],
-  selection: { anchor: number; head: number },
-  seq: number,
-): Promise<void> {
-  if (steps.length === 0) return;
-
-  let content = await getSheetContent(nodeId);
-  if (!content) {
-    const emptyDoc = pmSchema.topNodeType.createAndFill()!;
-    content = {
-      id: genUnorderedId(),
-      nodeId,
-      pmJSON: emptyDoc.toJSON(),
-      markdown: '',
-      selection: { anchor: 0, head: 0 },
-    };
-    await updateSheetSnapshotAtomic(content);
-  }
-
-  await putSheetDelta({ contentId: content.id, seq, steps, selection });
-}
-
-// ─── Hard Save ────────────────────────────────────────────────
-
-export interface HardSaveResult {
-  markdown: string;
-  autoLabel: string;
-}
-
-export async function hardSave(
-  nodeId: string,
-  pmDocJSON?: unknown,
-  selection?: { anchor: number; head: number },
-): Promise<HardSaveResult> {
-  const existing = await getSheetContent(nodeId);
-
-  let finalDoc;
-  if (pmDocJSON !== undefined) {
-    finalDoc = pmSchema.nodeFromJSON(pmDocJSON);
-  } else if (existing) {
-    const deltas = await getSheetDeltas(existing.id);
-    const baseDoc = pmSchema.nodeFromJSON(existing.pmJSON);
-    ({ doc: finalDoc } = replayDeltas(baseDoc, deltas, existing.selection));
-  } else {
-    finalDoc = pmSchema.topNodeType.createAndFill()!;
-  }
-
-  const markdown = docToMarkdown(finalDoc);
-  const newId = genUnorderedId();
-  const newContent: SheetContent = {
-    id: newId,
-    nodeId,
-    pmJSON: finalDoc.toJSON(),
-    markdown,
-    selection: selection ?? { head: 0, anchor: 0 },
-  };
-
-  await updateSheetSnapshotAtomic(newContent);
-  return { markdown, autoLabel: getShortLabel(markdown) };
-}
-
 // ─── Sheet Content as Markdown ────────────────────────────────
 
 export async function getSheetContentAsMarkdown(
@@ -168,11 +118,15 @@ export async function getSheetContentAsMarkdown(
   if (!content) return '';
 
   const deltas = await getSheetDeltas(content.id);
-  if (deltas.length > 0) {
-    const { markdown } = await hardSave(nodeId);
-    return markdown;
+  if (deltas.length === 0) return content.markdown;
+
+  let doc = Text.of(content.markdown.split('\n'));
+  for (const delta of deltas) {
+    const changes = (delta as { changes?: unknown }).changes;
+    if (!changes) continue;
+    doc = (ChangeSet.fromJSON(changes) as ChangeSet).apply(doc);
   }
-  return content.markdown;
+  return doc.toString();
 }
 
 // ─── Group Merge Helper ───────────────────────────────────────
@@ -266,13 +220,11 @@ export async function importTextAsSheet(
     orderKey: 0,
   };
 
-  const pmDoc = markdownToDoc(text);
   const sheetContent: SheetContent = {
     id: genUnorderedId(),
     nodeId: newId,
-    pmJSON: pmDoc.toJSON(),
     markdown: text,
-    selection: { head: 0, anchor: 0 },
+    selection: DEFAULT_SELECTION,
   };
 
   await createNodeAtomic(sheet, sheetContent);
