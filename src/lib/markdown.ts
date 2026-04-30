@@ -1,7 +1,8 @@
 // Strip markdown syntax from a single line and return plain text.
 function stripLine(line: string): string {
-  // Skip code block fences
+  // Skip code block fences and horizontal rules
   if (/^(`{3,}|~{3,})/.test(line)) return '';
+  if (/^[-*_]{3,}$/.test(line)) return '';
   // Headings, blockquotes, list markers
   line = line.replace(/^#{1,6}\s+/, '');
   line = line.replace(/^>\s*/, '');

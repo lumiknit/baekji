@@ -1,15 +1,34 @@
 import { useNavigate } from '@solidjs/router';
 import type { Component } from 'solid-js';
-import { createEffect, createResource, createSignal, onCleanup, onMount } from 'solid-js';
+import {
+  createEffect,
+  createResource,
+  createSignal,
+  onCleanup,
+  onMount,
+} from 'solid-js';
 import { EditorView } from '@codemirror/view';
 import { undo, redo } from '@codemirror/commands';
 import toast from 'solid-toast';
 import { ChangeSet } from '@codemirror/state';
-import { getNode, putNode, createNodeAtomic, moveNodeAtomic } from '../../lib/doc/db';
-import { loadMarkdownSheetState, saveMarkdownSheet, saveDeltaMarkdownSheet } from '../../lib/doc/db_helper';
+import {
+  getNode,
+  putNode,
+  createNodeAtomic,
+  moveNodeAtomic,
+} from '../../lib/doc/db';
+import {
+  loadMarkdownSheetState,
+  saveMarkdownSheet,
+  saveDeltaMarkdownSheet,
+} from '../../lib/doc/db_helper';
 import { s } from '../../lib/i18n';
 import { getShortLabel } from '../../lib/markdown';
-import { updateSheetMeta, findParentId, fetchProjectTree } from '../../state/project_tree';
+import {
+  updateSheetMeta,
+  findParentId,
+  fetchProjectTree,
+} from '../../state/project_tree';
 import { activePjVerId } from '../../state/workspace';
 import { settings } from '../../state/settings';
 import { genUnorderedId } from '../../lib/uuid';
@@ -33,7 +52,7 @@ const Editor: Component<EditorProps> = (props) => {
   let nextDeltaSeq = 0;
   let pendingChanges: ChangeSet | null = null;
   let deltasSinceSnapshot = 0;
-  // After DELTA_THRESHOLD soft saves, do a full snapshot on the next autosave.
+  let knownLabel: string | null = null; // tracks last written label to avoid stale-node reads
   const DELTA_THRESHOLD = 20;
 
   const [sheet] = createResource(
@@ -60,21 +79,26 @@ const Editor: Component<EditorProps> = (props) => {
     saveTimer = undefined;
 
     const markdown = view.state.doc.toString();
-    const { from: anchor, to: head } = view.state.selection.main;
+    const { anchor, head } = view.state.selection.main;
 
     saveInFlight = true;
     setAutosaveEndTime(null);
     pendingChanges = null;
     try {
-      const { contentId, label } = await saveMarkdownSheet(data.node.id, markdown, { anchor, head });
+      const { contentId, label } = await saveMarkdownSheet(
+        data.node.id,
+        markdown,
+        { anchor, head },
+      );
       currentContentId = contentId;
       nextDeltaSeq = 0;
       deltasSinceSnapshot = 0;
 
-      const now = new Date().toISOString();
-      if (label !== data.node.label) {
+      if (label !== knownLabel) {
+        const now = new Date().toISOString();
         await putNode({ ...data.node, label, updatedAt: now });
         updateSheetMeta(data.node.id, label, markdown.slice(0, 200));
+        knownLabel = label;
       }
       setIsDirty(false);
       if (notify) toast.success(s('editor.saved'));
@@ -96,30 +120,42 @@ const Editor: Component<EditorProps> = (props) => {
 
     const changesToSave = pendingChanges;
     pendingChanges = null;
-    const { from: anchor, to: head } = view.state.selection.main;
+    const { anchor, head } = view.state.selection.main;
     const seq = nextDeltaSeq;
 
     try {
-      await saveDeltaMarkdownSheet(currentContentId, seq, changesToSave.toJSON(), { anchor, head });
+      await saveDeltaMarkdownSheet(
+        currentContentId,
+        seq,
+        changesToSave.toJSON(),
+        { anchor, head },
+      );
       nextDeltaSeq++;
       deltasSinceSnapshot++;
-
-      const data = sheet();
-      if (data) {
-        const markdown = view.state.doc.toString();
-        const label = getShortLabel(markdown);
-        if (label !== data.node.label) {
-          const now = new Date().toISOString();
-          await putNode({ ...data.node, label, updatedAt: now });
-          updateSheetMeta(data.node.id, label, markdown.slice(0, 200));
-        }
-      }
-
       setIsDirty(false);
     } catch (err) {
       pendingChanges = changesToSave; // restore on failure
       console.error('Delta save failed:', err);
       toast.error(s('editor.saveFailed'));
+      return;
+    }
+
+    // Label update is best-effort: delta is already persisted, so a putNode
+    // failure here doesn't corrupt data.
+    try {
+      const data = sheet();
+      if (data) {
+        const markdown = view.state.doc.toString();
+        const label = getShortLabel(markdown);
+        if (label !== knownLabel) {
+          const now = new Date().toISOString();
+          await putNode({ ...data.node, label, updatedAt: now });
+          updateSheetMeta(data.node.id, label, markdown.slice(0, 200));
+          knownLabel = label;
+        }
+      }
+    } catch (err) {
+      console.error('Label update failed:', err);
     }
   };
 
@@ -132,7 +168,9 @@ const Editor: Component<EditorProps> = (props) => {
   const extensions = buildExtensions({
     placeholderText: s('editor.placeholder'),
     onChange: (changes) => {
-      pendingChanges = pendingChanges ? pendingChanges.compose(changes) : changes;
+      pendingChanges = pendingChanges
+        ? pendingChanges.compose(changes)
+        : changes;
       setIsDirty(true);
       setCharCount(view?.state.doc.length ?? 0);
       triggerAutosave();
@@ -143,26 +181,29 @@ const Editor: Component<EditorProps> = (props) => {
 
   const applySheetToView = (data: NonNullable<ReturnType<typeof sheet>>) => {
     if (!view) return;
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+    saveInFlight = false;
+
     const state = createEditorState(data.markdown, data.selection, extensions);
     view.setState(state);
     view.focus();
 
     currentContentId = data.contentId;
     nextDeltaSeq = data.nextDeltaSeq;
-    deltasSinceSnapshot = data.nextDeltaSeq; // count existing deltas toward threshold
+    deltasSinceSnapshot = data.nextDeltaSeq;
     pendingChanges = null;
+    knownLabel = data.node.label;
 
     setCharCount(data.markdown.length);
     setIsDirty(false);
+    setAutosaveEndTime(null);
   };
 
   onMount(() => {
     if (!editorRef) return;
 
     view = new EditorView({ parent: editorRef });
-
-    const data = sheet();
-    if (data) applySheetToView(data);
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty()) e.preventDefault();
@@ -190,7 +231,7 @@ const Editor: Component<EditorProps> = (props) => {
 
   onCleanup(() => {
     clearTimeout(saveTimer);
-    void save();
+    if (isDirty() || pendingChanges !== null) void save();
     view?.destroy();
   });
 
@@ -203,7 +244,7 @@ const Editor: Component<EditorProps> = (props) => {
   };
 
   const doSplit = async () => {
-    if (!view) return;
+    if (!view || saveInFlight) return;
     const data = sheet();
     if (!data) return;
 
@@ -215,7 +256,11 @@ const Editor: Component<EditorProps> = (props) => {
     const bottomMarkdown = doc.sliceString(cursorLine.from);
 
     // Save current (top) content
-    const { contentId, label } = await saveMarkdownSheet(data.node.id, topMarkdown, { anchor: 0, head: 0 });
+    const { contentId, label } = await saveMarkdownSheet(
+      data.node.id,
+      topMarkdown,
+      { anchor: 0, head: 0 },
+    );
     currentContentId = contentId;
     nextDeltaSeq = 0;
     deltasSinceSnapshot = 0;
@@ -241,7 +286,7 @@ const Editor: Component<EditorProps> = (props) => {
       id: newId,
       pjVerId: vid,
       parentId,
-      label: '',
+      label: getShortLabel(bottomMarkdown),
       updatedAt: now,
       type: 'sheet',
       visual: { colorH: 0, colorS: 0 },

@@ -1,7 +1,10 @@
 import type { Component } from 'solid-js';
 import { createSignal, createEffect, For, Show, Switch, Match } from 'solid-js';
 import { useParams, A } from '@solidjs/router';
-import { getSheetContent } from '../lib/doc/db';
+import {
+  loadMarkdownSheetState,
+  saveMarkdownSheet,
+} from '../lib/doc/db_helper';
 import { projectTree } from '../state/project_tree';
 import type { TreeNodeMeta } from '../state/project_tree';
 import { s } from '../lib/i18n';
@@ -74,8 +77,11 @@ const AnalysisPage: Component = () => {
 
     for (const item of flat) {
       if (item.type === 'sheet') {
-        const sc = await getSheetContent(item.id);
-        statsMap[item.id] = calcText(sc?.markdown ?? '', includeSpace());
+        const state = await loadMarkdownSheetState(item.id);
+        if (state.nextDeltaSeq > 0) {
+          await saveMarkdownSheet(item.id, state.markdown, state.selection);
+        }
+        statsMap[item.id] = calcText(state.markdown, includeSpace());
       }
     }
 

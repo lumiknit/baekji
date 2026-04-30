@@ -57,10 +57,12 @@ export async function loadMarkdownSheetState(
   let doc = Text.of(content.markdown.split('\n'));
   let selection = content.selection ?? DEFAULT_SELECTION;
   for (const delta of deltas) {
-    const changes = (delta as { changes?: unknown }).changes;
-    if (!changes) continue;
-    doc = (ChangeSet.fromJSON(changes) as ChangeSet).apply(doc);
-    selection = delta.selection ?? selection;
+    try {
+      doc = ChangeSet.fromJSON(delta.changes).apply(doc);
+      selection = delta.selection;
+    } catch {
+      break; // corrupt delta — use document reconstructed so far
+    }
   }
   return {
     markdown: doc.toString(),
@@ -132,9 +134,11 @@ export async function getSheetContentAsMarkdown(
 
   let doc = Text.of(content.markdown.split('\n'));
   for (const delta of deltas) {
-    const changes = delta.changes;
-    if (!changes) continue;
-    doc = ChangeSet.fromJSON(changes).apply(doc);
+    try {
+      doc = ChangeSet.fromJSON(delta.changes).apply(doc);
+    } catch {
+      break;
+    }
   }
   return doc.toString();
 }

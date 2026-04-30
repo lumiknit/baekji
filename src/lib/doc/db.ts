@@ -237,16 +237,23 @@ export async function insertVersion(
   sheetContents: SheetContent[],
 ): Promise<void> {
   const db = await getDB();
-  const tx = db.transaction([NODES, SHEET_CONTENTS], 'readwrite');
+  const tx = db.transaction([NODES, SHEET_CONTENTS, SHEET_DELTAS], 'readwrite');
   tx.objectStore(NODES).put(versionRoot);
   for (const node of nodes) tx.objectStore(NODES).put(node);
   for (const sc of sheetContents) {
-    // Remove old snapshot for this nodeId if any (unique index)
     const old = await tx
       .objectStore(SHEET_CONTENTS)
       .index('by-nodeId')
       .get(sc.nodeId);
-    if (old) await tx.objectStore(SHEET_CONTENTS).delete(old.id);
+    if (old) {
+      const deltaKeys = await tx
+        .objectStore(SHEET_DELTAS)
+        .index('by-contentId')
+        .getAllKeys(old.id);
+      for (const key of deltaKeys)
+        await tx.objectStore(SHEET_DELTAS).delete(key);
+      await tx.objectStore(SHEET_CONTENTS).delete(old.id);
+    }
     await tx.objectStore(SHEET_CONTENTS).put(sc);
   }
   await tx.done;
@@ -260,30 +267,33 @@ export async function deleteVersionSubtree(versionId: string): Promise<void> {
 
   const db = await getDB();
 
-  // Collect contentIds for delta cleanup (must be done before transaction)
+  // Collect contentIds before opening the transaction
   const contentIds: string[] = [];
   for (const sheetId of sheetIds) {
     const sc = await db.getFromIndex(SHEET_CONTENTS, 'by-nodeId', sheetId);
     if (sc) contentIds.push(sc.id);
   }
 
-  // Delete deltas first (separate transaction)
-  for (const contentId of contentIds) {
-    await deleteSheetDeltasByContentId(contentId);
-  }
+  const tx = db.transaction(
+    [NODES, SHEET_CONTENTS, SHEET_DELTAS, APP_STATE],
+    'readwrite',
+  );
 
-  const tx = db.transaction([NODES, SHEET_CONTENTS, APP_STATE], 'readwrite');
-
-  await tx.objectStore(NODES).delete(versionId);
-  for (const node of dataNodes) await tx.objectStore(NODES).delete(node.id);
   for (const contentId of contentIds) {
+    const deltaKeys = await tx
+      .objectStore(SHEET_DELTAS)
+      .index('by-contentId')
+      .getAllKeys(contentId);
+    for (const key of deltaKeys) await tx.objectStore(SHEET_DELTAS).delete(key);
     await tx.objectStore(SHEET_CONTENTS).delete(contentId);
   }
+  await tx.objectStore(NODES).delete(versionId);
+  for (const node of dataNodes) await tx.objectStore(NODES).delete(node.id);
 
-  // Cleanup version-specific app state
   const appStore = tx.objectStore(APP_STATE);
-  const appIdx = appStore.index('by-scope-scopeId');
-  const appKeys = await appIdx.getAllKeys(['version', versionId]);
+  const appKeys = await appStore
+    .index('by-scope-scopeId')
+    .getAllKeys(['version', versionId]);
   for (const key of appKeys) await appStore.delete(key);
 
   await tx.done;
@@ -312,7 +322,7 @@ export async function deleteNodeSubtree(nodeId: string): Promise<void> {
     }
   }
 
-  // Collect contentIds for sheet nodes (for delta cleanup)
+  // Collect contentIds before opening the transaction
   const contentIds: string[] = [];
   for (const id of idsToDelete) {
     const node = (await db.get(NODES, id)) as DocNode | undefined;
@@ -322,16 +332,16 @@ export async function deleteNodeSubtree(nodeId: string): Promise<void> {
     }
   }
 
-  // Delete deltas first
+  const tx = db.transaction([NODES, SHEET_CONTENTS, SHEET_DELTAS], 'readwrite');
   for (const contentId of contentIds) {
-    await deleteSheetDeltasByContentId(contentId);
-  }
-
-  const tx = db.transaction([NODES, SHEET_CONTENTS], 'readwrite');
-  for (const id of idsToDelete) await tx.objectStore(NODES).delete(id);
-  for (const contentId of contentIds) {
+    const deltaKeys = await tx
+      .objectStore(SHEET_DELTAS)
+      .index('by-contentId')
+      .getAllKeys(contentId);
+    for (const key of deltaKeys) await tx.objectStore(SHEET_DELTAS).delete(key);
     await tx.objectStore(SHEET_CONTENTS).delete(contentId);
   }
+  for (const id of idsToDelete) await tx.objectStore(NODES).delete(id);
   await tx.done;
 }
 

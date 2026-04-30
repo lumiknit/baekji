@@ -196,6 +196,7 @@ export async function createTreeNode(
     updatedAt: now,
     visual: { colorH: 0, colorS: 0 },
     tags: [] as string[],
+    orderKey: 0, // overwritten atomically by createNodeAtomic
   };
 
   const newNode: GroupNode | SheetNode =
@@ -278,10 +279,14 @@ export async function deleteCurrentProjectTree(): Promise<void> {
 // ─── Move ────────────────────────────────────────────────────
 
 export function isDescendantOf(ancestorId: string, targetId: string): boolean {
-  if (ancestorId === targetId) return true;
-  const node = tree.nodes[ancestorId];
-  if (!node || node.type !== 'group') return false;
-  return node.children.some((childId) => isDescendantOf(childId, targetId));
+  const stack = [ancestorId];
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (id === targetId) return true;
+    const node = tree.nodes[id];
+    if (node?.type === 'group') stack.push(...node.children);
+  }
+  return false;
 }
 
 export async function moveTreeNode(

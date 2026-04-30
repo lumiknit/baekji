@@ -17,16 +17,22 @@ class HrWidget extends WidgetType {
     el.className = 'cm-md-hr-widget';
     return el;
   }
-  eq() { return true; }
-  ignoreEvent() { return false; }
+  eq() {
+    return true;
+  }
+  ignoreEvent() {
+    return false;
+  }
 }
 const hrWidget = new HrWidget();
-
 
 // ─── Helpers ──────────────────────────────────────────────────
 
 const INLINE_FORMAT = new Set([
-  'StrongEmphasis', 'Emphasis', 'InlineCode', 'Strikethrough',
+  'StrongEmphasis',
+  'Emphasis',
+  'InlineCode',
+  'Strikethrough',
 ]);
 
 function inRange(from: number, to: number, sel: SelectionRange): boolean {
@@ -35,7 +41,10 @@ function inRange(from: number, to: number, sel: SelectionRange): boolean {
 
 // Walk up ancestors: show marker if cursor is inside ANY inline-format ancestor.
 // This handles ***bold italic*** where EmphasisMark is nested.
-function cursorInAnyAncestor(nodeParent: ReturnType<typeof syntaxTree>['topNode']['node'] | null, sel: SelectionRange): boolean {
+function cursorInAnyAncestor(
+  nodeParent: ReturnType<typeof syntaxTree>['topNode']['node'] | null,
+  sel: SelectionRange,
+): boolean {
   let anc = nodeParent;
   while (anc && INLINE_FORMAT.has(anc.name)) {
     if (inRange(anc.from, anc.to, sel)) return true;
@@ -49,22 +58,24 @@ function cursorInAnyAncestor(nodeParent: ReturnType<typeof syntaxTree>['topNode'
 // iterate() loop allocates GC pressure on every update.
 
 const DECO = {
-  hide:      Decoration.replace({}),
-  marker:    Decoration.mark({ class: 'cm-md-marker' }),
+  hide: Decoration.replace({}),
+  marker: Decoration.mark({ class: 'cm-md-marker' }),
   paragraph: Decoration.line({ class: 'cm-md-paragraph' }),
-  blockquote:Decoration.line({ class: 'cm-md-blockquote' }),
+  blockquote: Decoration.line({ class: 'cm-md-blockquote' }),
   codeBlock: Decoration.line({ class: 'cm-md-code-block' }),
-  strong:    Decoration.mark({ class: 'cm-md-strong' }),
-  em:        Decoration.mark({ class: 'cm-md-em' }),
-  code:      Decoration.mark({ class: 'cm-md-code' }),
-  strike:    Decoration.mark({ class: 'cm-md-strike' }),
-  link:      Decoration.mark({ class: 'cm-md-link' }),
-  imageAlt:  Decoration.mark({ class: 'cm-md-image-alt' }),
-  h:         ['', 1, 2, 3, 4, 5, 6].map(n => n ? Decoration.line({ class: `cm-md-h${n}` }) : null) as (Decoration | null)[],
-  hr:        Decoration.replace({ widget: hrWidget }),
+  strong: Decoration.mark({ class: 'cm-md-strong' }),
+  em: Decoration.mark({ class: 'cm-md-em' }),
+  code: Decoration.mark({ class: 'cm-md-code' }),
+  strike: Decoration.mark({ class: 'cm-md-strike' }),
+  link: Decoration.mark({ class: 'cm-md-link' }),
+  imageAlt: Decoration.mark({ class: 'cm-md-image-alt' }),
+  h: ['', 1, 2, 3, 4, 5, 6].map((n) =>
+    n ? Decoration.line({ class: `cm-md-h${n}` }) : null,
+  ) as (Decoration | null)[],
+  hr: Decoration.replace({ widget: hrWidget }),
   // bullet uses a CSS class + ::before instead of a WidgetType to avoid
   // DOM creation and layout thrashing on every list item in the viewport.
-  bullet:    Decoration.mark({ class: 'cm-md-bullet-mark' }),
+  bullet: Decoration.mark({ class: 'cm-md-bullet-mark' }),
 };
 
 // ─── Decoration collector ──────────────────────────────────────
@@ -81,16 +92,22 @@ function collectDecos(view: EditorView): DecoSpec[] {
     to: view.viewport.to,
     enter(node): boolean | void {
       switch (node.name) {
-
         // ── Fenced code block ─────────────────────────────────
         // Apply monospace styling to all lines; skip children so
         // inline markdown inside code is not decorated.
         case 'FencedCode': {
           const vpTo = view.viewport.to;
-          for (let pos = Math.max(node.from, view.viewport.from); pos < doc.length; ) {
+          for (
+            let pos = Math.max(node.from, view.viewport.from);
+            pos < doc.length;
+          ) {
             const line = doc.lineAt(pos);
             if (line.from > vpTo) break; // past viewport bottom
-            specs.push({ from: line.from, to: line.from, value: DECO.codeBlock });
+            specs.push({
+              from: line.from,
+              to: line.from,
+              value: DECO.codeBlock,
+            });
             if (line.to >= node.to) break;
             pos = line.to + 1;
           }
@@ -98,8 +115,12 @@ function collectDecos(view: EditorView): DecoSpec[] {
         }
 
         // ── ATX Headings (# through ######) ──────────────────
-        case 'ATXHeading1': case 'ATXHeading2': case 'ATXHeading3':
-        case 'ATXHeading4': case 'ATXHeading5': case 'ATXHeading6': {
+        case 'ATXHeading1':
+        case 'ATXHeading2':
+        case 'ATXHeading3':
+        case 'ATXHeading4':
+        case 'ATXHeading5':
+        case 'ATXHeading6': {
           const level = +node.name[node.name.length - 1];
           const line = doc.lineAt(node.from);
           specs.push({ from: line.from, to: line.from, value: DECO.h[level]! });
@@ -129,10 +150,17 @@ function collectDecos(view: EditorView): DecoSpec[] {
         // ── Blockquote ────────────────────────────────────────
         case 'Blockquote': {
           const vpTo = view.viewport.to;
-          for (let pos = Math.max(node.from, view.viewport.from); pos < doc.length; ) {
+          for (
+            let pos = Math.max(node.from, view.viewport.from);
+            pos < doc.length;
+          ) {
             const line = doc.lineAt(pos);
             if (line.from > vpTo) break; // past viewport bottom
-            specs.push({ from: line.from, to: line.from, value: DECO.blockquote });
+            specs.push({
+              from: line.from,
+              to: line.from,
+              value: DECO.blockquote,
+            });
             if (line.to >= node.to) break;
             pos = line.to + 1;
           }
@@ -155,7 +183,10 @@ function collectDecos(view: EditorView): DecoSpec[] {
         // A mark decoration is cheaper than a WidgetType (no DOM element).
         case 'ListMark': {
           const listItem = node.node.parent;
-          if (listItem?.name === 'ListItem' && listItem.parent?.name === 'BulletList')
+          if (
+            listItem?.name === 'ListItem' &&
+            listItem.parent?.name === 'BulletList'
+          )
             specs.push({ from: node.from, to: node.to, value: DECO.bullet });
           break;
         }
@@ -195,9 +226,14 @@ function collectDecos(view: EditorView): DecoSpec[] {
         case 'EmphasisMark':
         case 'StrikethroughMark': {
           const parent = node.node.parent;
-          const show = (parent && inRange(parent.from, parent.to, sel))
-            || cursorInAnyAncestor(node.node.parent, sel);
-          specs.push({ from: node.from, to: node.to, value: show ? DECO.marker : DECO.hide });
+          const show =
+            (parent && inRange(parent.from, parent.to, sel)) ||
+            cursorInAnyAncestor(node.node.parent, sel);
+          specs.push({
+            from: node.from,
+            to: node.to,
+            value: show ? DECO.marker : DECO.hide,
+          });
           break;
         }
 
@@ -206,7 +242,11 @@ function collectDecos(view: EditorView): DecoSpec[] {
           const parent = node.node.parent;
           if (parent?.name === 'InlineCode') {
             const show = inRange(parent.from, parent.to, sel);
-            specs.push({ from: node.from, to: node.to, value: show ? DECO.marker : DECO.hide });
+            specs.push({
+              from: node.from,
+              to: node.to,
+              value: show ? DECO.marker : DECO.hide,
+            });
           }
           break;
         }
@@ -217,8 +257,16 @@ function collectDecos(view: EditorView): DecoSpec[] {
           if (inRange(node.from, node.to, sel)) break;
           const marks = node.node.getChildren('LinkMark');
           if (marks.length >= 2) {
-            specs.push({ from: marks[0].from, to: marks[0].to, value: DECO.hide }); // hide [
-            specs.push({ from: marks[0].to, to: marks[1].from, value: DECO.link });
+            specs.push({
+              from: marks[0].from,
+              to: marks[0].to,
+              value: DECO.hide,
+            }); // hide [
+            specs.push({
+              from: marks[0].to,
+              to: marks[1].from,
+              value: DECO.link,
+            });
             specs.push({ from: marks[1].from, to: node.to, value: DECO.hide }); // hide ](url)
           }
           break;
@@ -231,14 +279,21 @@ function collectDecos(view: EditorView): DecoSpec[] {
           const marks = node.node.getChildren('LinkMark');
           if (marks.length >= 2) {
             specs.push({ from: node.from, to: marks[0].to, value: DECO.hide }); // hide ![
-            specs.push({ from: marks[0].to, to: marks[1].from, value: DECO.imageAlt });
+            specs.push({
+              from: marks[0].to,
+              to: marks[1].from,
+              value: DECO.imageAlt,
+            });
             specs.push({ from: marks[1].from, to: node.to, value: DECO.hide }); // hide ](url)
           }
           break;
         }
 
         // Handled inline above; skip here to avoid double-processing.
-        case 'LinkMark': case 'URL': case 'LinkTitle': case 'LinkLabel':
+        case 'LinkMark':
+        case 'URL':
+        case 'LinkTitle':
+        case 'LinkLabel':
           break;
       }
     },
@@ -258,11 +313,20 @@ function buildDecoSet(view: EditorView): DecorationSet {
 // ─── Sensitive-node check for selection optimization ──────────
 
 const SENSITIVE_NODES = new Set([
-  'ATXHeading1', 'ATXHeading2', 'ATXHeading3',
-  'ATXHeading4', 'ATXHeading5', 'ATXHeading6',
-  'HorizontalRule', 'Blockquote',
-  'StrongEmphasis', 'Emphasis', 'InlineCode', 'Strikethrough',
-  'Link', 'Image',
+  'ATXHeading1',
+  'ATXHeading2',
+  'ATXHeading3',
+  'ATXHeading4',
+  'ATXHeading5',
+  'ATXHeading6',
+  'HorizontalRule',
+  'Blockquote',
+  'StrongEmphasis',
+  'Emphasis',
+  'InlineCode',
+  'Strikethrough',
+  'Link',
+  'Image',
 ]);
 
 // Returns true if the cursor position sits inside or on a node whose
@@ -308,7 +372,11 @@ export const livePreviewPlugin = ViewPlugin.fromClass(
       // old nor new position is inside a node whose visibility depends
       // on cursor proximity.
       const sameLine = newLine === this.prevSelLine;
-      if (sameLine && !isInSensitiveNode(sel.from, update.view) && !isInSensitiveNode(this.prevSelFrom, update.view)) {
+      if (
+        sameLine &&
+        !isInSensitiveNode(sel.from, update.view) &&
+        !isInSensitiveNode(this.prevSelFrom, update.view)
+      ) {
         this.prevSelFrom = sel.from;
         return;
       }
@@ -322,9 +390,10 @@ export const livePreviewPlugin = ViewPlugin.fromClass(
     decorations: (v) => v.decorations,
     // Treat HR replace-decorations as atomic so the cursor skips over them
     // cleanly rather than landing inside the replaced range.
-    provide: (plugin) => EditorView.atomicRanges.of((view) => {
-      return view.plugin(plugin)?.decorations ?? Decoration.none;
-    }),
+    provide: (plugin) =>
+      EditorView.atomicRanges.of((view) => {
+        return view.plugin(plugin)?.decorations ?? Decoration.none;
+      }),
   },
 );
 
@@ -333,7 +402,11 @@ export const livePreviewPlugin = ViewPlugin.fromClass(
 export const livePreviewTheme = EditorView.theme({
   // Base
   '&': { background: 'transparent' },
-  '.cm-scroller': { fontFamily: 'inherit', lineHeight: 'inherit', overflow: 'visible' },
+  '.cm-scroller': {
+    fontFamily: 'inherit',
+    lineHeight: 'inherit',
+    overflow: 'visible',
+  },
   '.cm-content': { padding: '0', caretColor: 'var(--fg)' },
   '.cm-line': { padding: '0' },
   '&.cm-focused': { outline: 'none' },
@@ -349,17 +422,50 @@ export const livePreviewTheme = EditorView.theme({
   '.cm-line.cm-md-paragraph': { textIndent: 'var(--typo-indent, 0)' },
 
   // Headings — match typo.css sizing
-  '.cm-line.cm-md-h1': { fontSize: '1.8em', fontWeight: '900', lineHeight: '1.3', color: 'var(--text-bold, inherit)' },
-  '.cm-line.cm-md-h2': { fontSize: '1.5em', fontWeight: '900', lineHeight: '1.3', color: 'var(--text-bold, inherit)' },
-  '.cm-line.cm-md-h3': { fontSize: '1.4em', fontWeight: '800', lineHeight: '1.3', color: 'var(--text-bold, inherit)' },
-  '.cm-line.cm-md-h4': { fontSize: '1.3em', fontWeight: 'bold', lineHeight: '1.3', color: 'var(--text-bold, inherit)' },
-  '.cm-line.cm-md-h5': { fontSize: '1.1em', fontWeight: 'bold', lineHeight: '1.3', color: 'var(--text-bold, inherit)' },
-  '.cm-line.cm-md-h6': { fontSize: '1.0em', fontWeight: 'bold', lineHeight: '1.3', color: 'var(--md-mark, #888)' },
+  '.cm-line.cm-md-h1': {
+    fontSize: '1.8em',
+    fontWeight: '900',
+    lineHeight: '1.3',
+    color: 'var(--text-bold, inherit)',
+  },
+  '.cm-line.cm-md-h2': {
+    fontSize: '1.5em',
+    fontWeight: '900',
+    lineHeight: '1.3',
+    color: 'var(--text-bold, inherit)',
+  },
+  '.cm-line.cm-md-h3': {
+    fontSize: '1.4em',
+    fontWeight: '800',
+    lineHeight: '1.3',
+    color: 'var(--text-bold, inherit)',
+  },
+  '.cm-line.cm-md-h4': {
+    fontSize: '1.3em',
+    fontWeight: 'bold',
+    lineHeight: '1.3',
+    color: 'var(--text-bold, inherit)',
+  },
+  '.cm-line.cm-md-h5': {
+    fontSize: '1.1em',
+    fontWeight: 'bold',
+    lineHeight: '1.3',
+    color: 'var(--text-bold, inherit)',
+  },
+  '.cm-line.cm-md-h6': {
+    fontSize: '1.0em',
+    fontWeight: 'bold',
+    lineHeight: '1.3',
+    color: 'var(--md-mark, #888)',
+  },
 
   // Inline styles
   '.cm-md-strong': { fontWeight: 'bold' },
   '.cm-md-em': { fontStyle: 'italic' },
-  '.cm-md-strike': { textDecoration: 'line-through', color: 'var(--md-mark, #888)' },
+  '.cm-md-strike': {
+    textDecoration: 'line-through',
+    color: 'var(--md-mark, #888)',
+  },
   '.cm-md-code': {
     fontFamily: 'var(--font-mono)',
     fontSize: '0.88em',
@@ -369,7 +475,11 @@ export const livePreviewTheme = EditorView.theme({
   },
 
   // Links and images
-  '.cm-md-link': { color: 'var(--hl, #06c)', textDecoration: 'underline', cursor: 'pointer' },
+  '.cm-md-link': {
+    color: 'var(--hl, #06c)',
+    textDecoration: 'underline',
+    cursor: 'pointer',
+  },
   '.cm-md-image-alt': { color: 'var(--md-mark, #888)', fontStyle: 'italic' },
 
   // Blockquote
