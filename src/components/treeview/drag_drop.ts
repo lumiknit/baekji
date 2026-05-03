@@ -45,6 +45,7 @@ export function useDragDrop(
     };
 
     const cleanup = () => {
+      stopAutoScroll();
       clearTimeout(longPressTimer);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
@@ -58,6 +59,51 @@ export function useDragDrop(
     const MOUSE_THRESHOLD = 8;
     const TOUCH_CANCEL_THRESHOLD = 10;
 
+    let scrollTimer: number | null = null;
+    let lastClientY = 0;
+    let lastClientX = 0;
+
+    const stopAutoScroll = () => {
+      if (scrollTimer !== null) {
+        cancelAnimationFrame(scrollTimer);
+        scrollTimer = null;
+      }
+    };
+
+    const autoScrollLoop = () => {
+      if (!dragStarted) {
+        stopAutoScroll();
+        return;
+      }
+      const container = document.querySelector('.tree-view');
+      if (!container) {
+        stopAutoScroll();
+        return;
+      }
+      const rect = container.getBoundingClientRect();
+      const margin = 50;
+      const maxSpeed = 12;
+
+      let speed = 0;
+      if (lastClientY < rect.top + margin) {
+        speed = -maxSpeed * (1 - Math.max(0, lastClientY - rect.top) / margin);
+      } else if (lastClientY > rect.bottom - margin) {
+        speed = maxSpeed * (1 - Math.max(0, rect.bottom - lastClientY) / margin);
+      }
+
+      if (speed !== 0) {
+        container.scrollTop += speed;
+        const fakeEvent = {
+          clientX: lastClientX,
+          clientY: lastClientY,
+        } as PointerEvent;
+        setDropTarget(calcDropTarget(fakeEvent, itemId));
+        scrollTimer = requestAnimationFrame(autoScrollLoop);
+      } else {
+        scrollTimer = null;
+      }
+    };
+
     const onMove = (me: PointerEvent) => {
       if (!dragStarted && me.pointerType === 'mouse') {
         const dx = Math.abs(me.clientX - e.clientX);
@@ -68,8 +114,14 @@ export function useDragDrop(
           target.setPointerCapture(e.pointerId);
         }
       }
+      lastClientX = me.clientX;
+      lastClientY = me.clientY;
+
       if (dragStarted) {
         setDropTarget(calcDropTarget(me, itemId));
+        if (!scrollTimer) {
+          scrollTimer = requestAnimationFrame(autoScrollLoop);
+        }
       } else if (me.pointerType !== 'mouse') {
         if (
           Math.abs(me.clientX - e.clientX) > TOUCH_CANCEL_THRESHOLD ||
