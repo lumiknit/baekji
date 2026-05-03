@@ -52,8 +52,11 @@ export function buildExtensions(opts: {
             const coords = update.view.coordsAtPos(from);
             if (!coords) return;
             const diff = coords.top - window.innerHeight / 2;
-            if (Math.abs(diff) > 10)
-              window.scrollBy({ top: diff, behavior: 'smooth' });
+            if (Math.abs(diff) > 16) {
+              update.view.dispatch({
+                effects: EditorView.scrollIntoView(from, { y: 'center' }),
+              });
+            }
           });
         };
       })(),

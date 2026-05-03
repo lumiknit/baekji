@@ -347,12 +347,14 @@ export const livePreviewPlugin = ViewPlugin.fromClass(
     decorations: DecorationSet;
     private prevSelFrom = -1;
     private prevSelLine = -1;
+    private prevSelInSensitive = false;
 
     constructor(view: EditorView) {
       this.decorations = buildDecoSet(view);
       const sel = view.state.selection.main;
       this.prevSelFrom = sel.from;
       this.prevSelLine = view.state.doc.lineAt(sel.from).number;
+      this.prevSelInSensitive = isInSensitiveNode(this.prevSelFrom, view);
     }
 
     update(update: ViewUpdate) {
@@ -361,29 +363,32 @@ export const livePreviewPlugin = ViewPlugin.fromClass(
         const sel = update.view.state.selection.main;
         this.prevSelFrom = sel.from;
         this.prevSelLine = update.view.state.doc.lineAt(sel.from).number;
+        this.prevSelInSensitive = isInSensitiveNode(
+          this.prevSelFrom,
+          update.view,
+        );
         return;
       }
       if (!update.selectionSet) return;
 
       const sel = update.view.state.selection.main;
       const newLine = update.view.state.doc.lineAt(sel.from).number;
+      const inSensitive = isInSensitiveNode(sel.from, update.view);
 
       // Skip rebuild when cursor stays on the same line AND neither the
       // old nor new position is inside a node whose visibility depends
       // on cursor proximity.
       const sameLine = newLine === this.prevSelLine;
-      if (
-        sameLine &&
-        !isInSensitiveNode(sel.from, update.view) &&
-        !isInSensitiveNode(this.prevSelFrom, update.view)
-      ) {
+      if (sameLine && !inSensitive && !this.prevSelInSensitive) {
         this.prevSelFrom = sel.from;
+        this.prevSelInSensitive = inSensitive;
         return;
       }
 
       this.decorations = buildDecoSet(update.view);
       this.prevSelFrom = sel.from;
       this.prevSelLine = newLine;
+      this.prevSelInSensitive = inSensitive;
     }
   },
   {

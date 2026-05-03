@@ -231,10 +231,15 @@ const Editor: Component<EditorProps> = (props) => {
     if (data && view) applySheetToView(data);
   });
 
-  onCleanup(() => {
+  onCleanup(async () => {
     clearTimeout(saveTimer);
-    if (isDirty() || pendingChanges !== null) void save();
-    view?.destroy();
+    try {
+      if (isDirty() || pendingChanges !== null) {
+        await save();
+      }
+    } finally {
+      view?.destroy();
+    }
   });
 
   const doUndo = () => {
