@@ -8,7 +8,7 @@ import AboutPage from './pages/AboutPage';
 import AnalysisPage from './pages/AnalysisPage';
 import BootstrapPage from './pages/BootstrapPage';
 import NodePage from './pages/NodePage';
-import PreviewPage from './pages/PreviewPage';
+import ExportPage from './pages/ExportPage';
 import SearchPage from './pages/SearchPage';
 import SettingsPage from './pages/SettingsPage';
 import PausedPage from './pages/PausedPage';
@@ -75,7 +75,7 @@ const App: Component = () => {
       <HashRouter root={MainLayout}>
         <Route path="/" component={BootstrapPage} />
         <Route path="/nodes/:id" component={NodePage} />
-        <Route path="/nodes/:id/preview" component={PreviewPage} />
+        <Route path="/nodes/:id/export" component={ExportPage} />
         <Route path="/nodes/:id/analysis" component={AnalysisPage} />
         <Route path="/search" component={SearchPage} />
         <Route path="/settings" component={SettingsPage} />

@@ -34,7 +34,7 @@ import {
 } from '../../lib/doc/db_helper';
 import { getShortLabel } from '../../lib/markdown';
 import { s } from '../../lib/i18n';
-import { showConfirm, showExport, showPrompt } from '../../state/modal';
+import { showConfirm, showPrompt } from '../../state/modal';
 import {
   createTreeNode,
   deleteTreeNode,
@@ -391,7 +391,7 @@ const TreeItem: Component<TreeItemProps> = (props) => {
                           {s('common.export')}
                         </>
                       ),
-                      onSelect: () => showExport(props.id),
+                      onSelect: () => navigate(`/nodes/${props.id}/export`),
                     },
                     { separator: true as const },
                     ...(n().type === 'group'

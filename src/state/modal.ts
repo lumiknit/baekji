@@ -33,7 +33,6 @@ interface ModalState {
   message: string;
   defaultValue?: string;
   imageMeta?: { src: string; alt: string };
-  nodeId?: string;
   projectInfo?: ProjectInfo;
   importCompareMeta?: {
     existing: VersionCompareMeta;
@@ -62,12 +61,6 @@ export const showPrompt = (
 ): Promise<string | null> => {
   return new Promise((resolve) => {
     setModalState({ type: 'prompt', title, message, defaultValue, resolve });
-  });
-};
-
-export const showExport = (nodeId: string): Promise<null> => {
-  return new Promise((resolve) => {
-    setModalState({ type: 'export', title: '', message: '', nodeId, resolve });
   });
 };
 

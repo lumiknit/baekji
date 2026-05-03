@@ -21,7 +21,6 @@ import { s } from '../lib/i18n';
 import {
   showBackup,
   showConfirm,
-  showExport,
   showPrompt,
 } from '../state/modal';
 import type { TreeNodeMeta } from '../state/project_tree';
@@ -179,7 +178,7 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
             </span>{' '}
             {s('common.rename')}
           </button>
-          <button class="btn-border" onClick={() => showExport(props.nodeId)}>
+          <button class="btn-border" onClick={() => navigate(`/nodes/${props.nodeId}/export`)}>
             <span class="icon">
               <TbOutlineDeviceFloppy />
             </span>{' '}

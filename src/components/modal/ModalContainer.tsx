@@ -5,7 +5,6 @@ import ConfirmModal from './ConfirmModal';
 import NameInputModal from './NameInputModal';
 import LinkModal from './LinkModal';
 import ImageModal from './ImageModal';
-import ExportModal from './ExportModal';
 import BackupModal from './BackupModal';
 import ImportCompareModal from './ImportCompareModal';
 
@@ -43,9 +42,6 @@ const ModalContainer: Component = () => {
                 src={state().imageMeta?.src}
                 alt={state().imageMeta?.alt}
               />
-            </Show>
-            <Show when={state().type === 'export'}>
-              <ExportModal nodeId={state().nodeId!} />
             </Show>
             <Show when={state().type === 'backup'}>
               <BackupModal projectInfo={state().projectInfo} />
