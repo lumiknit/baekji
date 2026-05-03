@@ -2,7 +2,6 @@ import type { Component, JSX } from 'solid-js';
 import { For } from 'solid-js';
 import { A } from '@solidjs/router';
 import { settings, setSettings } from '../state/settings';
-import type { MdRules } from '../state/settings';
 import ThemePreview from '../components/ThemePreview';
 import { s } from '../lib/i18n';
 import { showConfirm } from '../state/modal';
@@ -266,39 +265,6 @@ const SettingsPage: Component = () => {
                 }
               />
             </SettingRow>
-          </div>
-        </section>
-
-        <section>
-          <h3>{s('settings.md_rules')}</h3>
-          <div class="mt-32 flex flex-column gap-8">
-            <For
-              each={
-                [
-                  ['headings', s('settings.md_headings')],
-                  ['lists', s('settings.md_lists')],
-                  ['inlineStyles', s('settings.md_inline_styles')],
-                  ['blockquote', s('settings.md_blockquote')],
-                  ['codeBlock', s('settings.md_code_block')],
-                  ['ellipsis', s('settings.md_ellipsis')],
-                  ['smartQuotes', s('settings.md_smart_quotes')],
-                  ['backslashEscape', s('settings.md_backslash_escape')],
-                ] as [keyof MdRules, string][]
-              }
-            >
-              {([key, label]) => (
-                <label class="flex justify-between items-center">
-                  {label}
-                  <input
-                    type="checkbox"
-                    checked={settings.mdRules?.[key] ?? true}
-                    onChange={(e) =>
-                      setSettings('mdRules', key, e.currentTarget.checked)
-                    }
-                  />
-                </label>
-              )}
-            </For>
           </div>
         </section>
 

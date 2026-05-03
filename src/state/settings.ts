@@ -2,16 +2,7 @@ import { createStore } from 'solid-js/store';
 import { makePersisted } from '@solid-primitives/storage';
 import localforage from 'localforage';
 
-export interface MdRules {
-  headings: boolean;
-  lists: boolean;
-  inlineStyles: boolean;
-  blockquote: boolean;
-  codeBlock: boolean;
-  ellipsis: boolean;
-  smartQuotes: boolean;
-  backslashEscape: boolean;
-}
+
 
 export interface FontSettings {
   sans: string; // '' = system, 'BuiltinNotoSans' = builtin, other = custom
@@ -35,7 +26,6 @@ export interface Settings {
   autosaveInterval: number; // In seconds
   typewriterMode: boolean;
   previewFontSize: number;
-  mdRules: MdRules;
 }
 
 const defaultSettings: Settings = {
@@ -52,16 +42,6 @@ const defaultSettings: Settings = {
   autosaveInterval: 1.5,
   typewriterMode: true,
   previewFontSize: 13,
-  mdRules: {
-    headings: true,
-    lists: true,
-    inlineStyles: true,
-    blockquote: true,
-    codeBlock: true,
-    ellipsis: true,
-    smartQuotes: true,
-    backslashEscape: true,
-  },
 };
 
 const [settings, setSettings] = makePersisted(
