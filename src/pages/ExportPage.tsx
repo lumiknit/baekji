@@ -23,6 +23,7 @@ import { s } from '../lib/i18n';
 import { logError } from '../state/log';
 import { collectText } from '../lib/doc/db_helper';
 import MarkdownIt from 'markdown-it';
+import DOMPurify from 'dompurify';
 import BreadCrumb from '../components/BreadCrumb';
 import { setActivePjVerId } from '../state/workspace';
 import { getNode } from '../lib/doc/db';
@@ -101,7 +102,7 @@ const ExportPage: Component = () => {
 
   const handleCopyHtml = wrap(async () => {
     const text = rawText() || '';
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${mdit.render(text)}</body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${DOMPurify.sanitize(mdit.render(text))}</body></html>`;
     const { blob: plainBlob } = await buildExportBlob(
       nodeId(),
       'txt',
@@ -227,7 +228,7 @@ const ExportPage: Component = () => {
       >
         <div
           class="typo typo--preview mt-16"
-          innerHTML={mdit.render(rawText() || '')}
+          innerHTML={DOMPurify.sanitize(mdit.render(rawText() || ''))}
         />
       </Show>
     </div>

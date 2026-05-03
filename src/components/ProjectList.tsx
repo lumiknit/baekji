@@ -56,7 +56,6 @@ const ProjectList: Component = () => {
     openProject(pjVerId);
   };
 
-
   return (
     <div class="project-list">
       <div class="project-list-header">

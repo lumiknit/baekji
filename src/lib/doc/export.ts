@@ -1,4 +1,5 @@
 import MarkdownIt from 'markdown-it';
+import DOMPurify from 'dompurify';
 import { collectText } from './db_helper';
 
 const mdit = new MarkdownIt({ html: false, linkify: true, typographer: true });
@@ -51,7 +52,7 @@ export async function shareBlob(blob: Blob, filename: string): Promise<void> {
 export type ExportFormat = 'md' | 'txt' | 'html';
 
 export function stripMarkdown(text: string): string {
-  const html = mdit.render(text);
+  const html = DOMPurify.sanitize(mdit.render(text));
   const div = document.createElement('div');
   div.innerHTML = html;
   return (div.textContent ?? '').replace(/\n{3,}/g, '\n\n').trim();
@@ -71,7 +72,7 @@ export async function buildExportBlob(
         ext: 'txt',
       };
     case 'html': {
-      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${mdit.render(text)}</body></html>`;
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${DOMPurify.sanitize(mdit.render(text))}</body></html>`;
       return { blob: new Blob([html], { type: 'text/html' }), ext: 'html' };
     }
     default:
@@ -84,7 +85,7 @@ export async function printExport(
   includeHidden: boolean,
 ): Promise<void> {
   const text = await collectText(nodeId, includeHidden);
-  const body = mdit.render(text);
+  const body = DOMPurify.sanitize(mdit.render(text));
 
   const iframe = document.createElement('iframe');
   iframe.style.display = 'none';

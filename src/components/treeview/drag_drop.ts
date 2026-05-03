@@ -88,7 +88,8 @@ export function useDragDrop(
       if (lastClientY < rect.top + margin) {
         speed = -maxSpeed * (1 - Math.max(0, lastClientY - rect.top) / margin);
       } else if (lastClientY > rect.bottom - margin) {
-        speed = maxSpeed * (1 - Math.max(0, rect.bottom - lastClientY) / margin);
+        speed =
+          maxSpeed * (1 - Math.max(0, rect.bottom - lastClientY) / margin);
       }
 
       if (speed !== 0) {

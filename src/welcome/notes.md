@@ -10,11 +10,11 @@ All your writing is stored locally in your browser's IndexedDB. Nothing is sent 
 
 ## Back up regularly
 
-Use the **backup button** (cloud icon in the sidebar header) to download a `.gz` backup file. Do this often, especially before clearing browser data or switching devices.
+Use the **Project Backup** button (cloud icon) to download a local backup file or sync to Dropbox. Do this often, especially before clearing browser data or switching devices.
 
 ## Restoring a backup
 
-To restore, open the project list, tap **Import**, and select your backup file. You can also import `.md` or `.txt` files directly into any group.
+To restore, open the project list, tap **Project Backup**, and select **Load from Local** to open your backup file. You can also connect to Dropbox to load cloud backups, or import `.md` / `.txt` files directly into any group from the sidebar.
 
 ## Moving to another device
 

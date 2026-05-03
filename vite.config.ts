@@ -41,6 +41,7 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('src/lib/sw.ts')) return undefined;
           if (id.includes('codemirror')) return 'codemirror';
+          if (id.includes('markdown')) return 'markdown';
           if (id.includes('solid')) return 'solid';
         },
       },
