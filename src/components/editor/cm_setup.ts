@@ -43,7 +43,7 @@ export function buildExtensions(opts: {
         return (update) => {
           if (!update.docChanged) return;
           onChange(update.changes);
-          if (!getTypewriterMode()) return;
+          if (!getTypewriterMode() || update.view.composing) return;
           // Cancel any pending rAF so rapid keystrokes only scroll once.
           if (rafId) cancelAnimationFrame(rafId);
           const { from } = update.state.selection.main;
