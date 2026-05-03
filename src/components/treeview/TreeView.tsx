@@ -221,7 +221,7 @@ const TreeView: Component = () => {
                             label: p().label,
                           })
                         }
-                        title={s('common.backup')}
+                        title={s('common.pj_backup')}
                       >
                         <div class="btn-pad">
                           <span class="icon">
@@ -346,7 +346,7 @@ const TreeView: Component = () => {
                                 <span class="icon">
                                   <TbOutlineCloud />
                                 </span>{' '}
-                                {s('common.backup')}
+                                {s('common.pj_backup')}
                               </>
                             ),
                             onSelect: () =>

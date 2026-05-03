@@ -56,6 +56,7 @@ const ProjectList: Component = () => {
     openProject(pjVerId);
   };
 
+
   return (
     <div class="project-list">
       <div class="project-list-header">
@@ -101,7 +102,7 @@ const ProjectList: Component = () => {
             <span class="icon">
               <TbOutlineCloud />
             </span>
-            {s('common.backup')}
+            {s('common.pj_backup')}
           </div>
         </button>
         <Show
