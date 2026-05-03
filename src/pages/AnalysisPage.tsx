@@ -16,6 +16,8 @@ import { s } from '../lib/i18n';
 import { logError } from '../state/log';
 import toast from 'solid-toast';
 import { TbFillFolderOpen, TbOutlineFile } from 'solid-icons/tb';
+import { getNode } from '../lib/doc/db';
+import { setActivePjVerId } from '../state/workspace';
 
 interface RowStats {
   id: string;
@@ -150,11 +152,17 @@ const AnalysisPage: Component = () => {
     }
   };
 
+  createEffect(async () => {
+    const node = await getNode(nodeId());
+    if (node.type === 'versionRoot') setActivePjVerId(node.id);
+    else setActivePjVerId(node.pjVerId);
+  });
+
   createEffect(() => {
     // Track dependencies
     const id = nodeId();
     const isReady = !projectTree.loading && !!projectTree.nodes[id];
-    const spaces = includeSpace();
+    includeSpace();
 
     if (isReady) {
       // Use untrack to prevent runAnalysis internal signal reads/writes

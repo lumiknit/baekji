@@ -1,6 +1,6 @@
 import { A } from '@solidjs/router';
-import type { Accessor, Component } from 'solid-js';
-import { createMemo, For, Show } from 'solid-js';
+import type { Component } from 'solid-js';
+import { createMemo, For } from 'solid-js';
 import { s } from '../lib/i18n';
 import { findParentId, projectTree } from '../state/project_tree';
 
@@ -17,6 +17,13 @@ type CrumbItem = {
 const BreadCrumb: Component<BreadCrumbProps> = (props) => {
   const crumbs = createMemo(() => {
     const meta = projectTree.meta;
+    if (meta === null) {
+      return [{ id: '', label: s('common.untitled'), href: '/' }, []] as [
+        CrumbItem,
+        CrumbItem[],
+      ];
+    }
+
     const rootId = meta.pjVerId;
     const visited = new Set<string>();
 

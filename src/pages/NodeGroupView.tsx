@@ -18,11 +18,7 @@ import { nodeColorToCss } from '../lib/color';
 import { parseBak, prepareBakImport } from '../lib/doc/backup';
 import { commitBakImport, importTextAsSheet } from '../lib/doc/db_helper';
 import { s } from '../lib/i18n';
-import {
-  showBackup,
-  showConfirm,
-  showPrompt,
-} from '../state/modal';
+import { showBackup, showConfirm, showPrompt } from '../state/modal';
 import type { TreeNodeMeta } from '../state/project_tree';
 import {
   createTreeNode,
@@ -178,7 +174,10 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
             </span>{' '}
             {s('common.rename')}
           </button>
-          <button class="btn-border" onClick={() => navigate(`/nodes/${props.nodeId}/export`)}>
+          <button
+            class="btn-border"
+            onClick={() => navigate(`/nodes/${props.nodeId}/export`)}
+          >
             <span class="icon">
               <TbOutlineDeviceFloppy />
             </span>{' '}

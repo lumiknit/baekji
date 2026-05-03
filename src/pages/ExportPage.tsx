@@ -24,6 +24,8 @@ import { logError } from '../state/log';
 import { collectText } from '../lib/doc/db_helper';
 import MarkdownIt from 'markdown-it';
 import BreadCrumb from '../components/BreadCrumb';
+import { setActivePjVerId } from '../state/workspace';
+import { getNode } from '../lib/doc/db';
 
 const mdit = new MarkdownIt({ html: false, linkify: true, typographer: true });
 
@@ -40,22 +42,22 @@ const ExportPage: Component = () => {
     () => ({ id: nodeId(), hidden: includeHidden() }),
     async ({ id, hidden }) => {
       if (!id) return '';
+      const node = await getNode(id);
+      if (node.type === 'versionRoot') setActivePjVerId(node.id);
+      else setActivePjVerId(node.pjVerId);
       return await collectText(id, hidden);
-    }
+    },
   );
 
   const label = () => {
     const isRoot = nodeId() === projectTree.meta?.pjVerId;
     if (isRoot) return projectTree.meta?.label || 'export';
     return (
-      projectTree.nodes[nodeId()]?.label ||
-      projectTree.meta?.label ||
-      'export'
+      projectTree.nodes[nodeId()]?.label || projectTree.meta?.label || 'export'
     );
   };
 
-  const getBlob = () =>
-    buildExportBlob(nodeId(), format(), includeHidden());
+  const getBlob = () => buildExportBlob(nodeId(), format(), includeHidden());
 
   const wrap = (fn: () => Promise<void>) => async () => {
     if (busy()) return;
@@ -100,13 +102,17 @@ const ExportPage: Component = () => {
   const handleCopyHtml = wrap(async () => {
     const text = rawText() || '';
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${mdit.render(text)}</body></html>`;
-    const { blob: plainBlob } = await buildExportBlob(nodeId(), 'txt', includeHidden());
+    const { blob: plainBlob } = await buildExportBlob(
+      nodeId(),
+      'txt',
+      includeHidden(),
+    );
     const plain = await plainBlob.text();
 
     try {
       const item = new ClipboardItem({
         'text/html': new Blob([html], { type: 'text/html' }),
-        'text/plain': new Blob([plain], { type: 'text/plain' })
+        'text/plain': new Blob([plain], { type: 'text/plain' }),
       });
       await navigator.clipboard.write([item]);
       toast.success(s('common.copied') || 'Copied');
@@ -156,7 +162,9 @@ const ExportPage: Component = () => {
             onClick={handleCopyPlain}
             title={s('common.copy_plain') || 'Copy Plain Text'}
           >
-            <span class="icon"><TbOutlineClipboard /></span>
+            <span class="icon">
+              <TbOutlineClipboard />
+            </span>
             {s('common.copy_plain') || 'Copy Plain Text'}
           </button>
           <button
@@ -165,7 +173,9 @@ const ExportPage: Component = () => {
             onClick={handleCopyHtml}
             title={s('common.copy_html') || 'Copy HTML'}
           >
-            <span class="icon"><TbOutlineCopy /></span>
+            <span class="icon">
+              <TbOutlineCopy />
+            </span>
             {s('common.copy_html') || 'Copy HTML'}
           </button>
           <button
@@ -174,7 +184,9 @@ const ExportPage: Component = () => {
             onClick={handlePrint}
             title="Print"
           >
-            <span class="icon"><TbOutlinePrinter /></span>
+            <span class="icon">
+              <TbOutlinePrinter />
+            </span>
           </button>
           <button
             class="btn-border"
@@ -182,13 +194,21 @@ const ExportPage: Component = () => {
             onClick={handleShare}
             title={s('common.share')}
           >
-            <span class="icon"><TbOutlineShare /></span>
+            <span class="icon">
+              <TbOutlineShare />
+            </span>
           </button>
 
           <div style={{ flex: 1 }} />
 
-          <button class="btn-primary" disabled={busy()} onClick={handleDownload}>
-            <span class="icon"><TbOutlineDeviceFloppy /></span>
+          <button
+            class="btn-primary"
+            disabled={busy()}
+            onClick={handleDownload}
+          >
+            <span class="icon">
+              <TbOutlineDeviceFloppy />
+            </span>
             {s('common.download')}
           </button>
         </div>
