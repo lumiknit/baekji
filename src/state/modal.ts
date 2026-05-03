@@ -76,8 +76,6 @@ export const showBackup = (projectInfo?: ProjectInfo): Promise<null> => {
   });
 };
 
-export const showDropbox = showBackup;
-
 export type ImportCompareResult = 'cancel' | 'separate' | 'overwrite';
 
 export const showImportCompare = (
@@ -101,32 +99,6 @@ export function normalizeUrl(url: string): string {
   if (/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
 }
-
-export const showImage = (
-  meta: { src: string; alt: string } = { src: '', alt: '' },
-): Promise<{ src: string; alt: string } | null> => {
-  return new Promise((resolve) => {
-    setModalState({
-      type: 'image',
-      title: '',
-      message: '',
-      imageMeta: meta,
-      resolve,
-    });
-  });
-};
-
-export const showLink = (defaultValue = ''): Promise<string | null> => {
-  return new Promise((resolve) => {
-    setModalState({
-      type: 'link',
-      title: '',
-      message: '',
-      defaultValue,
-      resolve,
-    });
-  });
-};
 
 export const closeModal = (value: any = null) => {
   const state = modalState();

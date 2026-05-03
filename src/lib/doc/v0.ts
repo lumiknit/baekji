@@ -245,37 +245,3 @@ export const docNodeSchema = z.discriminatedUnion('type', [
   docVersionRootSchema,
 ]);
 export type DocNode = z.infer<typeof docNodeSchema>;
-
-// Extra data for IndexedDB
-// These are not used to snapshot, but for UI or other purposes.
-
-/**
- * App state data.
- * Unique index is combination of (scope, scopeId, key).
- */
-export const stateKVSchema = z.object({
-  scope: z
-    .string()
-    .describe('Scope of the state, e.g. "project", "sheet", etc.'),
-  scopeId: idSchema.describe(
-    'ID of the scope, e.g. project ID for "project" scope, node ID for "sheet" scope, etc.',
-  ),
-  key: z
-    .string()
-    .describe(
-      'Key of the state, e.g. "activeVersionId", "lastOpenNodeId", etc.',
-    ),
-  value: z
-    .unknown()
-    .describe('Value of the state, can be any JSON-serializable value'),
-  updatedAt: z
-    .string()
-    .describe('Last updated time of the state, in ISO string format'),
-});
-export type StateKV = z.infer<typeof stateKVSchema>;
-
-// State Keys
-
-export const SK_LAST_OPEN_NODE_ID = 'lastOpenNodeId'; // Node ID in string
-export const SK_SHEET_LAST_SELECTION = 'sheetLastSelection'; // { anchor: number, focus: number }
-export const SK_GROUP_COLLAPSED = 'groupCollapsed'; // boolean

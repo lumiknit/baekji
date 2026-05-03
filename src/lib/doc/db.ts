@@ -79,11 +79,6 @@ export async function putNode(node: DocNode): Promise<void> {
   await db.put(NODES, node);
 }
 
-export async function deleteNode(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete(NODES, id);
-}
-
 // ─── Version Roots ────────────────────────────────────────────
 
 export async function getAllVersionRoots(): Promise<VersionRootNode[]> {
