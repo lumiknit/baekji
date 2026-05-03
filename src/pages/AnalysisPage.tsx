@@ -154,6 +154,7 @@ const AnalysisPage: Component = () => {
 
   createEffect(async () => {
     const node = await getNode(nodeId());
+    if (!node) return;
     if (node.type === 'versionRoot') setActivePjVerId(node.id);
     else setActivePjVerId(node.pjVerId);
   });
