@@ -26,13 +26,39 @@ button {
 
 a.btn-skeleton,
 a.btn-border,
+a.btn-primary,
+a.btn-danger-solid {
+  border-bottom: none;
+}
+
+a.btn-skeleton:hover,
+a.btn-border:hover,
+a.btn-primary:hover,
+a.btn-danger-solid:hover {
+  border-bottom: none;
+  color: inherit;
+}
+
+a.btn-skeleton,
+a.btn-border,
 a.btn-primary {
   color: inherit;
 }
 
-button:hover,
-a.btn-skeleton:hover,
-a.btn-border:hover {
+button:disabled,
+a.btn-skeleton[disabled],
+a.btn-border[disabled],
+.btn-primary:disabled,
+.btn-danger-solid:disabled,
+.btn-border:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+button:not(:disabled):hover,
+a.btn-skeleton:not([disabled]):hover,
+a.btn-border:not([disabled]):hover {
   background: var(--border);
 }
 
@@ -54,10 +80,33 @@ a.btn-primary {
   padding: var(--sp-2) var(--sp-4);
 }
 
-.btn-primary:hover,
-a.btn-primary:hover {
+.btn-primary:not(:disabled):hover,
+a.btn-primary:not([disabled]):hover {
   background: var(--text-bold);
   color: var(--bg);
+}
+
+.btn-danger {
+  color: red;
+}
+
+.btn-danger-solid {
+  background: #c00;
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn-danger-solid:not(:disabled):hover,
+a.btn-danger-solid:not([disabled]):hover {
+  background: #a00;
+  color: #fff;
+}
+
+/* ─── Button size variant ────────────────────────── */
+
+.btn-sm {
+  padding: 2px var(--sp-2);
+  font-size: var(--fs-sm);
 }
 
 .btn-secondary {

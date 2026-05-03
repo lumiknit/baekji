@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { Show } from 'solid-js';
+import { Show, onMount, onCleanup } from 'solid-js';
 import { modalState, closeModal } from '../../state/modal';
 import ConfirmModal from './ConfirmModal';
 import NameInputModal from './NameInputModal';
@@ -10,6 +10,16 @@ import BackupModal from './BackupModal';
 import ImportCompareModal from './ImportCompareModal';
 
 const ModalContainer: Component = () => {
+  onMount(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && modalState()) {
+        closeModal(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    onCleanup(() => window.removeEventListener('keydown', handleKeyDown));
+  });
+
   return (
     <Show when={modalState()}>
       {(state) => (
@@ -38,11 +48,7 @@ const ModalContainer: Component = () => {
               <ExportModal nodeId={state().nodeId!} />
             </Show>
             <Show when={state().type === 'backup'}>
-              <BackupModal
-                pjVerId={state().pjVerId!}
-                projectId={state().projectId!}
-                projectLabel={state().projectLabel!}
-              />
+              <BackupModal projectInfo={state().projectInfo} />
             </Show>
             <Show when={state().type === 'import-compare'}>
               <ImportCompareModal

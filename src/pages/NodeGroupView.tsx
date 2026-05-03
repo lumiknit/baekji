@@ -198,11 +198,11 @@ const NodeGroupView: Component<NodeGroupViewProps> = (props) => {
             <button
               class="btn-border"
               onClick={() =>
-                showBackup(
-                  meta()?.pjVerId ?? '',
-                  meta()?.projectId ?? '',
-                  meta()?.label ?? '',
-                )
+                showBackup({
+                  id: meta()?.projectId ?? '',
+                  pjVerNodeId: meta()?.pjVerId ?? '',
+                  label: meta()?.label ?? '',
+                })
               }
             >
               <span class="icon">

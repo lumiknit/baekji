@@ -10,6 +10,12 @@ export type ModalType =
   | 'import-compare'
   | null;
 
+export type ProjectInfo = {
+  id: string;
+  pjVerNodeId: string;
+  label: string;
+};
+
 export interface VersionCompareMeta {
   label: string;
   updatedAt: string;
@@ -28,9 +34,7 @@ interface ModalState {
   defaultValue?: string;
   imageMeta?: { src: string; alt: string };
   nodeId?: string;
-  pjVerId?: string;
-  projectId?: string;
-  projectLabel?: string;
+  projectInfo?: ProjectInfo;
   importCompareMeta?: {
     existing: VersionCompareMeta;
     incoming: VersionCompareMeta;
@@ -67,19 +71,13 @@ export const showExport = (nodeId: string): Promise<null> => {
   });
 };
 
-export const showBackup = (
-  pjVerId: string,
-  projectId: string,
-  projectLabel: string,
-): Promise<null> => {
+export const showBackup = (projectInfo?: ProjectInfo): Promise<null> => {
   return new Promise((resolve) => {
     setModalState({
       type: 'backup',
       title: '',
       message: '',
-      pjVerId,
-      projectId,
-      projectLabel,
+      projectInfo,
       resolve,
     });
   });

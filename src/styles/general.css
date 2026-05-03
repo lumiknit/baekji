@@ -106,19 +106,6 @@ a:hover {
   color: var(--text-bold);
 }
 
-a.btn-skeleton,
-a.btn-border,
-a.btn-primary {
-  border-bottom: none;
-}
-
-a.btn-skeleton:hover,
-a.btn-border:hover,
-a.btn-primary:hover {
-  border-bottom: none;
-  color: inherit;
-}
-
 /* ─── Page-level ──────────────────────────────────── */
 .page-body {
   padding: var(--sp-4);
@@ -130,8 +117,4 @@ a.btn-primary:hover {
   border: none;
   border-top: 1px solid var(--border);
   margin: var(--sp-6) 0;
-}
-
-.btn-danger {
-  color: red;
 }

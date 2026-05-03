@@ -36,6 +36,7 @@ import { genUnorderedId } from '../../lib/uuid';
 import type { SheetNode, SheetContent } from '../../lib/doc/v0';
 import { buildExtensions, createEditorState } from './cm_setup';
 import EditorToolOverlay from './EditorToolOverlay';
+import BreadCrumb from '../BreadCrumb';
 
 interface EditorProps {
   sheetId: string;
@@ -237,11 +238,17 @@ const Editor: Component<EditorProps> = (props) => {
   });
 
   const doUndo = () => {
-    if (view) undo(view);
+    if (view) {
+      undo(view);
+      view.focus();
+    }
   };
 
   const doRedo = () => {
-    if (view) redo(view);
+    if (view) {
+      redo(view);
+      view.focus();
+    }
   };
 
   const doSplit = async () => {
@@ -327,9 +334,7 @@ const Editor: Component<EditorProps> = (props) => {
         class="editor-section-marker editor-section-marker--start"
         onClick={() => scrollToEdge('start')}
       >
-        {/* SOD/EOD: start/end-of-document markers, intentionally not translated */}
-        <span class="editor-section-label">SOD</span>
-        <hr class="separator-line flex-1" />
+        <BreadCrumb nodeId={props.sheetId} />
       </div>
 
       <div ref={editorRef} class="cm-editor-wrap typo" />

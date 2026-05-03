@@ -195,6 +195,24 @@ const SettingsPage: Component = () => {
               step={1}
               onChange={(v) => setSettings('previewFontSize', v)}
             />
+
+            <NumberInputWithSlider
+              label={s('settings.font_weight')}
+              value={settings.fontWeight}
+              min={100}
+              max={900}
+              step={10}
+              onChange={(v) => setSettings('fontWeight', v)}
+            />
+
+            <NumberInputWithSlider
+              label={s('settings.font_bold_weight')}
+              value={settings.fontBoldWeight}
+              min={100}
+              max={900}
+              step={10}
+              onChange={(v) => setSettings('fontBoldWeight', v)}
+            />
           </div>
         </section>
 

@@ -32,37 +32,44 @@ import { s } from '../../lib/i18n';
 import { logError } from '../../state/log';
 import { formatRelativeDate } from '../../lib/format_date';
 import type { SyncFile } from '../../lib/sync/interface';
+import type { ProjectInfo } from '../../state/modal';
+import { TbOutlineBrandDropbox } from 'solid-icons/tb';
 
 declare const __APP_VERSION__: string;
 
 const hasDropbox = !!import.meta.env.VITE_DROPBOX_CLIENT_ID;
 
 interface Props {
-  pjVerId: string;
-  projectId: string;
-  projectLabel: string;
+  projectInfo?: ProjectInfo;
 }
 
 // ── Local backup section ────────────────────────────────────────────────────
 
 const LocalBackup: Component<Props> = (props) => {
   const navigate = useNavigate();
-  const filename = `${sanitizeFilename(props.projectLabel)}_${timestampSuffix()}.gz`;
+  const filename = () =>
+    props.projectInfo
+      ? `${sanitizeFilename(props.projectInfo.label)}_${timestampSuffix()}.gz`
+      : '';
 
-  const [blob] = createResource(async () => {
-    const bak = await exportVersionAsBak(
-      props.pjVerId,
-      __APP_VERSION__,
-      deviceId(),
-    );
-    const data = await serializeBak(bak);
-    return bakToBlob(data);
-  });
+  const [blob] = createResource(
+    () => props.projectInfo?.pjVerNodeId,
+    async (pjVerId) => {
+      const bak = await exportVersionAsBak(
+        pjVerId,
+        __APP_VERSION__,
+        deviceId(),
+      );
+      const data = await serializeBak(bak);
+      return bakToBlob(data);
+    },
+  );
 
   const handleShare = async () => {
     const b = blob();
-    if (!b) return;
-    const file = new File([b], filename, { type: b.type });
+    const fn = filename();
+    if (!b || !fn) return;
+    const file = new File([b], fn, { type: b.type });
     if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file] });
@@ -74,14 +81,15 @@ const LocalBackup: Component<Props> = (props) => {
         }
       }
     }
-    downloadBlob(b, filename);
+    downloadBlob(b, filename());
     closeModal(null);
   };
 
   const handleDownload = () => {
     const b = blob();
-    if (!b) return;
-    downloadBlob(b, filename);
+    const fn = filename();
+    if (!b || !fn) return;
+    downloadBlob(b, fn);
     closeModal(null);
   };
 
@@ -92,14 +100,14 @@ const LocalBackup: Component<Props> = (props) => {
 
   return (
     <div class="flex flex-column gap-8">
-      <h4 class="backup-section-title">{s('common.backup')}</h4>
+      <h4 class="backup-section-title">{s('common.pj_backup')}</h4>
       <div class="flex gap-8 flex-wrap">
         <button class="btn-border btn-sm" onClick={handleImport}>
           {s('common.backup_import_local')}
         </button>
         <button
           class="btn-border btn-sm"
-          disabled={blob.loading}
+          disabled={!props.projectInfo || blob.loading}
           onClick={handleDownload}
         >
           <Show when={blob.loading} fallback={s('common.download')}>
@@ -108,7 +116,7 @@ const LocalBackup: Component<Props> = (props) => {
         </button>
         <button
           class="btn-primary btn-sm"
-          disabled={blob.loading}
+          disabled={!props.projectInfo || blob.loading}
           onClick={handleShare}
         >
           <Show when={blob.loading} fallback={s('common.share')}>
@@ -165,8 +173,12 @@ const DropboxBackup: Component<Props> = (props) => {
       if (n === 0) return null;
       try {
         const tok = await ensureToken();
+        const prefix =
+          showAll || !props.projectInfo
+            ? undefined
+            : props.projectInfo.id + '.';
         const all = await list(tok, {
-          prefix: showAll ? undefined : props.projectId + '.',
+          prefix,
         });
         all.sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime());
         return all.slice(0, 10);
@@ -187,17 +199,22 @@ const DropboxBackup: Component<Props> = (props) => {
   };
 
   const handleUpload = async () => {
+    if (!props.projectInfo) return;
     setUploadStatus('busy');
     try {
       const bak = await exportVersionAsBak(
-        props.pjVerId,
+        props.projectInfo.pjVerNodeId,
         __APP_VERSION__,
         deviceId(),
       );
       const data = await serializeBak(bak);
       const blob = bakToBlob(data);
       const tok = await ensureToken();
-      await upload(tok, bakFilename(props.projectId, props.projectLabel), blob);
+      await upload(
+        tok,
+        bakFilename(props.projectInfo.id, props.projectInfo.label),
+        blob,
+      );
       setUploadStatus('done');
       setTimeout(() => setUploadStatus('idle'), 1500);
     } catch (err) {
@@ -238,7 +255,10 @@ const DropboxBackup: Component<Props> = (props) => {
 
   return (
     <div class="flex flex-column gap-8">
-      <h4 class="backup-section-title">Dropbox</h4>
+      <h4 class="backup-section-title">
+        <TbOutlineBrandDropbox />
+        &nbsp;Dropbox
+      </h4>
 
       <Show when={!isLoggedIn()}>
         <p class="text-base opacity-60">{s('dropbox.not_connected')}</p>
@@ -290,7 +310,7 @@ const DropboxBackup: Component<Props> = (props) => {
         <div class="flex gap-8">
           <button
             class="btn-border btn-sm flex-1"
-            disabled={uploadStatus() === 'busy'}
+            disabled={!props.projectInfo || uploadStatus() === 'busy'}
             onClick={handleUpload}
           >
             <Switch>
@@ -314,14 +334,16 @@ const DropboxBackup: Component<Props> = (props) => {
           </button>
         </div>
 
-        <label class="backup-show-all-label">
-          <input
-            type="checkbox"
-            checked={showAll()}
-            onChange={(e) => setShowAll(e.currentTarget.checked)}
-          />
-          <span class="opacity-60">{s('dropbox.show_all')}</span>
-        </label>
+        <Show when={props.projectInfo}>
+          <label class="backup-show-all-label">
+            <input
+              type="checkbox"
+              checked={showAll()}
+              onChange={(e) => setShowAll(e.currentTarget.checked)}
+            />
+            <span class="opacity-60">{s('dropbox.show_all')}</span>
+          </label>
+        </Show>
 
         <Show when={files() !== null && !files.loading && !files.error}>
           <div class="flex flex-column gap-4">
@@ -380,19 +402,13 @@ const DropboxBackup: Component<Props> = (props) => {
 const BackupModal: Component<Props> = (props) => {
   return (
     <>
-      <h3>{props.projectLabel}</h3>
-      <LocalBackup
-        pjVerId={props.pjVerId}
-        projectId={props.projectId}
-        projectLabel={props.projectLabel}
-      />
+      <Show when={props.projectInfo}>
+        <h5 class="m-0">PJ: {props.projectInfo!.label}</h5>
+      </Show>
+      <LocalBackup projectInfo={props.projectInfo} />
       <Show when={hasDropbox}>
         <hr class="backup-divider" />
-        <DropboxBackup
-          pjVerId={props.pjVerId}
-          projectId={props.projectId}
-          projectLabel={props.projectLabel}
-        />
+        <DropboxBackup projectInfo={props.projectInfo} />
       </Show>
       <div class="modal-actions">
         <button class="btn-secondary" onClick={() => closeModal(null)}>

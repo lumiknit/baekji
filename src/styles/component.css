@@ -14,6 +14,7 @@
 .page-breadcrumb {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--sp-1);
   margin-bottom: var(--sp-4);
   font-size: var(--fs-base);
@@ -104,13 +105,6 @@
   background: transparent;
 }
 
-/* ─── Button size variant ────────────────────────── */
-
-.btn-sm {
-  padding: 2px var(--sp-2);
-  font-size: var(--fs-sm);
-}
-
 /* ─── Danger Zone ────────────────────────────────── */
 
 .danger-zone {
@@ -132,17 +126,6 @@
   font-size: var(--fs-sm);
   opacity: 0.7;
   margin: 0;
-}
-
-.btn-danger-solid {
-  background: #c00;
-  color: #fff;
-  border-color: transparent;
-}
-
-.btn-danger-solid:hover {
-  background: #a00;
-  color: #fff;
 }
 
 /* ─── Hint text ───────────────────────────────────── */
@@ -207,9 +190,11 @@
   padding: 0;
   flex-shrink: 0;
 }
+
 .sb-icon-btn:hover {
   background: transparent;
 }
+
 .sb-icon-btn > .btn-pad {
   display: flex;
   align-items: center;
@@ -217,6 +202,7 @@
   width: 32px;
   height: 32px;
 }
+
 .sb-icon-btn:hover > .btn-pad {
   background: var(--border);
 }
@@ -233,14 +219,17 @@
   white-space: nowrap;
   background: transparent;
 }
+
 .sb-nav-btn:hover {
   background: transparent;
 }
+
 .sb-nav-btn > .btn-pad {
   align-self: center;
   padding: 6px var(--sp-3);
   margin: 2px;
 }
+
 .sb-nav-btn:hover > .btn-pad,
 .sb-nav-btn--active > .btn-pad {
   background: var(--border);
@@ -284,6 +273,7 @@
   cursor: pointer;
   font-size: var(--fs-base);
 }
+
 .tree-row:hover {
   background: transparent;
 }
@@ -339,6 +329,7 @@
   flex-shrink: 0;
   padding: 0;
 }
+
 .tree-toggle:hover {
   background: transparent;
 }
@@ -425,9 +416,11 @@
   text-decoration: none;
   color: inherit;
 }
+
 .tree-project-link:hover {
   background: transparent;
 }
+
 .tree-project-link > .btn-pad {
   display: flex;
   align-items: center;
@@ -438,11 +431,13 @@
   font-weight: bold;
   overflow: hidden;
 }
+
 .tree-project-link > .btn-pad > .tree-project-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .tree-project-link:hover > .btn-pad {
   background: var(--border);
 }
@@ -513,18 +508,22 @@
   position: relative;
   background: transparent;
 }
+
 .project-list-new-btn:hover {
   background: transparent;
 }
+
 .project-list-new-btn > .btn-pad {
   flex: 1;
   align-items: center;
   padding: 0 var(--sp-4);
   margin: 2px;
 }
+
 .project-list-new-btn:hover > .btn-pad {
   background: var(--border);
 }
+
 .project-list-new-btn::after {
   content: '';
   position: absolute;
@@ -542,9 +541,11 @@
   cursor: pointer;
   min-height: 44px;
 }
+
 .project-list-item:hover {
   background: transparent;
 }
+
 .project-list-item > .btn-pad {
   flex: 1;
   min-width: 0;
@@ -555,6 +556,7 @@
   padding: var(--sp-2) var(--sp-3);
   margin: 2px var(--sp-1);
 }
+
 .project-list-item:hover > .btn-pad {
   background: var(--border);
 }

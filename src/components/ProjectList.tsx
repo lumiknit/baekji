@@ -1,8 +1,8 @@
 import { useNavigate } from '@solidjs/router';
 import {
   TbOutlineDotsVertical,
-  TbOutlineFileImport,
   TbOutlinePlus,
+  TbOutlineCloud,
 } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
 import { createResource, createSignal, For, Show } from 'solid-js';
@@ -10,10 +10,9 @@ import { getAllVersionRoots, setActiveVersion } from '../lib/doc/db';
 import { createProject as createProjectInDB } from '../lib/doc/db_helper';
 import { s } from '../lib/i18n';
 import { formatRelativeDate } from '../lib/format_date';
-import { showPrompt } from '../state/modal';
+import { showPrompt, showBackup } from '../state/modal';
 import { setActivePjVerId, setSidebarView } from '../state/workspace';
 import Dropdown from './Dropdown';
-import { openImportBakDialog } from '../lib/import_bak';
 
 const ProjectList: Component = () => {
   const navigate = useNavigate();
@@ -57,10 +56,6 @@ const ProjectList: Component = () => {
     openProject(pjVerId);
   };
 
-  const importBackup = () => {
-    openImportBakDialog(navigate, refetch);
-  };
-
   return (
     <div class="project-list">
       <div class="project-list-header">
@@ -101,12 +96,12 @@ const ProjectList: Component = () => {
             {s('project.new_project')}
           </div>
         </button>
-        <button class="project-list-new-btn" onClick={importBackup}>
+        <button class="project-list-new-btn" onClick={() => showBackup()}>
           <div class="btn-pad">
             <span class="icon">
-              <TbOutlineFileImport />
+              <TbOutlineCloud />
             </span>
-            {s('home.backup_import')}
+            {s('common.backup')}
           </div>
         </button>
         <Show

@@ -99,7 +99,7 @@ function collectDecos(view: EditorView): DecoSpec[] {
           const vpTo = view.viewport.to;
           for (
             let pos = Math.max(node.from, view.viewport.from);
-            pos < doc.length;
+            pos <= doc.length;
           ) {
             const line = doc.lineAt(pos);
             if (line.from > vpTo) break; // past viewport bottom
@@ -152,7 +152,7 @@ function collectDecos(view: EditorView): DecoSpec[] {
           const vpTo = view.viewport.to;
           for (
             let pos = Math.max(node.from, view.viewport.from);
-            pos < doc.length;
+            pos <= doc.length;
           ) {
             const line = doc.lineAt(pos);
             if (line.from > vpTo) break; // past viewport bottom

@@ -1,6 +1,6 @@
 import { A } from '@solidjs/router';
-import type { Component } from 'solid-js';
-import { createMemo, For } from 'solid-js';
+import type { Accessor, Component } from 'solid-js';
+import { createMemo, For, Show } from 'solid-js';
 import { s } from '../lib/i18n';
 import { findParentId, projectTree } from '../state/project_tree';
 
@@ -8,35 +8,57 @@ interface BreadCrumbProps {
   nodeId: string;
 }
 
+type CrumbItem = {
+  id: string;
+  label: string;
+  href: string;
+};
+
 const BreadCrumb: Component<BreadCrumbProps> = (props) => {
   const crumbs = createMemo(() => {
     const meta = projectTree.meta;
-    if (!meta || meta.pjVerId === props.nodeId) return [];
-
     const rootId = meta.pjVerId;
+    const visited = new Set<string>();
 
-    const path: string[] = [];
     let current = props.nodeId;
+    const path: string[] = [];
+
     while (current !== rootId) {
+      if (visited.has(current)) {
+        console.warn('BreadCrumb: cycle detected at node', current);
+        break;
+      }
+      visited.add(current);
+
       const parentId = findParentId(current);
       if (!parentId) break;
-      path.unshift(parentId);
+      path.push(parentId);
       current = parentId;
     }
 
-    return path.map((id) => ({
+    const labelMapper = (label?: string | null) => {
+      if (!label) return s('common.untitled');
+      if (label.length > 20) return `${label.slice(0, 17)}…`;
+      return label;
+    };
+
+    const mapper = (id: string): CrumbItem => ({
       id,
-      label:
-        id === rootId
-          ? meta.label
-          : projectTree.nodes[id]?.label || s('common.untitled'),
+      label: labelMapper(
+        id === rootId ? meta.label : projectTree.nodes[id]?.label,
+      ),
       href: `/nodes/${id}`,
-    }));
+    });
+
+    return [mapper(props.nodeId), path.reverse().map(mapper)] as [
+      CrumbItem,
+      CrumbItem[],
+    ];
   });
 
   return (
     <div class="page-breadcrumb">
-      <For each={crumbs()}>
+      <For each={crumbs()[1]}>
         {(crumb) => (
           <>
             <A href={crumb.href}>{crumb.label}</A>
@@ -44,9 +66,7 @@ const BreadCrumb: Component<BreadCrumbProps> = (props) => {
           </>
         )}
       </For>
-      <span class="text-bold">
-        {projectTree.nodes[props.nodeId]?.label || s('common.untitled')}
-      </span>
+      <span class="text-bold">{crumbs()[0].label}</span>
     </div>
   );
 };

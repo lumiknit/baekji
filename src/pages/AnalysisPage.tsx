@@ -69,6 +69,7 @@ const AnalysisPage: Component = () => {
   const [includeSpace, setIncludeSpace] = createSignal(true);
   const [rows, setRows] = createSignal<RowStats[]>([]);
   const [loading, setLoading] = createSignal(false);
+  let currentRunId = 0;
 
   const rootNode = () => projectTree.nodes[nodeId()];
   const rootLabel = () => rootNode()?.label || s('common.untitled');
@@ -76,8 +77,9 @@ const AnalysisPage: Component = () => {
   const runAnalysis = async () => {
     const nodes = projectTree.nodes;
     const targetId = nodeId();
-    if (!nodes[targetId] || loading()) return;
+    if (!nodes[targetId]) return;
 
+    const runId = ++currentRunId;
     setLoading(true);
     setRows([]);
 
@@ -122,6 +124,8 @@ const AnalysisPage: Component = () => {
         }
       }
 
+      if (runId !== currentRunId) return;
+
       setRows(
         flat.map((item) => ({
           id: item.id,
@@ -136,10 +140,13 @@ const AnalysisPage: Component = () => {
         })),
       );
     } catch (err) {
+      if (runId !== currentRunId) return;
       logError('AnalysisPage:runAnalysis', err);
       toast.error(String(err));
     } finally {
-      setLoading(false);
+      if (runId === currentRunId) {
+        setLoading(false);
+      }
     }
   };
 
