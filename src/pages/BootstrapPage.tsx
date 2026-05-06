@@ -16,7 +16,12 @@ const BootstrapPage: Component = () => {
     // Resume last opened node directly if it still exists.
     // makePersisted JSON.stringifies values, so the stored value is e.g. '"node-id"' — parse it.
     const lastNodeRaw = await localforage.getItem<string>('baekji-last-node');
-    const lastNode = lastNodeRaw ? (JSON.parse(lastNodeRaw) as string) : null;
+    let lastNode: string | null = null;
+    try {
+      lastNode = lastNodeRaw ? (JSON.parse(lastNodeRaw) as string) : null;
+    } catch {
+      // Corrupted stored value — ignore and fall through to normal boot
+    }
     if (lastNode && (await getNode(lastNode))) {
       navigate(`/nodes/${lastNode}`, { replace: true });
       return;

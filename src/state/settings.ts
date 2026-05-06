@@ -38,7 +38,7 @@ const defaultSettings: Settings = {
   lineHeight: 1.5,
   paragraphSpacing: 0.5,
   autosaveInterval: 1.5,
-  typewriterMode: true,
+  typewriterMode: false,
   previewFontSize: 13,
 };
 

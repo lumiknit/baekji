@@ -153,6 +153,7 @@
     "font_serif": "Serif",
     "font_mono": "Monospace",
     "font_system": "System default",
+    "font_custom": "Custom...",
     "font_custom_placeholder": "Font name...",
     "font_use_noto": "Use Noto font",
     "font_noto_warning": "Noto fonts require max 30 MB download.",

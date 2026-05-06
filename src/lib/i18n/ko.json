@@ -155,6 +155,7 @@
     "font_serif": "세리프 (Serif)",
     "font_mono": "고정폭 (Mono)",
     "font_system": "시스템 기본",
+    "font_custom": "직접 입력...",
     "font_custom_placeholder": "폰트 이름 입력...",
     "font_use_noto": "Noto 폰트 사용",
     "font_noto_warning": "Noto 폰트는 최대 30MB 다운로드가 필요합니다.",

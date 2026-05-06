@@ -1,7 +1,8 @@
 import type { Component, JSX } from 'solid-js';
-import { For } from 'solid-js';
+import { createMemo, createSignal, For, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import { settings, setSettings } from '../state/settings';
+import type { FontSettings } from '../state/settings';
 import ThemePreview from '../components/ThemePreview';
 import { s } from '../lib/i18n';
 import { showConfirm } from '../state/modal';
@@ -15,6 +16,56 @@ const SettingRow: Component<{ label: string; children: JSX.Element }> = (
     {props.children}
   </label>
 );
+
+const CUSTOM = '__custom__';
+
+const FontPicker: Component<{
+  label: string;
+  fontKey: keyof FontSettings;
+  presets: { value: string; label: string }[];
+}> = (props) => {
+  const val = () => settings.fonts?.[props.fontKey] ?? '';
+  const presetValues = createMemo(() => props.presets.map((p) => p.value));
+  const isPreset = () => presetValues().includes(val());
+
+  // Track whether user explicitly switched to custom mode
+  const [customMode, setCustomMode] = createSignal(!isPreset());
+
+  const showInput = () => customMode() || !isPreset();
+  const selectVal = () => (showInput() ? CUSTOM : val());
+
+  const onSelect = (v: string) => {
+    if (v === CUSTOM) {
+      setCustomMode(true);
+    } else {
+      setCustomMode(false);
+      setSettings('fonts', props.fontKey, v);
+    }
+  };
+
+  return (
+    <label class="flex justify-between items-center gap-8">
+      {props.label}
+      <div class="flex gap-4 items-center" style={{ 'flex': '1', 'max-width': '240px', 'justify-content': 'flex-end' }}>
+        <Show when={showInput()}>
+          <input
+            type="text"
+            placeholder={s('settings.font_custom_placeholder')}
+            value={isPreset() ? '' : val()}
+            onInput={(e) => setSettings('fonts', props.fontKey, e.currentTarget.value)}
+            style={{ flex: '1', 'min-width': '0' }}
+          />
+        </Show>
+        <select value={selectVal()} onChange={(e) => onSelect(e.currentTarget.value)}>
+          <For each={props.presets}>
+            {(p) => <option value={p.value}>{p.label}</option>}
+          </For>
+          <option value={CUSTOM}>{s('settings.font_custom')}</option>
+        </select>
+      </div>
+    </label>
+  );
+};
 
 const NumberInputWithSlider: Component<{
   label: string;
@@ -120,62 +171,30 @@ const SettingsPage: Component = () => {
               </select>
             </SettingRow>
 
-            <For
-              each={[
-                ['sans', s('settings.font_sans'), 'BuiltinSans'] as const,
-                ['serif', s('settings.font_serif'), 'BuiltinSerif'] as const,
+            <FontPicker
+              label={s('settings.font_sans')}
+              fontKey="sans"
+              presets={[
+                { value: '', label: s('settings.font_system') },
+                { value: 'BuiltinSans', label: 'Noto Sans' },
               ]}
-            >
-              {([key, label, notoName]) => {
-                const val = () => settings.fonts?.[key] ?? '';
-                const isNoto = () => val() === notoName;
-                const toggleNoto = () => {
-                  setSettings('fonts', key, isNoto() ? '' : notoName);
-                };
-                return (
-                  <div class="flex flex-column gap-4">
-                    <label class="flex justify-between items-center gap-8">
-                      {label}
-                      <input
-                        type="text"
-                        style={{
-                          flex: '1',
-                          'min-width': '0',
-                          'max-width': '200px',
-                        }}
-                        placeholder={
-                          isNoto()
-                            ? notoName
-                            : s('settings.font_custom_placeholder')
-                        }
-                        value={isNoto() ? '' : val()}
-                        disabled={isNoto()}
-                        onChange={(e) =>
-                          setSettings('fonts', key, e.currentTarget.value)
-                        }
-                      />
-                    </label>
-                    <label
-                      class="flex justify-end items-center gap-4"
-                      style={{ 'font-size': 'var(--fs-sm)' }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isNoto()}
-                        onChange={toggleNoto}
-                      />
-                      {s('settings.font_use_noto')}
-                    </label>
-                  </div>
-                );
-              }}
-            </For>
-
-            <p
-              style={{ margin: 0, 'font-size': 'var(--fs-sm)', opacity: '0.6' }}
-            >
-              ⚠️ {s('settings.font_noto_warning')}
-            </p>
+            />
+            <FontPicker
+              label={s('settings.font_serif')}
+              fontKey="serif"
+              presets={[
+                { value: '', label: s('settings.font_system') },
+                { value: 'BuiltinSerif', label: 'Noto Serif' },
+                { value: 'RIDIBatang', label: 'RIDI Batang' },
+              ]}
+            />
+            <FontPicker
+              label={s('settings.font_mono')}
+              fontKey="mono"
+              presets={[
+                { value: '', label: s('settings.font_system') },
+              ]}
+            />
 
             <NumberInputWithSlider
               label={s('settings.font_size')}

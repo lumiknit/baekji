@@ -137,20 +137,23 @@ export function useDragDrop(
       cleanup();
       if (dragStarted) {
         const dt = dropTarget();
-        if (dt) {
-          const sel = selectedIds();
-          if (sel.size > 1 && sel.has(itemId)) {
-            const items = [...sel].map((id) => ({
-              itemId: id,
-              parentId: selectedParents.get(id) ?? parentId,
-            }));
-            await moveTreeNodes(items, dt);
-          } else {
-            await moveTreeNode(itemId, parentId, dt);
+        try {
+          if (dt) {
+            const sel = selectedIds();
+            if (sel.size > 1 && sel.has(itemId)) {
+              const items = [...sel].map((id) => ({
+                itemId: id,
+                parentId: selectedParents.get(id) ?? parentId,
+              }));
+              await moveTreeNodes(items, dt);
+            } else {
+              await moveTreeNode(itemId, parentId, dt);
+            }
           }
+        } finally {
+          setDraggingId(null);
+          setDropTarget(null);
         }
-        setDraggingId(null);
-        setDropTarget(null);
       }
     };
 
