@@ -7,7 +7,7 @@
   "license": "MPL-2.0",
   "scripts": {
     "dev": "vite",
-    "build": "bun run typecheck && vite build",
+    "build": "deno run typecheck && vite build",
     "preview": "vite preview",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit"
@@ -32,7 +32,6 @@
     "zod": "^4.4.2"
   },
   "devDependencies": {
-    "@types/dompurify": "^3.2.0",
     "@types/node": "^24.12.2",
     "prettier": "^3.8.3",
     "typescript": "~6.0.3",

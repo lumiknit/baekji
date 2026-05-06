@@ -80,61 +80,75 @@ const DECO = {
 
 // ─── Decoration collector ──────────────────────────────────────
 
-type DecoSpec = { from: number; to: number; value: Decoration };
+// ─── Decoration builder ──────────────────────────────────────
+//
+// RangeSetBuilder requires (from asc, startSide asc) order. Line decos
+// (startSide = -∞) must come before range decos (startSide = 0) at the same
+// `from`. We push directly to the builder — no intermediate array or sort —
+// by observing two rules:
+//
+//  1. Blockquote siblings: QuoteMark emits a line deco then a range deco at
+//     line.from. Its siblings (Paragraph, ATXHeading) would later emit line
+//     decos at the same line.from, violating startSide order. Fix: skip those
+//     line decos when the node is a direct child of Blockquote.
+//     Trade-off: paragraph indent and heading size are not applied inside
+//     blockquotes, which is acceptable in practice.
+//
+//  2. Nested blockquotes: InnerQuoteMark.line.from == OuterQuoteMark.line.from,
+//     so its line deco would follow the outer range deco. Fix: only the
+//     outermost QuoteMark on each line emits the blockquote line deco.
+//
+//  3. Inline containers (StrongEmphasis etc.) share `from` with their opening
+//     mark child but have a larger `to`, so they must NOT be pushed from their
+//     own enter (parent fires before child). Instead the opening mark's enter
+//     pushes the container span immediately after itself — same from, larger to,
+//     which is valid builder order.
 
-function collectDecos(view: EditorView): DecoSpec[] {
-  const specs: DecoSpec[] = [];
+function buildDecoSet(view: EditorView): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
   const sel = view.state.selection.main;
   const doc = view.state.doc;
+  const vpFrom = view.viewport.from;
+  const vpTo = view.viewport.to;
 
   syntaxTree(view.state).iterate({
-    from: view.viewport.from,
-    to: view.viewport.to,
+    from: vpFrom,
+    to: vpTo,
     enter(node): boolean | void {
       switch (node.name) {
         // ── Fenced code block ─────────────────────────────────
-        // Apply monospace styling to all lines; skip children so
-        // inline markdown inside code is not decorated.
         case 'FencedCode': {
-          const vpTo = view.viewport.to;
-          for (
-            let pos = Math.max(node.from, view.viewport.from);
-            pos <= doc.length;
-          ) {
+          for (let pos = Math.max(node.from, vpFrom); pos <= doc.length;) {
             const line = doc.lineAt(pos);
-            if (line.from > vpTo) break; // past viewport bottom
-            specs.push({
-              from: line.from,
-              to: line.from,
-              value: DECO.codeBlock,
-            });
+            if (line.from > vpTo) break;
+            builder.add(line.from, line.from, DECO.codeBlock);
             if (line.to >= node.to) break;
             pos = line.to + 1;
           }
           return false;
         }
 
-        // ── ATX Headings (# through ######) ──────────────────
+        // ── ATX Headings ──────────────────────────────────────
+        // Skip line deco inside Blockquote: QuoteMark's range deco at
+        // line.from is already in the builder before this node is visited.
         case 'ATXHeading1':
         case 'ATXHeading2':
         case 'ATXHeading3':
         case 'ATXHeading4':
         case 'ATXHeading5':
         case 'ATXHeading6': {
+          if (node.node.parent?.name === 'Blockquote') break;
           const level = +node.name[node.name.length - 1];
-          const line = doc.lineAt(node.from);
-          specs.push({ from: line.from, to: line.from, value: DECO.h[level]! });
+          builder.add(doc.lineAt(node.from).from, doc.lineAt(node.from).from, DECO.h[level]!);
           break;
         }
 
         case 'HeaderMark': {
-          // Hide "# " when cursor is on a different line
           const line = doc.lineAt(node.from);
           if (!inRange(line.from, line.to, sel)) {
-            const hideEnd = Math.min(node.to + 1, line.to); // +1 to eat trailing space
-            specs.push({ from: node.from, to: hideEnd, value: DECO.hide });
+            builder.add(node.from, Math.min(node.to + 1, line.to), DECO.hide);
           } else {
-            specs.push({ from: node.from, to: node.to, value: DECO.marker });
+            builder.add(node.from, node.to, DECO.marker);
           }
           break;
         }
@@ -143,153 +157,129 @@ function collectDecos(view: EditorView): DecoSpec[] {
         case 'HorizontalRule': {
           const line = doc.lineAt(node.from);
           if (!inRange(line.from, line.to, sel))
-            specs.push({ from: node.from, to: node.to, value: DECO.hr });
+            builder.add(node.from, node.to, DECO.hr);
           break;
         }
 
         // ── Blockquote ────────────────────────────────────────
-        case 'Blockquote': {
-          const vpTo = view.viewport.to;
-          for (
-            let pos = Math.max(node.from, view.viewport.from);
-            pos <= doc.length;
-          ) {
-            const line = doc.lineAt(pos);
-            if (line.from > vpTo) break; // past viewport bottom
-            specs.push({
-              from: line.from,
-              to: line.from,
-              value: DECO.blockquote,
-            });
-            if (line.to >= node.to) break;
-            pos = line.to + 1;
-          }
+        // Line deco emitted per QuoteMark below. Lazy continuation unsupported.
+        case 'Blockquote':
           break;
-        }
 
         case 'QuoteMark': {
           const line = doc.lineAt(node.from);
+          // Outermost QuoteMark only: inner ones share the same line.from as
+          // the outer range deco already in the builder.
+          if (node.node.parent?.parent?.name !== 'Blockquote')
+            builder.add(line.from, line.from, DECO.blockquote);
           if (!inRange(line.from, line.to, sel)) {
-            const hideEnd = Math.min(node.to + 1, line.to); // eat "> "
-            specs.push({ from: node.from, to: hideEnd, value: DECO.hide });
+            builder.add(node.from, Math.min(node.to + 1, line.to), DECO.hide);
           } else {
-            specs.push({ from: node.from, to: node.to, value: DECO.marker });
+            builder.add(node.from, node.to, DECO.marker);
           }
           break;
         }
 
         // ── List bullets ─────────────────────────────────────
-        // Replace the raw "-"/"*" with a styled span via CSS ::before.
-        // A mark decoration is cheaper than a WidgetType (no DOM element).
         case 'ListMark': {
           const listItem = node.node.parent;
           if (
             listItem?.name === 'ListItem' &&
             listItem.parent?.name === 'BulletList'
           )
-            specs.push({ from: node.from, to: node.to, value: DECO.bullet });
+            builder.add(node.from, node.to, DECO.bullet);
           break;
         }
 
-        // ── Paragraph first-line indent (skip inside list items) ──
+        // ── Paragraph ─────────────────────────────────────────
+        // Skip inside Blockquote (same reason as ATXHeading above).
         case 'Paragraph': {
           if (node.node.parent?.name === 'ListItem') break;
-          const line = doc.lineAt(node.from);
-          specs.push({ from: line.from, to: line.from, value: DECO.paragraph });
+          if (node.node.parent?.name === 'Blockquote') break;
+          builder.add(doc.lineAt(node.from).from, doc.lineAt(node.from).from, DECO.paragraph);
           break;
         }
 
-        // ── Inline containers (apply visual class) ────────────
+        // ── Inline containers ─────────────────────────────────
+        // Pushed from the opening-mark handler below (rule 3 above).
         case 'StrongEmphasis':
-          if (!inRange(node.from, node.to, sel))
-            specs.push({ from: node.from, to: node.to, value: DECO.strong });
-          break;
-
         case 'Emphasis':
-          if (!inRange(node.from, node.to, sel))
-            specs.push({ from: node.from, to: node.to, value: DECO.em });
-          break;
-
         case 'InlineCode':
-          if (!inRange(node.from, node.to, sel))
-            specs.push({ from: node.from, to: node.to, value: DECO.code });
-          break;
-
         case 'Strikethrough':
-          if (!inRange(node.from, node.to, sel))
-            specs.push({ from: node.from, to: node.to, value: DECO.strike });
           break;
 
         // ── Inline marker nodes ───────────────────────────────
-        // Walk up ancestor chain so ***bold italic*** shows/hides
-        // all markers together when cursor is in any nesting level.
         case 'EmphasisMark':
         case 'StrikethroughMark': {
           const parent = node.node.parent;
           const show =
             (parent && inRange(parent.from, parent.to, sel)) ||
             cursorInAnyAncestor(node.node.parent, sel);
-          specs.push({
-            from: node.from,
-            to: node.to,
-            value: show ? DECO.marker : DECO.hide,
-          });
+          builder.add(node.from, node.to, show ? DECO.marker : DECO.hide);
+          // Opening mark: push enclosing container spans right after.
+          // Same from, larger to — valid builder order.
+          if (!show && parent?.from === node.from) {
+            let anc = parent as ReturnType<typeof syntaxTree>['topNode']['node'] | null;
+            while (anc && INLINE_FORMAT.has(anc.name) && anc.from === node.from) {
+              if (!inRange(anc.from, anc.to, sel)) {
+                let d: Decoration | null = null;
+                if (anc.name === 'StrongEmphasis') d = DECO.strong;
+                else if (anc.name === 'Emphasis') d = DECO.em;
+                else if (anc.name === 'Strikethrough') d = DECO.strike;
+                if (d) builder.add(anc.from, anc.to, d);
+              }
+              anc = anc.parent;
+            }
+          }
           break;
         }
 
         case 'CodeMark': {
-          // Only hide backticks for inline code; fenced code marks are kept.
           const parent = node.node.parent;
           if (parent?.name === 'InlineCode') {
             const show = inRange(parent.from, parent.to, sel);
-            specs.push({
-              from: node.from,
-              to: node.to,
-              value: show ? DECO.marker : DECO.hide,
-            });
+            builder.add(node.from, node.to, show ? DECO.marker : DECO.hide);
+            // Opening backtick: push InlineCode span after (same from, larger to).
+            if (!show && parent.from === node.from)
+              builder.add(parent.from, parent.to, DECO.code);
           }
           break;
         }
 
         // ── Links ─────────────────────────────────────────────
-        // [label](url) → show only "label" with link style.
         case 'Link': {
           if (inRange(node.from, node.to, sel)) break;
-          const marks = node.node.getChildren('LinkMark');
-          if (marks.length >= 2) {
-            specs.push({
-              from: marks[0].from,
-              to: marks[0].to,
-              value: DECO.hide,
-            }); // hide [
-            specs.push({
-              from: marks[0].to,
-              to: marks[1].from,
-              value: DECO.link,
-            });
-            specs.push({ from: marks[1].from, to: node.to, value: DECO.hide }); // hide ](url)
+          let firstMark = null, secondMark = null;
+          for (let c = node.node.firstChild; c; c = c.nextSibling) {
+            if (c.name !== 'LinkMark') continue;
+            if (!firstMark) firstMark = c;
+            else { secondMark = c; break; }
+          }
+          if (firstMark && secondMark) {
+            builder.add(firstMark.from, firstMark.to, DECO.hide);
+            builder.add(firstMark.to, secondMark.from, DECO.link);
+            builder.add(secondMark.from, node.to, DECO.hide);
           }
           break;
         }
 
         // ── Images ────────────────────────────────────────────
-        // ![alt](url) → show only "alt" with image-alt style.
         case 'Image': {
           if (inRange(node.from, node.to, sel)) break;
-          const marks = node.node.getChildren('LinkMark');
-          if (marks.length >= 2) {
-            specs.push({ from: node.from, to: marks[0].to, value: DECO.hide }); // hide ![
-            specs.push({
-              from: marks[0].to,
-              to: marks[1].from,
-              value: DECO.imageAlt,
-            });
-            specs.push({ from: marks[1].from, to: node.to, value: DECO.hide }); // hide ](url)
+          let firstMark = null, secondMark = null;
+          for (let c = node.node.firstChild; c; c = c.nextSibling) {
+            if (c.name !== 'LinkMark') continue;
+            if (!firstMark) firstMark = c;
+            else { secondMark = c; break; }
+          }
+          if (firstMark && secondMark) {
+            builder.add(node.from, firstMark.to, DECO.hide);
+            builder.add(firstMark.to, secondMark.from, DECO.imageAlt);
+            builder.add(secondMark.from, node.to, DECO.hide);
           }
           break;
         }
 
-        // Handled inline above; skip here to avoid double-processing.
         case 'LinkMark':
         case 'URL':
         case 'LinkTitle':
@@ -299,14 +289,6 @@ function collectDecos(view: EditorView): DecoSpec[] {
     },
   });
 
-  return specs;
-}
-
-function buildDecoSet(view: EditorView): DecorationSet {
-  const specs = collectDecos(view);
-  specs.sort((a, b) => a.from - b.from || a.to - b.to);
-  const builder = new RangeSetBuilder<Decoration>();
-  for (const { from, to, value } of specs) builder.add(from, to, value);
   return builder.finish();
 }
 
