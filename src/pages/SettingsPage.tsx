@@ -46,17 +46,29 @@ const FontPicker: Component<{
   return (
     <label class="flex justify-between items-center gap-8">
       {props.label}
-      <div class="flex gap-4 items-center" style={{ 'flex': '1', 'max-width': '240px', 'justify-content': 'flex-end' }}>
+      <div
+        class="flex gap-4 items-center"
+        style={{
+          flex: '1',
+          'max-width': '240px',
+          'justify-content': 'flex-end',
+        }}
+      >
         <Show when={showInput()}>
           <input
             type="text"
             placeholder={s('settings.font_custom_placeholder')}
             value={isPreset() ? '' : val()}
-            onInput={(e) => setSettings('fonts', props.fontKey, e.currentTarget.value)}
+            onInput={(e) =>
+              setSettings('fonts', props.fontKey, e.currentTarget.value)
+            }
             style={{ flex: '1', 'min-width': '0' }}
           />
         </Show>
-        <select value={selectVal()} onChange={(e) => onSelect(e.currentTarget.value)}>
+        <select
+          value={selectVal()}
+          onChange={(e) => onSelect(e.currentTarget.value)}
+        >
           <For each={props.presets}>
             {(p) => <option value={p.value}>{p.label}</option>}
           </For>
@@ -186,14 +198,13 @@ const SettingsPage: Component = () => {
                 { value: '', label: s('settings.font_system') },
                 { value: 'BuiltinSerif', label: 'Noto Serif' },
                 { value: 'RIDIBatang', label: 'RIDI Batang' },
+                { value: 'Daehan', label: '대한체' },
               ]}
             />
             <FontPicker
               label={s('settings.font_mono')}
               fontKey="mono"
-              presets={[
-                { value: '', label: s('settings.font_system') },
-              ]}
+              presets={[{ value: '', label: s('settings.font_system') }]}
             />
 
             <NumberInputWithSlider
