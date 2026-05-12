@@ -8,6 +8,19 @@ import { genUnorderedId } from '../lib/uuid';
 
 const [allSheets, setAllSheets] = createSignal<SheetMeta[]>([]);
 export const [filterQuery, setFilterQuery] = createSignal('');
+export const [selectedIds, setSelectedIds] = createSignal<Set<string>>(
+  new Set(),
+);
+
+export const isSelected = (id: string) => selectedIds().has(id);
+export const clearSelection = () => setSelectedIds(new Set());
+export const toggleSelect = (id: string) =>
+  setSelectedIds((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
 
 export const liveSheets = createMemo(() =>
   allSheets()
@@ -26,6 +39,9 @@ export const filteredSheets = createMemo(() => {
   if (!q) return liveSheets();
   return liveSheets().filter((s) => matchQuery(q, new Set(s.tags)));
 });
+
+export const selectAll = () =>
+  setSelectedIds(new Set<string>(filteredSheets().map((s) => s.id)));
 
 // ─── Y.Map subscription ──────────────────────────────────────────
 
@@ -64,10 +80,7 @@ function maxOrderKey(): number {
   return sheets.length > 0 ? Math.max(...sheets.map((s) => s.orderKey)) : 0;
 }
 
-export function orderKeyBetween(
-  a: number | null,
-  b: number | null,
-): number {
+export function orderKeyBetween(a: number | null, b: number | null): number {
   if (a === null && b === null) return 1000;
   if (a === null) return b! - 1000;
   if (b === null) return a + 1000;
@@ -151,7 +164,8 @@ export async function mergeSheetDown(id: string): Promise<void> {
 
   const nextId = sheets[idx + 1].id;
 
-  const { openSheetDoc, closeSheetDoc, waitForSync } = await import('../lib/doc/ydoc');
+  const { openSheetDoc, closeSheetDoc, waitForSync } =
+    await import('../lib/doc/ydoc');
   const sd1 = openSheetDoc(id);
   const sd2 = openSheetDoc(nextId);
   await Promise.all([waitForSync(sd1.provider), waitForSync(sd2.provider)]);

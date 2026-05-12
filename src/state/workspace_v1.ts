@@ -13,8 +13,11 @@ import { getAppState, setAppState } from '../lib/doc/db_v1';
 
 let _projectDoc: ProjectDoc | null = null;
 
-const [_activeProjectId, setActiveProjectId] = createSignal<string | null>(null);
-const [_activeProjectDoc, setActiveProjectDoc] = createSignal<ProjectDoc | null>(null);
+const [_activeProjectId, setActiveProjectId] = createSignal<string | null>(
+  null,
+);
+const [_activeProjectDoc, setActiveProjectDoc] =
+  createSignal<ProjectDoc | null>(null);
 const [_activeProjectLabel, setActiveProjectLabel] = createSignal<string>('');
 
 export const activeProjectId = _activeProjectId;
@@ -50,7 +53,9 @@ export async function closeProject(): Promise<void> {
 }
 
 export async function restoreLastProject(): Promise<void> {
-  const id = (await getAppState('global', '', 'activeProjectId')) as string | null;
+  const id = (await getAppState('global', '', 'activeProjectId')) as
+    | string
+    | null;
   if (id) await openProject(id);
 }
 
@@ -63,7 +68,9 @@ export async function restoreLastSheet(): Promise<string | null> {
 let _sheetDoc: SheetDoc | null = null;
 
 const [_activeSheetId, setActiveSheetId] = createSignal<string | null>(null);
-const [_activeSheetDoc, setActiveSheetDoc] = createSignal<SheetDoc | null>(null);
+const [_activeSheetDoc, setActiveSheetDoc] = createSignal<SheetDoc | null>(
+  null,
+);
 
 export const activeSheetId = _activeSheetId;
 export const activeSheetDoc = _activeSheetDoc;

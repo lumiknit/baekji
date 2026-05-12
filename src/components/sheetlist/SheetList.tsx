@@ -16,13 +16,21 @@ import {
   reorderSheet,
   orderKeyBetween,
   filterQuery,
+  selectedIds,
+  selectAll,
+  clearSelection,
 } from '../../state/sheet_list';
-import { activeProjectDoc, activeProjectId, activeProjectLabel } from '../../state/workspace_v1';
+import {
+  activeProjectDoc,
+  activeProjectId,
+  activeProjectLabel,
+} from '../../state/workspace_v1';
 import { setSidebarView } from '../../state/workspace';
 import TagFilterInput from './TagFilterInput';
 import SheetItem from './SheetItem';
 import Dropdown from '../Dropdown';
 import type { SheetMeta } from '../../lib/doc/v1';
+import { s } from '../../lib/i18n';
 
 // ─── Drag-and-drop ────────────────────────────────────────────────
 
@@ -102,14 +110,16 @@ const SheetList: Component = () => {
         when={activeProjectDoc()}
         fallback={
           <div class="tree-no-project">
-            <span class="tree-no-project-label">프로젝트가 선택되지 않았습니다</span>
-            <button class="btn-border btn-sm" onClick={() => setSidebarView('projects')}>
-              목록 보기
+            <span class="tree-no-project-label">{s('tree.no_project')}</span>
+            <button
+              class="btn-border btn-sm"
+              onClick={() => setSidebarView('projects')}
+            >
+              {s('tree.view_list')}
             </button>
           </div>
         }
       >
-        {/* ── 프로젝트 헤더 ── */}
         <div class="sidebar-project-header">
           <A href={`/project/${activeProjectId()}`} class="tree-project-link">
             <div class="btn-pad">
@@ -118,29 +128,44 @@ const SheetList: Component = () => {
           </A>
 
           <div class="tree-project-header-btns">
-            <button class="sb-icon-btn" title="새 시트" onClick={handleNewSheet}>
-              <div class="btn-pad"><TbOutlineFilePlus /></div>
+            <button
+              class="sb-icon-btn"
+              title={s('sidebar.new_sheet')}
+              onClick={handleNewSheet}
+            >
+              <div class="btn-pad">
+                <TbOutlineFilePlus />
+              </div>
             </button>
             <Dropdown
               triggerClass="sb-icon-btn"
-              triggerAriaLabel="더보기"
+              triggerAriaLabel={s('sidebar.more_actions')}
               align="right"
               open={projectMenuOpen}
               onOpenChange={setProjectMenuOpen}
-              trigger={<div class="btn-pad"><TbOutlineDotsVertical /></div>}
+              trigger={
+                <div class="btn-pad">
+                  <TbOutlineDotsVertical />
+                </div>
+              }
               items={[
-                { label: '프로젝트 목록', onSelect: () => setSidebarView('projects') },
+                selectedIds().size > 0
+                  ? { label: s('tree.deselect_all'), onSelect: clearSelection }
+                  : { label: s('tree.select_all'), onSelect: selectAll },
               ]}
             />
           </div>
         </div>
 
-        {/* ── 필터 바 ── */}
         <div class="sl-toolbar">
           <TagFilterInput />
         </div>
+        <Show when={selectedIds().size > 0}>
+          <div class="sl-selection-bar">
+            {s('tree.selected_count_label', { count: selectedIds().size })}
+          </div>
+        </Show>
 
-        {/* ── 시트 목록 (휴지통 포함) ── */}
         <div class="sl-list">
           <For each={filteredSheets()}>
             {(sheet, idx) => (
@@ -166,30 +191,44 @@ const SheetList: Component = () => {
 
           <Show when={filteredSheets().length === 0}>
             <div class="tree-trash-empty-msg">
-              {filterQuery() ? '일치하는 시트 없음' : '시트가 없습니다'}
+              {filterQuery() ? s('sheet.no_match') : s('sheet.empty')}
             </div>
           </Show>
 
-          {/* ── 휴지통 (리스트 안에 포함) ── */}
           <div class="tree-trash-section">
             <div
               class="tree-trash-header"
               role="button"
               tabIndex={0}
               onClick={() => setTrashOpen((v) => !v)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setTrashOpen((v) => !v); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') setTrashOpen((v) => !v);
+              }}
             >
-              <span class="icon">{trashOpen() ? <TbOutlineChevronDown /> : <TbOutlineChevronRight />}</span>
-              <span class="icon"><TbFillTrash /></span>
-              <span class="tree-trash-label">휴지통</span>
+              <span class="icon">
+                {trashOpen() ? (
+                  <TbOutlineChevronDown />
+                ) : (
+                  <TbOutlineChevronRight />
+                )}
+              </span>
+              <span class="icon">
+                <TbFillTrash />
+              </span>
+              <span class="tree-trash-label">{s('tree.trash')}</span>
               <Show when={trashSheets().length > 0}>
                 <span class="tree-trash-count">{trashSheets().length}</span>
                 <button
                   class="tree-trash-empty-btn sb-icon-btn"
-                  title="휴지통 비우기"
-                  onClick={(e) => { e.stopPropagation(); emptyTrash(); }}
+                  title={s('tree.trash_empty_btn')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    emptyTrash();
+                  }}
                 >
-                  <div class="btn-pad"><TbFillTrash /></div>
+                  <div class="btn-pad">
+                    <TbFillTrash />
+                  </div>
                 </button>
               </Show>
             </div>
@@ -197,7 +236,11 @@ const SheetList: Component = () => {
             <Show when={trashOpen()}>
               <Show
                 when={trashSheets().length > 0}
-                fallback={<div class="tree-trash-empty-msg">휴지통이 비어 있습니다</div>}
+                fallback={
+                  <div class="tree-trash-empty-msg">
+                    {s('tree.trash_empty')}
+                  </div>
+                }
               >
                 <For each={trashSheets()}>
                   {(sheet) => <SheetItem sheet={sheet} isTrash />}

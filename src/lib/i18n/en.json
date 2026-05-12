@@ -82,6 +82,7 @@
     "copied": "Copied.",
     "split": "Split",
     "analysis": "Analysis",
+    "add_tag": "Add tag",
     "undo": "Undo",
     "redo": "Redo",
     "bold": "Bold",
@@ -179,7 +180,13 @@
     "reset_button": "Full Reset"
   },
   "sidebar": {
-    "project_list": "Project List"
+    "project_list": "Project List",
+    "no_project": "No projects",
+    "new_sheet": "New Sheet",
+    "more_actions": "More",
+    "filter_clear": "Clear filter",
+    "filter_search": "View in project page",
+    "filter_placeholder": "Tag filter (e.g. draft & novel)"
   },
   "project": {
     "search_placeholder": "Search projects...",
@@ -191,11 +198,54 @@
     "version_info": "Version Info",
     "updated_at": "Last updated",
     "exported_at": "Exported at",
-    "exported_by": "Exported by"
+    "exported_by": "Exported by",
+    "no_project_open": "No project is open",
+    "rename_title": "Click to rename",
+    "sheet_count": "{{count}} sheets",
+    "tag_count": "{{count}} tags",
+    "filter_result": "Filter: {{query}} → {{filtered}}/{{total}}",
+    "analyze_run": "Run analysis",
+    "analyzing": "Analyzing…",
+    "stat_sheet": "Sheet",
+    "stat_bytes": "Bytes",
+    "stat_chars": "Chars",
+    "stat_no_space": "No space",
+    "stat_no_special": "No special",
+    "stat_words": "Words",
+    "stat_total": "Total",
+    "export_text": "Plain Text",
+    "export_preview": "Preview",
+    "export_preparing": "Preparing…",
+    "export_download": "Download",
+    "export_count": "({{count}})",
+    "export_filter_count": "(filtered: {{count}})",
+    "tag_colors_title": "Tag Colors",
+    "tag_color_set": "Set color",
+    "tag_color_reset": "Reset to auto color",
+    "tag_item_count": "{{count}}",
+    "danger_title": "Danger Zone",
+    "danger_desc": "Deleting a project permanently removes all sheets.",
+    "delete": "Delete Project",
+    "legacy_label": "Legacy (V0)"
+  },
+  "sheet": {
+    "remove_tag": "Click to remove",
+    "restore": "Restore",
+    "delete_permanent": "Delete permanently",
+    "more_actions": "More",
+    "empty": "No sheets",
+    "no_match": "No matching sheets",
+    "edit_tags": "Edit Tags",
+    "edit_tags_prompt": "Enter tags separated by commas",
+    "empty_content": "(Empty)",
+    "tag_invalid": "Invalid tag (contains special characters)"
   },
   "tree": {
     "no_project": "No project selected",
     "view_list": "View List",
+    "select_all": "Select All",
+    "deselect_all": "Deselect All",
+    "selected_count_label": "{{count}} selected",
     "selected_count": "{{count}} selected",
     "delete_selected_confirm": "Delete {{count}} items?",
     "deselect": "Deselect",
@@ -210,6 +260,7 @@
     "trash_moved": "Moved to trash",
     "trash_empty_confirm": "Empty trash? All items will be permanently deleted.",
     "trash_empty_btn": "Empty Trash",
+    "merge_down": "Merge with sheet below",
     "undo": "Undo"
   },
   "analysis": {
@@ -256,5 +307,17 @@
   "import": {
     "error_title": "Import Error",
     "error_invalid_file": "Unsupported file format."
+  },
+  "backup": {
+    "title": "Project Backup",
+    "export_desc": "Download a snapshot of the current project as a .gz backup file.",
+    "export_btn": "Download Backup",
+    "exporting": "Exporting…",
+    "exported": "Backup downloaded.",
+    "export_error": "Export failed.",
+    "import_desc": "Restore a project from a .gz backup file.",
+    "import_btn": "Load Backup File",
+    "imported": "Project restored from backup.",
+    "import_error": "Failed to load backup. File may be corrupt or incompatible."
   }
 }

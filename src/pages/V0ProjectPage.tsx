@@ -1,7 +1,12 @@
 import type { Component } from 'solid-js';
 import { createResource, createSignal, For, Show } from 'solid-js';
 import { useParams } from '@solidjs/router';
-import { getAllVersionRoots, getAllNodesInVersion, getSheetContent, deleteVersionSubtree } from '../lib/doc/db';
+import {
+  getAllVersionRoots,
+  getAllNodesInVersion,
+  getSheetContent,
+  deleteVersionSubtree,
+} from '../lib/doc/db';
 import { showConfirm } from '../state/modal';
 
 const V0ProjectPage: Component = () => {
@@ -34,7 +39,10 @@ const V0ProjectPage: Component = () => {
     },
   );
 
-  const downloadAll = (versionLabel: string, sheets: { node: { label?: string; id: string }; markdown: string }[]) => {
+  const downloadAll = (
+    versionLabel: string,
+    sheets: { node: { label?: string; id: string }; markdown: string }[],
+  ) => {
     const lines: string[] = [];
     for (const s of sheets) {
       lines.push(`# ${s.node.label ?? s.node.id}`);
@@ -54,7 +62,10 @@ const V0ProjectPage: Component = () => {
   };
 
   const deleteVersion = async (versionId: string, label: string) => {
-    const ok = await showConfirm('버전 삭제', `"${label}" 버전을 영구 삭제할까요? 복구할 수 없습니다.`);
+    const ok = await showConfirm(
+      '버전 삭제',
+      `"${label}" 버전을 영구 삭제할까요? 복구할 수 없습니다.`,
+    );
     if (!ok) return;
     setDeleting(true);
     try {
@@ -67,9 +78,18 @@ const V0ProjectPage: Component = () => {
 
   return (
     <div style={{ padding: '2rem', 'max-width': '720px', margin: '0 auto' }}>
-      <h1 style={{ 'font-size': '1.2rem', 'margin-bottom': '0.5rem' }}>레거시 프로젝트 (V0)</h1>
-      <p style={{ opacity: 0.5, 'font-size': '0.85rem', 'margin-bottom': '1.5rem' }}>
-        구형 포맷(V0) 프로젝트입니다. 내용을 확인하고 필요한 내용을 복사하거나 다운로드한 뒤 삭제하세요.
+      <h1 style={{ 'font-size': '1.2rem', 'margin-bottom': '0.5rem' }}>
+        레거시 프로젝트 (V0)
+      </h1>
+      <p
+        style={{
+          opacity: 0.5,
+          'font-size': '0.85rem',
+          'margin-bottom': '1.5rem',
+        }}
+      >
+        구형 포맷(V0) 프로젝트입니다. 내용을 확인하고 필요한 내용을 복사하거나
+        다운로드한 뒤 삭제하세요.
       </p>
 
       <Show when={data.loading}>
@@ -82,10 +102,29 @@ const V0ProjectPage: Component = () => {
 
       <For each={data() ?? []}>
         {(item) => (
-          <div style={{ 'margin-bottom': '2rem', border: '1px solid var(--c-border)', 'border-radius': '8px', overflow: 'hidden' }}>
-            <div style={{ padding: '0.75rem 1rem', background: 'var(--c-bg-2)', display: 'flex', 'align-items': 'center', gap: '0.5rem' }}>
-              <span style={{ flex: 1, 'font-weight': 600 }}>{item.version.label}</span>
-              <span style={{ opacity: 0.5, 'font-size': '0.8rem' }}>{item.version.updatedAt?.slice(0, 10)}</span>
+          <div
+            style={{
+              'margin-bottom': '2rem',
+              border: '1px solid var(--c-border)',
+              'border-radius': '8px',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '0.75rem 1rem',
+                background: 'var(--c-bg-2)',
+                display: 'flex',
+                'align-items': 'center',
+                gap: '0.5rem',
+              }}
+            >
+              <span style={{ flex: 1, 'font-weight': 600 }}>
+                {item.version.label}
+              </span>
+              <span style={{ opacity: 0.5, 'font-size': '0.8rem' }}>
+                {item.version.updatedAt?.slice(0, 10)}
+              </span>
               <button
                 class="btn-border btn-sm"
                 onClick={() => downloadAll(item.version.label, item.sheets)}
@@ -96,7 +135,9 @@ const V0ProjectPage: Component = () => {
                 class="btn-border btn-sm"
                 style={{ color: 'var(--c-danger, #e53)' }}
                 disabled={deleting()}
-                onClick={() => deleteVersion(item.version.id, item.version.label)}
+                onClick={() =>
+                  deleteVersion(item.version.id, item.version.label)
+                }
               >
                 삭제
               </button>
@@ -104,25 +145,38 @@ const V0ProjectPage: Component = () => {
 
             <div style={{ padding: '0.75rem 1rem' }}>
               <Show when={item.sheets.length === 0}>
-                <div style={{ opacity: 0.4, 'font-size': '0.85rem' }}>시트 없음</div>
+                <div style={{ opacity: 0.4, 'font-size': '0.85rem' }}>
+                  시트 없음
+                </div>
               </Show>
               <For each={item.sheets}>
                 {(sheet) => (
                   <div style={{ 'margin-bottom': '1.25rem' }}>
-                    <div style={{ 'font-size': '0.85rem', 'font-weight': 600, opacity: 0.7, 'margin-bottom': '0.25rem' }}>
+                    <div
+                      style={{
+                        'font-size': '0.85rem',
+                        'font-weight': 600,
+                        opacity: 0.7,
+                        'margin-bottom': '0.25rem',
+                      }}
+                    >
                       {(sheet.node as any).label ?? sheet.node.id}
                     </div>
-                    <pre style={{
-                      background: 'var(--c-bg-2)',
-                      padding: '0.75rem',
-                      'border-radius': '6px',
-                      'font-size': '0.8rem',
-                      'white-space': 'pre-wrap',
-                      'word-break': 'break-word',
-                      margin: 0,
-                      'max-height': '300px',
-                      overflow: 'auto',
-                    }}>{sheet.markdown || '(내용 없음)'}</pre>
+                    <pre
+                      style={{
+                        background: 'var(--c-bg-2)',
+                        padding: '0.75rem',
+                        'border-radius': '6px',
+                        'font-size': '0.8rem',
+                        'white-space': 'pre-wrap',
+                        'word-break': 'break-word',
+                        margin: 0,
+                        'max-height': '300px',
+                        overflow: 'auto',
+                      }}
+                    >
+                      {sheet.markdown || '(내용 없음)'}
+                    </pre>
                   </div>
                 )}
               </For>

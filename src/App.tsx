@@ -8,6 +8,8 @@ import AboutPage from './pages/AboutPage';
 import BootstrapPage from './pages/BootstrapPage';
 import SheetPage from './pages/SheetPage';
 import ProjectPage from './pages/ProjectPage';
+import AnalysisPage from './pages/AnalysisPage';
+import ExportPage from './pages/ExportPage';
 import V0ProjectPage from './pages/V0ProjectPage';
 import SettingsPage from './pages/SettingsPage';
 import { updateRootStyle } from './state/settings';
@@ -55,6 +57,8 @@ const App: Component = () => {
         <Route path="/" component={BootstrapPage} />
         <Route path="/sheets/:id" component={SheetPage} />
         <Route path="/project/:pjId" component={ProjectPage} />
+        <Route path="/project/:pjId/analysis" component={AnalysisPage} />
+        <Route path="/project/:pjId/export" component={ExportPage} />
         <Route path="/v0-project/:pjId" component={V0ProjectPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/about" component={AboutPage} />

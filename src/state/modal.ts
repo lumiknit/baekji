@@ -10,9 +10,14 @@ interface ModalState {
   resolve: (value: any) => void;
 }
 
-export const [modalState, setModalState] = createSignal<ModalState | null>(null);
+export const [modalState, setModalState] = createSignal<ModalState | null>(
+  null,
+);
 
-export const showConfirm = (title: string, message: string): Promise<boolean> => {
+export const showConfirm = (
+  title: string,
+  message: string,
+): Promise<boolean> => {
   return new Promise((resolve) => {
     setModalState({ type: 'confirm', title, message, resolve });
   });
@@ -35,3 +40,7 @@ export const closeModal = (value: any = null) => {
   }
   setModalState(null);
 };
+
+export const [backupModalOpen, setBackupModalOpen] = createSignal(false);
+export const openBackupModal = () => setBackupModalOpen(true);
+export const closeBackupModal = () => setBackupModalOpen(false);

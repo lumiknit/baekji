@@ -1,5 +1,4 @@
 import {
-  TbOutlineCircleCheck,
   TbOutlineDeviceFloppy,
   TbOutlineArrowsSplit,
   TbOutlineAnalyze,
@@ -9,16 +8,12 @@ import {
   TbOutlineCopy,
 } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
-import { Show } from 'solid-js';
-import CircularProgress from '../CircularProgress';
 import Dropdown from '../Dropdown';
 import { formatCompact } from '../../lib/number';
 import { s } from '../../lib/i18n';
 
 interface EditorToolOverlayProps {
   charCount: () => number;
-  isDirty: () => boolean;
-  autosaveEndTime: () => Date | null;
   onUndo: () => void;
   onRedo: () => void;
   onSave: () => void;
@@ -34,16 +29,6 @@ const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
         <span class="editor-tool-charcount">
           {s('editor.size', { count: formatCompact(props.charCount()) })}
         </span>
-        <Show
-          when={props.isDirty()}
-          fallback={<TbOutlineCircleCheck size={14} />}
-        >
-          <CircularProgress
-            endTime={props.autosaveEndTime()}
-            size={14}
-            strokeWidth={0.4}
-          />
-        </Show>
       </div>
 
       <button

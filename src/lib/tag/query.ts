@@ -249,7 +249,7 @@ export function extractAutoTags(expr: TagExpr): string[] {
     case 'or': {
       const l = extractAutoTags(expr.left);
       const r = new Set(extractAutoTags(expr.right));
-      return l.filter(t => r.has(t));
+      return l.filter((t) => r.has(t));
     }
   }
 }

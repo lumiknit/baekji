@@ -42,8 +42,7 @@ export function readProjectMeta(
     id: projectId,
     label: (meta.get('label') as string) ?? '',
     updatedAt: (meta.get('updatedAt') as string) ?? new Date().toISOString(),
-    tagColors:
-      (meta.get('tagColors') as ProjectMeta['tagColors']) ?? {},
+    tagColors: (meta.get('tagColors') as ProjectMeta['tagColors']) ?? {},
   };
 }
 

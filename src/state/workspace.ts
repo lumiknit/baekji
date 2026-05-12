@@ -1,6 +1,7 @@
 import { createSignal } from 'solid-js';
 import { makePersisted } from '@solid-primitives/storage';
 import localforage from 'localforage';
+import { genOrderedId } from '../lib/uuid';
 
 localforage.config({
   name: 'baekji-kv-pairs',
@@ -34,3 +35,8 @@ export const [sidebarView, setSidebarView] = makePersisted(
   },
 );
 
+// Device ID — persisted so same device always has the same ID
+export const [deviceId] = makePersisted(createSignal<string>(genOrderedId()), {
+  name: 'baekji-device-id',
+  storage: localforage as any,
+});

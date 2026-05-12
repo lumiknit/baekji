@@ -75,7 +75,11 @@ describe('parseQuery', () => {
   it('NOT operator', () => {
     const r = parseQuery('!draft');
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.expr).toEqual({ type: 'not', expr: { type: 'literal', tag: 'draft' } });
+    if (r.ok)
+      expect(r.expr).toEqual({
+        type: 'not',
+        expr: { type: 'literal', tag: 'draft' },
+      });
   });
 
   it('AND operator', () => {
@@ -137,8 +141,12 @@ describe('evalExpr', () => {
   });
 
   it('literal — present / absent', () => {
-    expect(evalExpr({ type: 'literal', tag: 'draft' }, tags(['draft', 'novel']))).toBe(true);
-    expect(evalExpr({ type: 'literal', tag: 'revision' }, tags(['draft', 'novel']))).toBe(false);
+    expect(
+      evalExpr({ type: 'literal', tag: 'draft' }, tags(['draft', 'novel'])),
+    ).toBe(true);
+    expect(
+      evalExpr({ type: 'literal', tag: 'revision' }, tags(['draft', 'novel'])),
+    ).toBe(false);
   });
 
   it('glob prefix — match / no match', () => {
@@ -154,7 +162,10 @@ describe('evalExpr', () => {
   });
 
   it('not', () => {
-    const expr: TagExpr = { type: 'not', expr: { type: 'literal', tag: 'draft' } };
+    const expr: TagExpr = {
+      type: 'not',
+      expr: { type: 'literal', tag: 'draft' },
+    };
     expect(evalExpr(expr, tags(['novel']))).toBe(true);
     expect(evalExpr(expr, tags(['draft']))).toBe(false);
   });
@@ -201,7 +212,7 @@ describe('matchQuery', () => {
     expect(matchQuery(q, t(['draft']))).toBe(true);
     expect(matchQuery(q, t(['revision']))).toBe(true);
     expect(matchQuery(q, t(['work:novel', 'draft']))).toBe(false); // work:* present
-    expect(matchQuery(q, t(['novel']))).toBe(false);               // no draft/revision
+    expect(matchQuery(q, t(['novel']))).toBe(false); // no draft/revision
   });
 
   it('empty query → matches everything', () => {
@@ -238,7 +249,9 @@ describe('extractAutoTags', () => {
 
   it('OR with common AND tag → common tag only', () => {
     // (common&draft) | (common&revision) → intersection: ['common']
-    expect(extractAutoTags(parse('(common&draft)|(common&revision)'))).toEqual(['common']);
+    expect(extractAutoTags(parse('(common&draft)|(common&revision)'))).toEqual([
+      'common',
+    ]);
   });
 
   it('NOT → empty', () => {

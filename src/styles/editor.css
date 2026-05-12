@@ -164,8 +164,9 @@
 }
 
 .editor-section-marker--start {
+  flex-direction: column;
   padding-top: 45dvh;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .editor-section-marker--end {
@@ -179,6 +180,14 @@
   opacity: 0.25;
   white-space: nowrap;
   line-height: 1;
+}
+
+.editor-sod-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  width: 100%;
+  padding-top: var(--sp-2);
 }
 
 .editor-section-marker .separator-line {

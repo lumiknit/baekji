@@ -1,5 +1,12 @@
 import type { Component } from 'solid-js';
-import { createSignal, For, Show, onMount } from 'solid-js';
+import {
+  createSignal,
+  createEffect,
+  For,
+  Show,
+  onMount,
+  onCleanup,
+} from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import {
   TbOutlineDotsVertical,
@@ -11,7 +18,11 @@ import {
 } from 'solid-icons/tb';
 import { openSheetDoc, closeSheetDoc, waitForSync } from '../../lib/doc/ydoc';
 import type { SheetMeta } from '../../lib/doc/v1';
-import { activeSheetId } from '../../state/workspace_v1';
+import {
+  activeSheetId,
+  activeProjectId,
+  activeSheetDoc,
+} from '../../state/workspace_v1';
 import {
   softDeleteSheet,
   restoreSheet,
@@ -19,14 +30,22 @@ import {
   mergeSheetDown,
   liveSheets,
   updateSheetTags,
+  isSelected,
+  toggleSelect,
+  selectedIds,
 } from '../../state/sheet_list';
 import { tagToHsl } from '../../lib/tag/color';
 import { isValidTag } from '../../lib/tag/query';
 import { showPrompt } from '../../state/modal';
 import Dropdown from '../Dropdown';
+import { s } from '../../lib/i18n';
+import toast from 'solid-toast';
 
 function stripMarkdown(line: string): string {
-  return line.replace(/^#{1,6}\s+/, '').replace(/[*_~`]/g, '').trim();
+  return line
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/[*_~`]/g, '')
+    .trim();
 }
 
 interface Props {
@@ -45,54 +64,116 @@ const SheetItem: Component<Props> = (props) => {
     return sheets[sheets.length - 1]?.id === props.sheet.id;
   };
 
-  onMount(async () => {
-    const sd = openSheetDoc(props.sheet.id);
-    await waitForSync(sd.provider);
-    const text = sd.content.toString().slice(0, 300);
-    closeSheetDoc(sd);
-
+  const extractPreview = (text: string) => {
     const lines = text
+      .slice(0, 300)
       .split('\n')
       .map(stripMarkdown)
       .filter((l) => l.length > 0)
       .slice(0, 3);
-    setPreview(lines.join(' ') || null);
+    return lines.join(' ') || '';
+  };
+
+  onMount(async () => {
+    const sd = openSheetDoc(props.sheet.id);
+    await waitForSync(sd.provider);
+    setPreview(extractPreview(sd.content.toString()));
+    closeSheetDoc(sd);
   });
+
+  {
+    let observedContent: import('yjs').Text | null = null;
+    const onUpdate = () => {
+      const sd = activeSheetDoc();
+      if (sd) setPreview(extractPreview(sd.content.toString()));
+    };
+    createEffect(() => {
+      if (observedContent) {
+        observedContent.unobserve(onUpdate);
+        observedContent = null;
+      }
+      if (activeSheetId() !== props.sheet.id) return;
+      const sd = activeSheetDoc();
+      if (!sd) return;
+      observedContent = sd.content;
+      observedContent.observe(onUpdate);
+    });
+    onCleanup(() => {
+      if (observedContent) observedContent.unobserve(onUpdate);
+    });
+  }
 
   const handleClick = () => {
     if (props.isTrash) return;
+    if (selectedIds().size > 0) {
+      toggleSelect(props.sheet.id);
+      return;
+    }
     navigate(`/sheets/${props.sheet.id}`);
   };
 
   const handleEditTags = async () => {
     const current = props.sheet.tags.join(', ');
-    const input = await showPrompt('태그 편집', '태그를 쉼표로 구분하여 입력하세요', current);
+    const input = await showPrompt(
+      s('sheet.edit_tags'),
+      s('sheet.edit_tags_prompt'),
+      current,
+    );
     if (input === null) return;
-    const tags = input
+    const sanitized = input
       .split(',')
-      .map((t) => t.trim())
-      .filter((t) => isValidTag(t));
-    updateSheetTags(props.sheet.id, tags);
+      .map((t) => t.trim().replace(/\s+/g, '_'));
+    const valid = sanitized.filter((t) => t && isValidTag(t));
+    const invalid = sanitized.filter((t) => t && !isValidTag(t));
+    if (invalid.length > 0) toast.error(s('sheet.tag_invalid'));
+    updateSheetTags(props.sheet.id, valid);
   };
 
   const dropdownItems = () => {
     if (props.isTrash) return [];
     const items: Parameters<typeof Dropdown>[0]['items'] = [
-      { icon: TbOutlineTag, label: '태그 편집', onSelect: handleEditTags },
-      { icon: TbOutlineReportAnalytics, label: '분석', onSelect: () => navigate(`/sheets/${props.sheet.id}/analysis`) },
+      {
+        icon: TbOutlineTag,
+        label: s('sheet.edit_tags'),
+        onSelect: handleEditTags,
+      },
+      {
+        icon: TbOutlineReportAnalytics,
+        label: s('common.analysis'),
+        onSelect: () => {
+          const id = activeProjectId();
+          if (id)
+            navigate(
+              `/project/${id}?q=${encodeURIComponent(props.sheet.tags.join(' | ') || '')}`,
+            );
+        },
+      },
       { separator: true as const },
     ];
     if (!isLast()) {
-      items.push({ icon: TbOutlineArrowMerge, label: '아래 시트와 합치기', onSelect: () => mergeSheetDown(props.sheet.id) });
+      items.push({
+        icon: TbOutlineArrowMerge,
+        label: s('tree.merge_down'),
+        onSelect: () => mergeSheetDown(props.sheet.id),
+      });
     }
-    items.push({ icon: TbFillTrash, label: '삭제', danger: true, onSelect: () => softDeleteSheet(props.sheet.id) });
+    items.push({
+      icon: TbFillTrash,
+      label: s('common.delete'),
+      danger: true,
+      onSelect: () => softDeleteSheet(props.sheet.id),
+    });
     return items;
   };
 
   return (
     <div
-      class={`sl-item${isActive() ? ' sl-item--active' : ''}${props.isTrash ? ' sl-item--trash' : ''}`}
+      class={`sl-item${isActive() ? ' sl-item--active' : ''}${props.isTrash ? ' sl-item--trash' : ''}${isSelected(props.sheet.id) ? ' sl-item--selected' : ''}${menuOpen() ? ' sl-item--open' : ''}`}
       onClick={handleClick}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setMenuOpen(true);
+      }}
       onPointerDown={props.isTrash ? undefined : props.onDragStart}
     >
       <div class="sl-item-body">
@@ -100,11 +181,14 @@ const SheetItem: Component<Props> = (props) => {
           <div class="sl-item-tags">
             <For each={props.sheet.tags}>
               {(tag) => {
-                const { h, s } = tagToHsl(tag);
+                const { h, s: sat } = tagToHsl(tag);
                 return (
                   <span
-                    class="sl-tag"
-                    style={{ background: `hsl(${h}deg ${s}% 60% / 0.25)`, color: `hsl(${h}deg ${s}% 35%)` }}
+                    class="tag"
+                    style={{
+                      background: `hsl(${h}deg ${sat}% 60% / 0.25)`,
+                      color: `hsl(${h}deg ${sat}% var(--color-l))`,
+                    }}
                   >
                     {tag}
                   </span>
@@ -113,9 +197,13 @@ const SheetItem: Component<Props> = (props) => {
             </For>
           </div>
         </Show>
-        <div class={`sl-item-preview${preview() === null ? ' sl-item-preview--loading' : ''}${preview() === '' ? ' sl-item-preview--empty' : ''}`}>
+        <div
+          class={`sl-item-preview${preview() === null ? ' sl-item-preview--loading' : ''}${preview() === '' ? ' sl-item-preview--empty' : ''}`}
+        >
           <Show when={preview() !== null} fallback="…">
-            <Show when={preview()} fallback="(비어 있음)">{preview()}</Show>
+            <Show when={preview()} fallback={s('sheet.empty_content')}>
+              {preview()}
+            </Show>
           </Show>
         </div>
       </div>
@@ -125,22 +213,38 @@ const SheetItem: Component<Props> = (props) => {
           when={!props.isTrash}
           fallback={
             <>
-              <button class="sb-icon-btn" title="복원" onClick={() => restoreSheet(props.sheet.id)}>
-                <div class="btn-pad"><TbOutlineRestore /></div>
+              <button
+                class="sb-icon-btn"
+                title={s('sheet.restore')}
+                onClick={() => restoreSheet(props.sheet.id)}
+              >
+                <div class="btn-pad">
+                  <TbOutlineRestore />
+                </div>
               </button>
-              <button class="sb-icon-btn" title="영구 삭제" onClick={() => deleteSheetPermanently(props.sheet.id)}>
-                <div class="btn-pad"><TbFillTrash /></div>
+              <button
+                class="sb-icon-btn"
+                title={s('sheet.delete_permanent')}
+                onClick={() => deleteSheetPermanently(props.sheet.id)}
+              >
+                <div class="btn-pad">
+                  <TbFillTrash />
+                </div>
               </button>
             </>
           }
         >
           <Dropdown
             triggerClass="sb-icon-btn"
-            triggerAriaLabel="더보기"
+            triggerAriaLabel={s('sheet.more_actions')}
             align="right"
             open={menuOpen}
             onOpenChange={setMenuOpen}
-            trigger={<div class="btn-pad"><TbOutlineDotsVertical /></div>}
+            trigger={
+              <div class="btn-pad">
+                <TbOutlineDotsVertical />
+              </div>
+            }
             items={dropdownItems()}
           />
         </Show>

@@ -82,6 +82,7 @@
     "copied": "복사되었습니다.",
     "split": "분할",
     "analysis": "분석",
+    "add_tag": "태그 추가",
     "undo": "실행 취소",
     "redo": "다시 실행",
     "bold": "굵게",
@@ -181,7 +182,13 @@
     "reset_button": "완전 초기화"
   },
   "sidebar": {
-    "project_list": "프로젝트 목록"
+    "project_list": "프로젝트 목록",
+    "no_project": "프로젝트가 없습니다",
+    "new_sheet": "새 시트",
+    "more_actions": "더보기",
+    "filter_clear": "필터 지우기",
+    "filter_search": "프로젝트 페이지에서 보기",
+    "filter_placeholder": "태그 필터 (예: 초안 & 소설)"
   },
   "project": {
     "search_placeholder": "프로젝트 검색...",
@@ -193,11 +200,54 @@
     "version_info": "버전 정보",
     "updated_at": "최종 수정",
     "exported_at": "내보낸 시각",
-    "exported_by": "내보낸 기기"
+    "exported_by": "내보낸 기기",
+    "no_project_open": "프로젝트가 열려 있지 않습니다",
+    "rename_title": "클릭하여 이름 변경",
+    "sheet_count": "시트 {{count}}개",
+    "tag_count": "태그 {{count}}종",
+    "filter_result": "필터: {{query}} → {{filtered}}/{{total}}개",
+    "analyze_run": "분석 실행",
+    "analyzing": "분석 중…",
+    "stat_sheet": "시트",
+    "stat_bytes": "바이트",
+    "stat_chars": "글자",
+    "stat_no_space": "공백제외",
+    "stat_no_special": "특수제외",
+    "stat_words": "단어",
+    "stat_total": "합계",
+    "export_text": "일반 텍스트",
+    "export_preview": "미리보기",
+    "export_preparing": "준비 중…",
+    "export_download": "다운로드",
+    "export_count": "({{count}}개)",
+    "export_filter_count": "(필터: {{count}}개)",
+    "tag_colors_title": "태그 색상",
+    "tag_color_set": "색상 지정",
+    "tag_color_reset": "자동 색상으로 되돌리기",
+    "tag_item_count": "{{count}}개",
+    "danger_title": "위험 구역",
+    "danger_desc": "프로젝트를 삭제하면 모든 시트가 영구적으로 사라집니다.",
+    "delete": "프로젝트 삭제",
+    "legacy_label": "레거시 (V0)"
+  },
+  "sheet": {
+    "remove_tag": "클릭하여 제거",
+    "restore": "복원",
+    "delete_permanent": "영구 삭제",
+    "more_actions": "더보기",
+    "empty": "시트가 없습니다",
+    "no_match": "일치하는 시트 없음",
+    "edit_tags": "태그 편집",
+    "edit_tags_prompt": "태그를 쉼표로 구분하여 입력하세요",
+    "empty_content": "(비어 있음)",
+    "tag_invalid": "잘못된 태그입니다 (특수문자 포함)"
   },
   "tree": {
     "no_project": "프로젝트가 선택되지 않았습니다",
     "view_list": "목록 보기",
+    "select_all": "모두 선택",
+    "deselect_all": "선택 해제",
+    "selected_count_label": "{{count}}개 선택됨",
     "selected_count": "{{count}}개 선택됨",
     "delete_selected_confirm": "{{count}}개 항목을 삭제하시겠습니까?",
     "deselect": "선택 해제",
@@ -264,5 +314,17 @@
   "import": {
     "error_title": "불러오기 오류",
     "error_invalid_file": "지원하지 않는 파일 형식입니다."
+  },
+  "backup": {
+    "title": "프로젝트 백업",
+    "export_desc": "현재 프로젝트의 스냅샷을 .gz 백업 파일로 다운로드합니다.",
+    "export_btn": "백업 다운로드",
+    "exporting": "내보내는 중…",
+    "exported": "백업 파일이 다운로드되었습니다.",
+    "export_error": "내보내기 실패",
+    "import_desc": ".gz 백업 파일에서 프로젝트를 복원합니다.",
+    "import_btn": "백업 파일 불러오기",
+    "imported": "백업에서 프로젝트를 복원했습니다.",
+    "import_error": "백업 파일을 불러오지 못했습니다. 파일이 손상되었거나 호환되지 않을 수 있습니다."
   }
 }

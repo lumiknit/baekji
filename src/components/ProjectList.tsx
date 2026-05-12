@@ -62,7 +62,9 @@ const ProjectList: Component = () => {
 
   const filteredV0 = () => {
     const q = filter().toLowerCase();
-    const list = (v0Projects() ?? []).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    const list = (v0Projects() ?? []).sort((a, b) =>
+      b.updatedAt.localeCompare(a.updatedAt),
+    );
     return q ? list.filter((p) => p.label.toLowerCase().includes(q)) : list;
   };
 
@@ -80,18 +82,30 @@ const ProjectList: Component = () => {
           triggerClass="sb-icon-btn"
           triggerAriaLabel={s('common.more_actions')}
           align="right"
-          trigger={<div class="btn-pad"><span class="icon"><TbOutlineDotsVertical /></span></div>}
-          items={[{
-            label: showInactive() ? s('project.hide_inactive') : s('project.show_inactive'),
-            onSelect: () => setShowInactive((v) => !v),
-          }]}
+          trigger={
+            <div class="btn-pad">
+              <span class="icon">
+                <TbOutlineDotsVertical />
+              </span>
+            </div>
+          }
+          items={[
+            {
+              label: showInactive()
+                ? s('project.hide_inactive')
+                : s('project.show_inactive'),
+              onSelect: () => setShowInactive((v) => !v),
+            },
+          ]}
         />
       </div>
 
       <div class="project-list-items">
         <button class="project-list-new-btn" onClick={createV1Project}>
           <div class="btn-pad">
-            <span class="icon"><TbOutlinePlus /></span>
+            <span class="icon">
+              <TbOutlinePlus />
+            </span>
             새 프로젝트
           </div>
         </button>
@@ -103,18 +117,26 @@ const ProjectList: Component = () => {
               role="button"
               tabIndex={0}
               onClick={() => openV1Project(p.id)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openV1Project(p.id); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') openV1Project(p.id);
+              }}
             >
               <div class="btn-pad">
                 <div class="project-list-item-label">{p.label}</div>
-                <div class="project-list-item-meta">{formatRelativeDate(p.updatedAt)}</div>
+                <div class="project-list-item-meta">
+                  {formatRelativeDate(p.updatedAt)}
+                </div>
               </div>
             </div>
           )}
         </For>
 
         <Show when={filteredV0().length > 0}>
-          <div style={{ padding: '4px 8px', opacity: 0.4, 'font-size': '0.75em' }}>레거시 (V0)</div>
+          <div
+            style={{ padding: '4px 8px', opacity: 0.4, 'font-size': '0.75em' }}
+          >
+            {s('project.legacy_label')}
+          </div>
           <For each={filteredV0()}>
             {(p) => (
               <div
@@ -122,11 +144,16 @@ const ProjectList: Component = () => {
                 role="button"
                 tabIndex={0}
                 onClick={() => navigate(`/v0-project/${p.projectId}`)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/v0-project/${p.projectId}`); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ')
+                    navigate(`/v0-project/${p.projectId}`);
+                }}
               >
                 <div class="btn-pad">
                   <div class="project-list-item-label">{p.label}</div>
-                  <div class="project-list-item-meta">{formatRelativeDate(p.updatedAt)}</div>
+                  <div class="project-list-item-meta">
+                    {formatRelativeDate(p.updatedAt)}
+                  </div>
                 </div>
               </div>
             )}

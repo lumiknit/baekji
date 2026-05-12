@@ -114,6 +114,20 @@ a.btn-danger-solid:not([disabled]):hover {
   padding: var(--sp-2) var(--sp-4);
 }
 
+/* ─── Ghost (border hidden at rest) ──────────────── */
+
+.ghost {
+  border-color: transparent !important;
+  background: transparent !important;
+}
+
+.ghost:hover,
+.ghost:focus,
+.ghost:focus-within {
+  border-color: var(--border) !important;
+  background: var(--bg) !important;
+}
+
 /* ─── Inputs ──────────────────────────────────────── */
 
 input[type='text'],
@@ -161,7 +175,6 @@ input[type='checkbox']::before {
   clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
   background: var(--text);
   transform: scale(0);
-  transition: transform 0.1s ease;
 }
 
 input[type='checkbox']:checked {
@@ -221,4 +234,25 @@ input[type='checkbox']:checked::before {
   height: 1px;
   background: var(--border);
   margin: var(--sp-1) 0;
+}
+
+/* ─── Tag ─────────────────────────────────────────── */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  height: 18px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tag--removable {
+  cursor: pointer;
+}
+
+.tag--removable:hover {
+  border: 1px solid var(--border);
 }
