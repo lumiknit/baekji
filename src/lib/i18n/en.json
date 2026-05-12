@@ -82,6 +82,8 @@
     "copy": "Copy",
     "copied": "Copied.",
     "split": "Split",
+    "split_title": "Split Sheet",
+    "split_confirm": "Split the current sheet into two at the cursor position. Continue?",
     "analysis": "Analysis",
     "add_tag": "Add tag",
     "undo": "Undo",

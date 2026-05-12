@@ -42,6 +42,12 @@ const ModalContainer: Component = () => {
                   defaultValue={state().defaultValue}
                 />
               </Show>
+              <Show when={state().type === 'tagEdit'}>
+                <TagEditModal
+                  title={state().title}
+                  initialTags={state().tags ?? []}
+                />
+              </Show>
             </div>
           </div>
         )}

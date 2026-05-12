@@ -1,14 +1,10 @@
 import type { Component } from 'solid-js';
-import {
-  createSignal,
-  createEffect,
-  onMount,
-  onCleanup,
-  Show,
-} from 'solid-js';
+import { createSignal, createEffect, onMount, onCleanup, Show } from 'solid-js';
 import { useParams, useNavigate } from '@solidjs/router';
 import { activeProjectDoc, activeProjectId } from '../state/workspace_v1';
-import { updateSheetTags } from '../state/sheet_list';
+import { updateSheetTags, splitSheet } from '../state/sheet_list';
+import { showConfirm } from '../state/modal';
+import { s } from '../lib/i18n';
 import EditorCore, {
   type EditorCoreHandle,
 } from '../components/editor/EditorCore';
@@ -64,6 +60,22 @@ const SheetPage: Component = () => {
     }
   };
 
+  const handleSplit = async () => {
+    const content = handle?.getSplitContent();
+    if (!content) return;
+
+    const ok = await showConfirm(
+      s('editor.split_title'),
+      s('editor.split_confirm'),
+    );
+    if (!ok) return;
+
+    const nextId = await splitSheet(params.id, content.head, content.tail);
+    if (nextId) {
+      navigate(`/sheets/${nextId}`);
+    }
+  };
+
   return (
     <div class="editor-container">
       <div class="editor-tool-overlay-anchor">
@@ -73,7 +85,7 @@ const SheetPage: Component = () => {
           onRedo={() => handle?.redo()}
           onCopy={() => handle?.copy() ?? Promise.resolve()}
           onExport={handleExport}
-          onSplit={() => {}}
+          onSplit={handleSplit}
           onAnalysis={handleAnalysis}
         />
       </div>

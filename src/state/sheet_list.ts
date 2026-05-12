@@ -216,3 +216,52 @@ export async function mergeSheetDown(
   closeSheetDoc(sd2);
   softDeleteSheet(nextId);
 }
+
+/** 시트를 지정된 위치에서 둘로 나눔. */
+export async function splitSheet(
+  id: string,
+  head: string,
+  tail: string,
+): Promise<string | null> {
+  const sheetsMap = getSheetsMap();
+  if (!sheetsMap) return null;
+  const meta = sheetsMap.get(id);
+  if (!meta) return null;
+
+  // 1. Create new sheet for the second half
+  const nextId = createSheet(meta.tags, { after: id });
+  if (!nextId) return null;
+
+  const { openSheetDoc, closeSheetDoc, waitForSync } =
+    await import('../lib/doc/ydoc');
+
+  // 2. Update current sheet content to head
+  const sd1 = openSheetDoc(id);
+  // 3. Update new sheet content to tail
+  const sd2 = openSheetDoc(nextId);
+
+  await Promise.all([waitForSync(sd1.provider), waitForSync(sd2.provider)]);
+
+  sd1.doc.transact(() => {
+    sd1.content.delete(0, sd1.content.length);
+    sd1.content.insert(0, head);
+  });
+
+  sd2.doc.transact(() => {
+    sd2.content.delete(0, sd2.content.length);
+    sd2.content.insert(0, tail);
+  });
+
+  // 4. Update updatedAt for both sheets to trigger UI/preview updates
+  const now = new Date().toISOString();
+  sheetsMap.set(id, { ...meta, updatedAt: now });
+  const nextMeta = sheetsMap.get(nextId);
+  if (nextMeta) {
+    sheetsMap.set(nextId, { ...nextMeta, updatedAt: now });
+  }
+
+  closeSheetDoc(sd1);
+  closeSheetDoc(sd2);
+
+  return nextId;
+}

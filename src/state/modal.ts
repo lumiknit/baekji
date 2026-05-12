@@ -33,6 +33,21 @@ export const showPrompt = (
   });
 };
 
+export const showTagEdit = (
+  title: string,
+  tags: string[],
+): Promise<string[] | null> => {
+  return new Promise((resolve) => {
+    setModalState({
+      type: 'tagEdit',
+      title,
+      message: '',
+      tags,
+      resolve: resolve as (value: unknown) => void,
+    });
+  });
+};
+
 export const closeModal = (value: unknown = null) => {
   const state = modalState();
   if (state) {

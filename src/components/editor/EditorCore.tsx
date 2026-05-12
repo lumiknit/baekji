@@ -83,6 +83,16 @@ const EditorCore: Component<Props> = (props) => {
           view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
           view.focus();
         },
+        getSplitContent: () => {
+          if (!view) return null;
+          const selection = view.state.selection.main;
+          const pos = selection.head;
+          const text = view.state.doc.toString();
+          return {
+            head: text.slice(0, pos),
+            tail: text.slice(pos),
+          };
+        },
       });
     } catch (err) {
       console.error('EditorCore: failed to open sheet', err);

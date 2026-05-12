@@ -40,11 +40,9 @@ import {
   filteredSheets,
 } from '../../state/sheet_list';
 import { tagToHsl } from '../../lib/tag/color';
-import { isValidTag } from '../../lib/tag/query';
-import { showConfirm, showPrompt } from '../../state/modal';
+import { showConfirm, showTagEdit } from '../../state/modal';
 import Dropdown from '../Dropdown';
 import { s } from '../../lib/i18n';
-import toast from 'solid-toast';
 
 function stripMarkdown(line: string): string {
   return line
@@ -75,15 +73,25 @@ const SheetItem: Component<Props> = (props) => {
       .split('\n')
       .map(stripMarkdown)
       .filter((l) => l.length > 0)
-      .slice(0, 3);
-    return lines.join(' ') || '';
+      .slice(0, 2);
+    return lines.join('\n') || '';
   };
 
-  onMount(async () => {
+  const fetchPreview = async () => {
     const sd = openSheetDoc(props.sheet.id);
     await waitForSync(sd.provider);
     setPreview(extractPreview(sd.content.toString()));
     closeSheetDoc(sd);
+  };
+
+  onMount(() => {
+    fetchPreview();
+  });
+
+  createEffect(() => {
+    // Re-fetch preview when updatedAt changes (e.g. after split or sync)
+    void props.sheet.updatedAt;
+    fetchPreview();
   });
 
   {
@@ -118,20 +126,9 @@ const SheetItem: Component<Props> = (props) => {
   };
 
   const handleEditTags = async () => {
-    const current = props.sheet.tags.join(', ');
-    const input = await showPrompt(
-      s('sheet.edit_tags'),
-      s('sheet.edit_tags_prompt'),
-      current,
-    );
-    if (input === null) return;
-    const sanitized = input
-      .split(',')
-      .map((t) => t.trim().replace(/\s+/g, '_'));
-    const valid = sanitized.filter((t) => t && isValidTag(t));
-    const invalid = sanitized.filter((t) => t && !isValidTag(t));
-    if (invalid.length > 0) toast.error(s('sheet.tag_invalid'));
-    updateSheetTags(props.sheet.id, valid);
+    const nextTags = await showTagEdit(s('sheet.edit_tags'), props.sheet.tags);
+    if (nextTags === null) return;
+    updateSheetTags(props.sheet.id, nextTags);
   };
 
   const handleDeletePermanently = async () => {
