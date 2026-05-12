@@ -1,0 +1,21 @@
+# Build / Dependencies
+dist
+node_modules
+.gemini/
+
+# Assets / Binary Fonts
+public/fonts/
+**/*.woff2
+**/*.woff
+**/*.ttf
+**/*.eot
+**/*.otf
+**/*.ico
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.svg
+
+# Lockfiles & Config
+bun.lock
+package-lock.json

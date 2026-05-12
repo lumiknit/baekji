@@ -1,0 +1,212 @@
+/* ─── Themes ──────────────────────────────────────────
+   Light themes activate under prefers-color-scheme: light.
+   Dark  themes activate under prefers-color-scheme: dark.
+   The default theme (.theme-*-default) is equivalent to
+   having no theme class at all.
+──────────────────────────────────────────────────── */
+
+/* ── Fallback (light default, no class) ─────────── */
+:root {
+  --bg: #fff;
+  --text: #222;
+  --text-bold: #000;
+  --border: #eee;
+  --hr: #ccc;
+  --color-l: 35%;
+  --hl: #4a90d9;
+  --md-mark: #87b5d9;
+  --cm-selection: rgba(34, 34, 34, 0.15);
+  --cm-selection-focus: rgba(34, 34, 34, 0.2);
+  --cm-code-bg: rgba(34, 34, 34, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000;
+    --text: #ddd;
+    --text-bold: #fff;
+    --border: #222;
+    --hr: #444;
+    --color-l: 70%;
+    --hl: #5ba3e8;
+    --md-mark: #7ab5e0;
+    --cm-selection: rgba(221, 221, 221, 0.15);
+    --cm-selection-focus: rgba(221, 221, 221, 0.2);
+    --cm-code-bg: rgba(221, 221, 221, 0.04);
+  }
+}
+
+/* ── Theme classes (media-independent, for any element) ── */
+.theme-light-default {
+  --bg: #fff;
+  --text: #222;
+  --text-bold: #000;
+  --border: #eee;
+  --hr: #ccc;
+  --color-l: 35%;
+  --hl: #4a90d9;
+  --md-mark: #87b5d9;
+  --cm-selection: rgba(34, 34, 34, 0.15);
+  --cm-selection-focus: rgba(34, 34, 34, 0.2);
+  --cm-code-bg: rgba(34, 34, 34, 0.04);
+}
+
+.theme-light-warm {
+  --bg: #fdf6e3;
+  --text: #586e75;
+  --text-bold: #073642;
+  --border: #e8dfc8;
+  --hr: #c8bfa0;
+  --color-l: 40%;
+  --hl: #cb8a3e;
+  --md-mark: #c09a6f;
+  --cm-selection: rgba(88, 110, 117, 0.15);
+  --cm-selection-focus: rgba(88, 110, 117, 0.2);
+  --cm-code-bg: rgba(88, 110, 117, 0.04);
+}
+
+.theme-light-cool {
+  --bg: #eef4fb;
+  --text: #4a6278;
+  --text-bold: #1e3a50;
+  --border: #ccdae6;
+  --hr: #a8c0d4;
+  --color-l: 38%;
+  --hl: #3a7abf;
+  --md-mark: #6e9fc8;
+  --cm-selection: rgba(74, 98, 120, 0.15);
+  --cm-selection-focus: rgba(74, 98, 120, 0.2);
+  --cm-code-bg: rgba(74, 98, 120, 0.04);
+}
+
+.theme-dark-default {
+  --bg: #000;
+  --text: #ddd;
+  --text-bold: #fff;
+  --border: #222;
+  --hr: #444;
+  --color-l: 70%;
+  --hl: #5ba3e8;
+  --md-mark: #7ab5e0;
+  --cm-selection: rgba(221, 221, 221, 0.15);
+  --cm-selection-focus: rgba(221, 221, 221, 0.2);
+  --cm-code-bg: rgba(221, 221, 221, 0.04);
+}
+
+.theme-dark-warm {
+  --bg: #1a1410;
+  --text: #baa892;
+  --text-bold: #d5c5a8;
+  --border: #302622;
+  --hr: #504038;
+  --color-l: 65%;
+  --hl: #d4955a;
+  --md-mark: #c4a078;
+  --cm-selection: rgba(186, 168, 146, 0.15);
+  --cm-selection-focus: rgba(186, 168, 146, 0.2);
+  --cm-code-bg: rgba(186, 168, 146, 0.04);
+}
+
+.theme-dark-cool {
+  --bg: #1e2a3a;
+  --text: #b8c9d9;
+  --text-bold: #dce8f0;
+  --border: #2d3f52;
+  --hr: #3d5570;
+  --color-l: 65%;
+  --hl: #5b9fd4;
+  --md-mark: #7ab2d8;
+  --cm-selection: rgba(184, 201, 217, 0.15);
+  --cm-selection-focus: rgba(184, 201, 217, 0.2);
+  --cm-code-bg: rgba(184, 201, 217, 0.04);
+}
+
+/* ── Light themes ────────────────────────────────── */
+@media (prefers-color-scheme: light) {
+  :root.theme-light-default {
+    --bg: #fff;
+    --text: #222;
+    --text-bold: #000;
+    --border: #eee;
+    --hr: #ccc;
+    --color-l: 35%;
+    --hl: #4a90d9;
+    --md-mark: #87b5d9;
+    --cm-selection: rgba(34, 34, 34, 0.15);
+    --cm-selection-focus: rgba(34, 34, 34, 0.2);
+    --cm-code-bg: rgba(34, 34, 34, 0.04);
+  }
+
+  :root.theme-light-warm {
+    --bg: #fdf6e3;
+    --text: #657b83;
+    --text-bold: #073642;
+    --border: #e8dfc8;
+    --hr: #c8bfa0;
+    --color-l: 40%;
+    --hl: #cb8a3e;
+    --md-mark: #c09a6f;
+    --cm-selection: rgba(101, 123, 131, 0.15);
+    --cm-selection-focus: rgba(101, 123, 131, 0.2);
+    --cm-code-bg: rgba(101, 123, 131, 0.04);
+  }
+
+  :root.theme-light-cool {
+    --bg: #eef4fb;
+    --text: #4a6278;
+    --text-bold: #1e3a50;
+    --border: #ccdae6;
+    --hr: #a8c0d4;
+    --color-l: 38%;
+    --hl: #3a7abf;
+    --md-mark: #6e9fc8;
+    --cm-selection: rgba(74, 98, 120, 0.15);
+    --cm-selection-focus: rgba(74, 98, 120, 0.2);
+    --cm-code-bg: rgba(74, 98, 120, 0.04);
+  }
+}
+
+/* ── Dark themes ─────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root.theme-dark-default {
+    --bg: #000;
+    --text: #ddd;
+    --text-bold: #fff;
+    --border: #222;
+    --hr: #444;
+    --color-l: 70%;
+    --hl: #5ba3e8;
+    --md-mark: #7ab5e0;
+    --cm-selection: rgba(221, 221, 221, 0.15);
+    --cm-selection-focus: rgba(221, 221, 221, 0.2);
+    --cm-code-bg: rgba(221, 221, 221, 0.04);
+  }
+
+  :root.theme-dark-warm {
+    --bg: #1a1410;
+    --text: #baa892;
+    --text-bold: #d5c5a8;
+    --border: #302622;
+    --hr: #504038;
+    --color-l: 65%;
+    --hl: #d4955a;
+    --md-mark: #c4a078;
+    --cm-selection: rgba(186, 168, 146, 0.15);
+    --cm-selection-focus: rgba(186, 168, 146, 0.2);
+    --cm-code-bg: rgba(186, 168, 146, 0.04);
+  }
+
+  :root.theme-dark-cool {
+    --bg: #1e2a3a;
+    --text: #b8c9d9;
+    --text-bold: #dce8f0;
+    --border: #2d3f52;
+    --hr: #3d5570;
+    --color-l: 65%;
+    --hl: #5b9fd4;
+    --md-mark: #7ab2d8;
+    --cm-selection: rgba(184, 201, 217, 0.15);
+    --cm-selection-focus: rgba(184, 201, 217, 0.2);
+    --cm-code-bg: rgba(184, 201, 217, 0.04);
+  }
+}
