@@ -1,7 +1,13 @@
 import type { Component } from 'solid-js';
 import { createSignal, Show, createEffect } from 'solid-js';
 import { useParams, useNavigate, useSearchParams } from '@solidjs/router';
-import { TbOutlineArrowLeft, TbOutlineFileExport } from 'solid-icons/tb';
+import {
+  TbOutlineArrowLeft,
+  TbOutlineFileExport,
+  TbOutlineArrowUp,
+  TbOutlineCopy,
+  TbOutlineShare,
+} from 'solid-icons/tb';
 import { activeProjectLabel, openProject } from '../state/workspace_v1';
 import { liveSheets } from '../state/sheet_list';
 import { openSheetDoc, closeSheetDoc, waitForSync } from '../lib/doc/ydoc';
@@ -12,11 +18,11 @@ import toast from 'solid-toast';
 type ExportFormat = 'markdown' | 'text' | 'html';
 type SheetData = { label: string; text: string };
 
-function sheetsToMarkdown(sheets: SheetData[]): string {
+function sheetsToMarkdown(sheets: SheetData[], joiner: string): string {
   return sheets
     .filter((s) => s.text.trim())
     .map((s) => s.text.trim())
-    .join('\n\n---\n\n');
+    .join(joiner);
 }
 
 function sheetsToText(sheets: SheetData[]): string {
@@ -54,27 +60,43 @@ const ExportPage: Component = () => {
   const params = useParams();
   const [searchParams] = useSearchParams();
   const query = () => (searchParams.q as string | undefined) ?? '';
+  const sheetIds = () => {
+    const val = searchParams.sheetId;
+    if (!val) return [];
+    return Array.isArray(val) ? val : [val];
+  };
 
   const [format, setFormat] = createSignal<ExportFormat>('markdown');
+  const [joiner, setJoiner] = createSignal('\n\n---\n\n');
   const [loading, setLoading] = createSignal(false);
   const [data, setData] = createSignal<SheetData[] | null>(null);
   const [preview, setPreview] = createSignal<string | null>(null);
 
-  const buildPreview = (d: SheetData[], fmt: ExportFormat) => {
-    let text = '';
-    if (fmt === 'markdown') text = sheetsToMarkdown(d);
-    else if (fmt === 'text') text = sheetsToText(d);
-    else text = sheetsToHtml(d, activeProjectLabel());
-    setPreview(text.slice(0, 3000) + (text.length > 3000 ? '\n…' : ''));
+  const buildPreview = (d: SheetData[], fmt: ExportFormat, j: string) => {
+    const text =
+      fmt === 'markdown'
+        ? sheetsToMarkdown(d, j)
+        : fmt === 'text'
+          ? sheetsToText(d)
+          : sheetsToHtml(d, activeProjectLabel());
+    setPreview(text);
   };
 
   const load = async () => {
     setLoading(true);
     await openProject(params.pjId);
-    const q = query().trim();
-    const sheets = q
-      ? liveSheets().filter((sh) => matchQuery(q, new Set(sh.tags)))
-      : liveSheets();
+
+    const ids = sheetIds();
+    let sheets = liveSheets();
+    if (ids.length > 0) {
+      sheets = sheets.filter((sh) => ids.includes(sh.id));
+    } else {
+      const q = query().trim();
+      if (q) {
+        sheets = sheets.filter((sh) => matchQuery(q, new Set(sh.tags)));
+      }
+    }
+
     const result: SheetData[] = [];
     for (const sheet of sheets) {
       const sd = openSheetDoc(sheet.id);
@@ -86,7 +108,7 @@ const ExportPage: Component = () => {
       closeSheetDoc(sd);
     }
     setData(result);
-    buildPreview(result, format());
+    buildPreview(result, format(), joiner());
     setLoading(false);
   };
 
@@ -94,32 +116,100 @@ const ExportPage: Component = () => {
     if (params.pjId) load();
   });
 
+  const handleBack = () => {
+    const ids = sheetIds();
+    if (ids.length === 1) {
+      navigate(`/sheets/${ids[0]}`);
+    } else {
+      const q = query();
+      navigate(
+        `/project/${params.pjId}${q ? `?q=${encodeURIComponent(q)}` : ''}`,
+      );
+    }
+  };
+
   const handleFormatChange = (fmt: ExportFormat) => {
     const d = data();
-    if (d) buildPreview(d, fmt);
+    if (d) buildPreview(d, fmt, joiner());
     setFormat(fmt);
+  };
+
+  const handleJoinerChange = (j: string) => {
+    setJoiner(j);
+    const d = data();
+    if (d) buildPreview(d, format(), j);
+  };
+
+  const getExportContent = () => {
+    const d = data();
+    if (!d) return null;
+    const fmt = format();
+    if (fmt === 'markdown') return sheetsToMarkdown(d, joiner());
+    if (fmt === 'text') return sheetsToText(d);
+    return sheetsToHtml(d, activeProjectLabel());
+  };
+
+  const handleCopy = async () => {
+    const content = getExportContent();
+    if (!content) return;
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success(s('common.copied'));
+    } catch {
+      toast.error(s('common.copy_error'));
+    }
+  };
+
+  const handleShare = async () => {
+    const content = getExportContent();
+    if (!content) return;
+    const fmt = format();
+    const ext = fmt === 'markdown' ? 'md' : fmt === 'text' ? 'txt' : 'html';
+    const filename = `${activeProjectLabel()}.${ext}`;
+
+    if (navigator.share) {
+      try {
+        const file = new File([content], filename, {
+          type:
+            fmt === 'markdown'
+              ? 'text/markdown'
+              : fmt === 'text'
+                ? 'text/plain'
+                : 'text/html',
+        });
+        await navigator.share({
+          files: [file],
+          title: activeProjectLabel(),
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          toast.error(s('common.share_error'));
+        }
+      }
+    } else {
+      toast.error(s('common.share_not_supported'));
+    }
   };
 
   const handleDownload = () => {
     const d = data();
     if (!d) return;
     const fmt = format();
-    let content = '',
-      mime = '',
-      ext = '';
+    const content = getExportContent();
+    if (!content) return;
+
+    let mime: string, ext: string;
     if (fmt === 'markdown') {
-      content = sheetsToMarkdown(d);
       mime = 'text/markdown';
       ext = 'md';
     } else if (fmt === 'text') {
-      content = sheetsToText(d);
       mime = 'text/plain';
       ext = 'txt';
     } else {
-      content = sheetsToHtml(d, activeProjectLabel());
       mime = 'text/html';
       ext = 'html';
     }
+
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -133,10 +223,7 @@ const ExportPage: Component = () => {
   return (
     <div class="page-body">
       <div class="page-header">
-        <button
-          class="sb-icon-btn"
-          onClick={() => navigate(`/project/${params.pjId}`)}
-        >
+        <button class="sb-icon-btn" onClick={handleBack}>
           <div class="btn-pad">
             <TbOutlineArrowLeft />
           </div>
@@ -145,6 +232,28 @@ const ExportPage: Component = () => {
           {activeProjectLabel()} — {s('common.export')}
         </h1>
       </div>
+
+      <Show when={query() && sheetIds().length === 0}>
+        <div class="page-stats">
+          <span>
+            {s('project.filter_result', {
+              query: query(),
+              filtered: data()?.length ?? 0,
+              total: liveSheets().length,
+            })}
+          </span>
+        </div>
+      </Show>
+
+      <Show when={sheetIds().length > 0}>
+        <div class="page-stats">
+          <span>
+            {s('project.selected_sheets_count', {
+              count: sheetIds().length,
+            })}
+          </span>
+        </div>
+      </Show>
 
       <div class="page-toolbar">
         <select
@@ -158,6 +267,19 @@ const ExportPage: Component = () => {
           <option value="text">{s('project.export_text')} (.txt)</option>
           <option value="html">HTML (.html)</option>
         </select>
+
+        <Show when={format() === 'markdown'}>
+          <select
+            class="pj-format-select"
+            value={joiner()}
+            onChange={(e) => handleJoinerChange(e.currentTarget.value)}
+          >
+            <option value={'\n\n'}>Double Newline (\n\n)</option>
+            <option value={'\n\n---\n\n'}>Horizontal Rule (\n\n---\n\n)</option>
+            <option value={'\n\n***\n\n'}>Asterisk Rule (\n\n***\n\n)</option>
+          </select>
+        </Show>
+
         <button
           class="btn-primary"
           disabled={!data() || loading()}
@@ -168,6 +290,32 @@ const ExportPage: Component = () => {
           </span>
           {s('project.export_download')}
         </button>
+
+        <button
+          class="btn-border"
+          disabled={!data() || loading()}
+          onClick={handleCopy}
+          title={s('common.copy')}
+        >
+          <span class="icon">
+            <TbOutlineCopy />
+          </span>
+          {s('common.copy')}
+        </button>
+
+        <Show when={navigator.share}>
+          <button
+            class="btn-border"
+            disabled={!data() || loading()}
+            onClick={handleShare}
+            title={s('common.share')}
+          >
+            <span class="icon">
+              <TbOutlineShare />
+            </span>
+            {s('common.share')}
+          </button>
+        </Show>
       </div>
 
       <Show when={loading()}>
@@ -175,7 +323,17 @@ const ExportPage: Component = () => {
       </Show>
 
       <Show when={preview()}>
-        <pre class="preview-box">{preview()}</pre>
+        <div class="export-preview-container">
+          <pre class="export-preview typo">{preview()}</pre>
+          <button
+            class="scroll-to-top-btn sb-icon-btn"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            <div class="btn-pad">
+              <TbOutlineArrowUp />
+            </div>
+          </button>
+        </div>
       </Show>
     </div>
   );

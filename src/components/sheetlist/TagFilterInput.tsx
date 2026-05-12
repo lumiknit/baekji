@@ -1,6 +1,6 @@
 import type { Component } from 'solid-js';
 import { createSignal, onCleanup, Show } from 'solid-js';
-import { TbOutlineX, TbOutlineSearch } from 'solid-icons/tb';
+import { TbOutlineX, TbOutlineChevronDown } from 'solid-icons/tb';
 import { useNavigate } from '@solidjs/router';
 import {
   filterQuery,
@@ -10,10 +10,12 @@ import {
 } from '../../state/sheet_list';
 import { activeProjectId } from '../../state/workspace_v1';
 import { s } from '../../lib/i18n';
+import Dropdown from '../Dropdown';
 
 const TagFilterInput: Component = () => {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = createSignal(filterQuery());
+  const [tagMenuOpen, setTagMenuOpen] = createSignal(false);
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
   const handleInput = (val: string) => {
@@ -39,11 +41,44 @@ const TagFilterInput: Component = () => {
     navigate(`/project/${id}${q ? `?q=${encodeURIComponent(q)}` : ''}`);
   };
 
+  const allTags = () => {
+    const tags = new Set<string>();
+    for (const sheet of liveSheets()) {
+      for (const tag of sheet.tags) tags.add(tag);
+    }
+    return Array.from(tags).sort();
+  };
+
+  const handleTagToggle = (tag: string) => {
+    const q = filterQuery().trim();
+    const parts = q ? q.split('&').map((p) => p.trim()) : [];
+    const idx = parts.indexOf(tag);
+    if (idx !== -1) {
+      parts.splice(idx, 1);
+    } else {
+      parts.push(tag);
+    }
+    const newQ = parts.join(' & ');
+    setInputValue(newQ);
+    setFilterQuery(newQ);
+  };
+
   const showCount = () => filterQuery().trim() !== '';
 
   return (
     <div class="sl-filter-container">
       <div class="sl-filter-wrap">
+        <Dropdown
+          triggerClass="sl-filter-btn"
+          triggerAriaLabel={s('sidebar.tag_list')}
+          open={tagMenuOpen}
+          onOpenChange={setTagMenuOpen}
+          trigger={<TbOutlineChevronDown />}
+          items={allTags().map((tag) => ({
+            label: tag,
+            onSelect: () => handleTagToggle(tag),
+          }))}
+        />
         <input
           class="sl-filter-input"
           type="text"
@@ -63,13 +98,6 @@ const TagFilterInput: Component = () => {
             <TbOutlineX />
           </button>
         </Show>
-        <button
-          class="sl-filter-btn"
-          onClick={handleSearch}
-          title={s('sidebar.filter_search')}
-        >
-          <TbOutlineSearch />
-        </button>
       </div>
       <Show when={showCount()}>
         <div class="sl-filter-count">

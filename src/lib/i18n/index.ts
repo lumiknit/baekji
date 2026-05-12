@@ -14,7 +14,11 @@ const [locale, setLocale] = createSignal<string>('en');
 /**
  * Recursively flattens nested dictionary objects and parses strings into segments.
  */
-function flattenAndParse(obj: any, prefix: string, result: ParsedDict) {
+function flattenAndParse(
+  obj: Record<string, unknown>,
+  prefix: string,
+  result: ParsedDict,
+) {
   for (const [key, value] of Object.entries(obj)) {
     const fullKey = prefix ? `${prefix}.${key}` : key;
     if (typeof value === 'string') {
@@ -74,14 +78,18 @@ export async function initI18n() {
   try {
     const data = await (locales[targetLocale] ?? locales.en)();
     const newDict: ParsedDict = {};
-    flattenAndParse(data.default, '', newDict);
+    flattenAndParse(data.default as Record<string, unknown>, '', newDict);
     setDict(newDict);
     document.documentElement.lang = targetLocale;
   } catch (err) {
     logError('i18n:init', err);
     const fallback = await import('./en.json');
     const fallbackDict: ParsedDict = {};
-    flattenAndParse(fallback.default, '', fallbackDict);
+    flattenAndParse(
+      fallback.default as Record<string, unknown>,
+      '',
+      fallbackDict,
+    );
     setDict(fallbackDict);
     document.documentElement.lang = 'en';
   }

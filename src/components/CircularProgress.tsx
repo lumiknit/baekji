@@ -82,7 +82,7 @@ const CircularProgress: Component<Props> = (props) => {
         class="circular-progress-bg"
       />
       <circle
-        ref={circleRef!}
+        ref={(el) => (circleRef = el)}
         cx="1"
         cy="1"
         r={radius}

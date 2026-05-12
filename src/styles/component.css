@@ -400,16 +400,6 @@
   gap: var(--sp-1);
 }
 
-.sb-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: var(--sp-3);
-  right: var(--sp-3);
-  height: 1px;
-  background: var(--border);
-}
-
 /* ─── Sidebar Project Header (V1) ─────────────────── */
 
 .sidebar-project-header {
@@ -465,7 +455,6 @@
 /* ─── Trash Section ───────────────────────────────── */
 
 .tree-trash-section {
-  border-top: 1px solid var(--border);
   margin-top: var(--sp-2);
 }
 
@@ -847,6 +836,14 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0;
+
+  & > div::after {
+    display: block;
+    content: '';
+    background: var(--ultra-dim);
+    margin: 0 1rem;
+    height: 1px;
+  }
 }
 
 .sl-item {
@@ -856,10 +853,9 @@
   cursor: pointer;
   min-height: 52px;
   padding: var(--sp-2);
-  margin: 2px 4px;
+  margin: 0 4px;
   gap: var(--sp-1);
   border-radius: var(--r);
-  border-bottom: 1px solid var(--border);
 }
 
 .sl-item:hover {
@@ -950,34 +946,80 @@
 
 /* ─── Sheet Page (V1 Editor) ──────────────────────── */
 
-.sheet-tag-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.tag-editor-v2 {
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
   padding: 0 1rem;
 }
 
-.sheet-tag-list {
+.tag-editor-view {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tag-list {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
   min-height: 24px;
 }
 
-.sheet-tag-input {
-  flex: 1;
-  min-width: 60px;
-  border: none;
+.tag-del {
+  opacity: 0.5;
+  margin-left: 2px;
+}
+
+.tag:hover .tag-del {
+  opacity: 1;
+}
+
+.tag--edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  background: var(--border);
+  border-radius: var(--r);
+  cursor: pointer;
+  opacity: 0.7;
+  font-size: var(--fs-sm);
+  border: 1px dashed var(--border-dark);
+}
+
+.tag--edit:hover {
+  opacity: 1;
+  background: var(--border-dark);
+}
+
+.tag-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 8px;
+}
+
+.tag-textarea {
+  width: 100%;
+  min-height: 80px;
   background: transparent;
+  color: inherit;
+  border: none;
   font: inherit;
   font-size: var(--fs-sm);
+  resize: vertical;
   outline: none;
-  color: inherit;
-  padding: 2px 4px;
-  min-height: unset;
+}
+
+.tag-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 /* ─── Project Page ──────────────────────────────────── */
@@ -1208,4 +1250,30 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ─── Export Preview ────────────────────────────── */
+
+.export-preview-container {
+  position: relative;
+}
+
+.export-preview {
+  background: var(--bg);
+  padding: var(--sp-6) 0;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-base);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+.scroll-to-top-btn {
+  position: fixed;
+  bottom: var(--sp-6);
+  right: var(--sp-6);
+  z-index: var(--z-sticky);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }

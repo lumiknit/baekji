@@ -184,7 +184,11 @@ const ProjectPage: Component = () => {
         <div class="page-toolbar">
           <button
             class="btn-border"
-            onClick={() => navigate(`/project/${params.pjId}/analysis`)}
+            onClick={() =>
+              navigate(
+                `/project/${params.pjId}/analysis${query() ? `?q=${encodeURIComponent(query())}` : ''}`,
+              )
+            }
           >
             <span class="icon">
               <TbOutlineReportAnalytics />
@@ -193,7 +197,11 @@ const ProjectPage: Component = () => {
           </button>
           <button
             class="btn-border"
-            onClick={() => navigate(`/project/${params.pjId}/export`)}
+            onClick={() =>
+              navigate(
+                `/project/${params.pjId}/export${query() ? `?q=${encodeURIComponent(query())}` : ''}`,
+              )
+            }
           >
             <span class="icon">
               <TbOutlineFileExport />
@@ -205,6 +213,13 @@ const ProjectPage: Component = () => {
               <TbOutlineDatabaseExport />
             </span>
             {s('backup.title')}
+          </button>
+
+          <button class="btn-danger" onClick={handleDeleteProject}>
+            <span class="icon">
+              <TbFillTrash />
+            </span>
+            {s('project.delete')}
           </button>
         </div>
 
@@ -276,18 +291,6 @@ const ProjectPage: Component = () => {
             </For>
           </div>
         </Show>
-
-        {/* ── Danger zone ── */}
-        <div class="danger-zone">
-          <p class="danger-zone-title">{s('project.danger_title')}</p>
-          <p class="danger-zone-desc">{s('project.danger_desc')}</p>
-          <button class="btn-danger" onClick={handleDeleteProject}>
-            <span class="icon">
-              <TbFillTrash />
-            </span>
-            {s('project.delete')}
-          </button>
-        </div>
       </div>
     </Show>
   );

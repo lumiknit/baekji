@@ -53,7 +53,7 @@ const EditorCore: Component<Props> = (props) => {
           getTypewriterMode: () => false,
         }),
         keymap.of([...yUndoManagerKeymap]),
-        yCollab(doc.content, null as any, { undoManager }),
+        yCollab(doc.content, null as never, { undoManager }),
       ];
 
       const initialDoc = doc.content.toString();
@@ -96,7 +96,7 @@ const EditorCore: Component<Props> = (props) => {
     closeSheet();
   });
 
-  return <div ref={editorRef} class="cm-editor-wrap typo" />;
+  return <div ref={(el) => (editorRef = el)} class="cm-editor-wrap typo" />;
 };
 
 export default EditorCore;

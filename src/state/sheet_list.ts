@@ -89,7 +89,10 @@ export function orderKeyBetween(a: number | null, b: number | null): number {
 
 // ─── CRUD ────────────────────────────────────────────────────────
 
-export function createSheet(tags: string[], after?: string): string | null {
+export function createSheet(
+  tags: string[],
+  options?: { after?: string; before?: string },
+): string | null {
   const sheetsMap = getSheetsMap();
   const pd = activeProjectDoc();
   if (!sheetsMap || !pd) return null;
@@ -99,9 +102,10 @@ export function createSheet(tags: string[], after?: string): string | null {
   const now = new Date().toISOString();
 
   let orderKey: number;
-  if (after) {
-    const sheets = liveSheets();
-    const idx = sheets.findIndex((s) => s.id === after);
+  const sheets = liveSheets();
+
+  if (options?.after) {
+    const idx = sheets.findIndex((s) => s.id === options.after);
     if (idx !== -1) {
       const currentOrderKey = sheets[idx].orderKey;
       const nextOrderKey =
@@ -109,6 +113,15 @@ export function createSheet(tags: string[], after?: string): string | null {
       orderKey = orderKeyBetween(currentOrderKey, nextOrderKey);
     } else {
       orderKey = orderKeyBetween(maxOrderKey(), null);
+    }
+  } else if (options?.before) {
+    const idx = sheets.findIndex((s) => s.id === options.before);
+    if (idx !== -1) {
+      const currentOrderKey = sheets[idx].orderKey;
+      const prevOrderKey = idx > 0 ? sheets[idx - 1].orderKey : null;
+      orderKey = orderKeyBetween(prevOrderKey, currentOrderKey);
+    } else {
+      orderKey = orderKeyBetween(null, sheets[0]?.orderKey ?? null);
     }
   } else {
     orderKey = orderKeyBetween(maxOrderKey(), null);

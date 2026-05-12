@@ -7,7 +7,7 @@ interface ModalState {
   title: string;
   message: string;
   defaultValue?: string;
-  resolve: (value: any) => void;
+  resolve: (value: unknown) => void;
 }
 
 export const [modalState, setModalState] = createSignal<ModalState | null>(
@@ -33,7 +33,7 @@ export const showPrompt = (
   });
 };
 
-export const closeModal = (value: any = null) => {
+export const closeModal = (value: unknown = null) => {
   const state = modalState();
   if (state) {
     state.resolve(value);
@@ -44,3 +44,8 @@ export const closeModal = (value: any = null) => {
 export const [backupModalOpen, setBackupModalOpen] = createSignal(false);
 export const openBackupModal = () => setBackupModalOpen(true);
 export const closeBackupModal = () => setBackupModalOpen(false);
+
+export const [projectSearchModalOpen, setProjectSearchModalOpen] =
+  createSignal(false);
+export const openProjectSearchModal = () => setProjectSearchModalOpen(true);
+export const closeProjectSearchModal = () => setProjectSearchModalOpen(false);

@@ -12,6 +12,7 @@
   --text-bold: #000;
   --border: #eee;
   --hr: #ccc;
+  --ultra-dim: #f3f3f3;
   --color-l: 35%;
   --hl: #4a90d9;
   --md-mark: #87b5d9;
@@ -27,6 +28,7 @@
     --text-bold: #fff;
     --border: #222;
     --hr: #444;
+    --ultra-dim: #111;
     --color-l: 70%;
     --hl: #5ba3e8;
     --md-mark: #7ab5e0;
@@ -43,6 +45,7 @@
   --text-bold: #000;
   --border: #eee;
   --hr: #ccc;
+  --ultra-dim: #f3f3f3;
   --color-l: 35%;
   --hl: #4a90d9;
   --md-mark: #87b5d9;
@@ -57,6 +60,7 @@
   --text-bold: #073642;
   --border: #e8dfc8;
   --hr: #c8bfa0;
+  --ultra-dim: #f0ead8;
   --color-l: 40%;
   --hl: #cb8a3e;
   --md-mark: #c09a6f;
@@ -71,6 +75,7 @@
   --text-bold: #1e3a50;
   --border: #ccdae6;
   --hr: #a8c0d4;
+  --ultra-dim: #dfe7ef;
   --color-l: 38%;
   --hl: #3a7abf;
   --md-mark: #6e9fc8;
@@ -85,6 +90,7 @@
   --text-bold: #fff;
   --border: #222;
   --hr: #444;
+  --ultra-dim: #111;
   --color-l: 70%;
   --hl: #5ba3e8;
   --md-mark: #7ab5e0;
@@ -99,6 +105,7 @@
   --text-bold: #d5c5a8;
   --border: #302622;
   --hr: #504038;
+  --ultra-dim: #261e1a;
   --color-l: 65%;
   --hl: #d4955a;
   --md-mark: #c4a078;
@@ -113,6 +120,7 @@
   --text-bold: #dce8f0;
   --border: #2d3f52;
   --hr: #3d5570;
+  --ultra-dim: #243242;
   --color-l: 65%;
   --hl: #5b9fd4;
   --md-mark: #7ab2d8;
@@ -129,6 +137,7 @@
     --text-bold: #000;
     --border: #eee;
     --hr: #ccc;
+    --ultra-dim: #f3f3f3;
     --color-l: 35%;
     --hl: #4a90d9;
     --md-mark: #87b5d9;
@@ -143,6 +152,7 @@
     --text-bold: #073642;
     --border: #e8dfc8;
     --hr: #c8bfa0;
+    --ultra-dim: #f0ead8;
     --color-l: 40%;
     --hl: #cb8a3e;
     --md-mark: #c09a6f;
@@ -157,6 +167,7 @@
     --text-bold: #1e3a50;
     --border: #ccdae6;
     --hr: #a8c0d4;
+    --ultra-dim: #dfe7ef;
     --color-l: 38%;
     --hl: #3a7abf;
     --md-mark: #6e9fc8;
@@ -174,6 +185,7 @@
     --text-bold: #fff;
     --border: #222;
     --hr: #444;
+    --ultra-dim: #111;
     --color-l: 70%;
     --hl: #5ba3e8;
     --md-mark: #7ab5e0;
@@ -188,6 +200,7 @@
     --text-bold: #d5c5a8;
     --border: #302622;
     --hr: #504038;
+    --ultra-dim: #261e1a;
     --color-l: 65%;
     --hl: #d4955a;
     --md-mark: #c4a078;
@@ -202,6 +215,7 @@
     --text-bold: #dce8f0;
     --border: #2d3f52;
     --hr: #3d5570;
+    --ultra-dim: #243242;
     --color-l: 65%;
     --hl: #5b9fd4;
     --md-mark: #7ab2d8;

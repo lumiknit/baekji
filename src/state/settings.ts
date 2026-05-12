@@ -46,6 +46,7 @@ const [settings, setSettings] = makePersisted(
   createStore<Settings>(defaultSettings),
   {
     name: 'baekji-settings',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storage: localforage as any,
   },
 );

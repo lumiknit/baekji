@@ -32,7 +32,7 @@ const NameInputModal: Component<Props> = (props) => {
       <h3>{props.title}</h3>
       <p>{props.message}</p>
       <input
-        ref={inputRef}
+        ref={(el) => (inputRef = el)}
         class="modal-input"
         type="text"
         value={value()}

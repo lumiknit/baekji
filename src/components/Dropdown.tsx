@@ -29,30 +29,29 @@ const Dropdown: Component<DropdownProps> = (props) => {
     else setInternalOpen(v);
   };
 
-  const handleOutsideClick = (e: MouseEvent) => {
-    if (containerRef && !containerRef.contains(e.target as Node)) {
-      close();
-    }
-  };
-
   const close = () => setOpen(false);
 
   const toggle = () => setOpen(!open());
 
-  document.addEventListener('mousedown', handleOutsideClick);
-  onCleanup(() =>
-    document.removeEventListener('mousedown', handleOutsideClick),
-  );
+  const handleOutsideClick = (e: MouseEvent) => {
+    if (open() && containerRef && !containerRef.contains(e.target as Node)) {
+      close();
+    }
+  };
 
-  // Stop propagation so tree-row's drag handler doesn't intercept pointer events
-  const stopProp = (e: Event) => e.stopPropagation();
+  document.addEventListener('mousedown', handleOutsideClick, { capture: true });
+  onCleanup(() =>
+    document.removeEventListener('mousedown', handleOutsideClick, {
+      capture: true,
+    }),
+  );
 
   return (
     <div
       class={`dropdown ${props.class || ''}`}
-      ref={containerRef}
-      onPointerDown={stopProp}
-      onClick={stopProp}
+      ref={(el) => (containerRef = el)}
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <button
         class={`dropdown-trigger${props.triggerClass ? ` ${props.triggerClass}` : ''}`}

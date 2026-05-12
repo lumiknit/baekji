@@ -16,6 +16,9 @@ import {
   TbOutlineReportAnalytics,
   TbOutlineTag,
   TbOutlineFilePlus,
+  TbOutlineSquareArrowUp,
+  TbOutlineSquareArrowDown,
+  TbOutlineFileExport,
 } from 'solid-icons/tb';
 import { openSheetDoc, closeSheetDoc, waitForSync } from '../../lib/doc/ydoc';
 import type { SheetMeta } from '../../lib/doc/v1';
@@ -39,7 +42,7 @@ import {
 } from '../../state/sheet_list';
 import { tagToHsl } from '../../lib/tag/color';
 import { isValidTag } from '../../lib/tag/query';
-import { showPrompt } from '../../state/modal';
+import { showConfirm, showPrompt } from '../../state/modal';
 import Dropdown from '../Dropdown';
 import { s } from '../../lib/i18n';
 import toast from 'solid-toast';
@@ -132,6 +135,16 @@ const SheetItem: Component<Props> = (props) => {
     updateSheetTags(props.sheet.id, valid);
   };
 
+  const handleDeletePermanently = async () => {
+    const ok = await showConfirm(
+      s('sheet.delete_permanent'),
+      s('sheet.delete_permanent_confirm'),
+    );
+    if (ok) {
+      deleteSheetPermanently(props.sheet.id);
+    }
+  };
+
   const dropdownItems = () => {
     if (props.isTrash) return [];
     const items: Parameters<typeof Dropdown>[0]['items'] = [
@@ -145,17 +158,35 @@ const SheetItem: Component<Props> = (props) => {
         label: s('common.analysis'),
         onSelect: () => {
           const id = activeProjectId();
-          if (id)
-            navigate(
-              `/project/${id}?q=${encodeURIComponent(props.sheet.tags.join(' | ') || '')}`,
-            );
+          if (id) navigate(`/project/${id}/analysis?sheetId=${props.sheet.id}`);
         },
       },
       {
-        icon: TbOutlineFilePlus,
-        label: s('sidebar.new_sheet'),
+        icon: TbOutlineFileExport,
+        label: s('common.export'),
         onSelect: () => {
-          const id = createSheet([], props.sheet.id);
+          const id = activeProjectId();
+          if (id) navigate(`/project/${id}/export?sheetId=${props.sheet.id}`);
+        },
+      },
+      { separator: true as const },
+      {
+        icon: TbOutlineSquareArrowUp,
+        label: s('sidebar.new_sheet_above'),
+        onSelect: () => {
+          const id = createSheet([...props.sheet.tags], {
+            before: props.sheet.id,
+          });
+          if (id) navigate(`/sheets/${id}`);
+        },
+      },
+      {
+        icon: TbOutlineSquareArrowDown,
+        label: s('sidebar.new_sheet_below'),
+        onSelect: () => {
+          const id = createSheet([...props.sheet.tags], {
+            after: props.sheet.id,
+          });
           if (id) navigate(`/sheets/${id}`);
         },
       },
@@ -236,7 +267,7 @@ const SheetItem: Component<Props> = (props) => {
               <button
                 class="sb-icon-btn"
                 title={s('sheet.delete_permanent')}
-                onClick={() => deleteSheetPermanently(props.sheet.id)}
+                onClick={handleDeletePermanently}
               >
                 <div class="btn-pad">
                   <TbFillTrash />

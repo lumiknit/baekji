@@ -186,6 +186,8 @@
     "project_list": "프로젝트 목록",
     "no_project": "프로젝트가 없습니다",
     "new_sheet": "새 시트",
+    "new_sheet_above": "위에 시트 추가",
+    "new_sheet_below": "아래에 시트 추가",
     "more_actions": "더보기",
     "filter_clear": "필터 지우기",
     "filter_search": "프로젝트 페이지에서 보기",

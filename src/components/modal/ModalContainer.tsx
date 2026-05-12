@@ -5,16 +5,21 @@ import {
   closeModal,
   backupModalOpen,
   closeBackupModal,
+  projectSearchModalOpen,
+  closeProjectSearchModal,
 } from '../../state/modal';
 import ConfirmModal from './ConfirmModal';
 import NameInputModal from './NameInputModal';
 import BackupModal from './BackupModal';
+import ProjectSearchModal from './ProjectSearchModal';
 
 const ModalContainer: Component = () => {
   onMount(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && modalState()) {
-        closeModal(null);
+      if (e.key === 'Escape') {
+        if (modalState()) closeModal(null);
+        else if (backupModalOpen()) closeBackupModal();
+        else if (projectSearchModalOpen()) closeProjectSearchModal();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -45,6 +50,17 @@ const ModalContainer: Component = () => {
         <div class="modal-overlay" onClick={closeBackupModal}>
           <div class="modal-body" onClick={(e) => e.stopPropagation()}>
             <BackupModal />
+          </div>
+        </div>
+      </Show>
+      <Show when={projectSearchModalOpen()}>
+        <div class="modal-overlay" onClick={closeProjectSearchModal}>
+          <div
+            class="modal-body"
+            style={{ width: 'min(90vw, 800px)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ProjectSearchModal />
           </div>
         </div>
       </Show>

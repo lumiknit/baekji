@@ -1,10 +1,11 @@
 import type { Component } from 'solid-js';
 import { createSignal, For, Show, createEffect } from 'solid-js';
-import { useParams, useNavigate } from '@solidjs/router';
+import { useParams, useNavigate, useSearchParams } from '@solidjs/router';
 import { TbOutlineArrowLeft } from 'solid-icons/tb';
 import { activeProjectLabel, openProject } from '../state/workspace_v1';
 import { liveSheets } from '../state/sheet_list';
 import { openSheetDoc, closeSheetDoc, waitForSync } from '../lib/doc/ydoc';
+import { matchQuery } from '../lib/tag/query';
 import { s } from '../lib/i18n';
 
 function computeStats(text: string) {
@@ -29,6 +30,14 @@ type SheetStats = {
 const AnalysisPage: Component = () => {
   const navigate = useNavigate();
   const params = useParams();
+  const [searchParams] = useSearchParams();
+  const query = () => (searchParams.q as string | undefined) ?? '';
+  const sheetIds = () => {
+    const val = searchParams.sheetId;
+    if (!val) return [];
+    return Array.isArray(val) ? val : [val];
+  };
+
   const [analyzing, setAnalyzing] = createSignal(false);
   const [stats, setStats] = createSignal<SheetStats[] | null>(null);
 
@@ -51,16 +60,30 @@ const AnalysisPage: Component = () => {
     setAnalyzing(true);
     setStats(null);
     await openProject(params.pjId);
-    const sheets = liveSheets();
+
+    const ids = sheetIds();
+    let sheets = liveSheets();
+    if (ids.length > 0) {
+      sheets = sheets.filter((sh) => ids.includes(sh.id));
+    } else {
+      const q = query().trim();
+      if (q) {
+        sheets = sheets.filter((sh) => matchQuery(q, new Set(sh.tags)));
+      }
+    }
+
     const results: SheetStats[] = [];
     for (const sheet of sheets) {
       const sd = openSheetDoc(sheet.id);
       await waitForSync(sd.provider);
       const text = sd.content.toString();
       closeSheetDoc(sd);
+
+      const preview = text.trim().slice(0, 16).replace(/\n/g, ' ');
+
       results.push({
         id: sheet.id,
-        label: sheet.tags[0] ?? sheet.id.slice(0, 8),
+        label: preview || s('sheet.empty'),
         ...computeStats(text),
       });
     }
@@ -72,13 +95,22 @@ const AnalysisPage: Component = () => {
     if (params.pjId) run();
   });
 
+  const handleBack = () => {
+    const ids = sheetIds();
+    if (ids.length === 1) {
+      navigate(`/sheets/${ids[0]}`);
+    } else {
+      const q = query();
+      navigate(
+        `/project/${params.pjId}${q ? `?q=${encodeURIComponent(q)}` : ''}`,
+      );
+    }
+  };
+
   return (
     <div class="page-body">
       <div class="page-header">
-        <button
-          class="sb-icon-btn"
-          onClick={() => navigate(`/project/${params.pjId}`)}
-        >
+        <button class="sb-icon-btn" onClick={handleBack}>
           <div class="btn-pad">
             <TbOutlineArrowLeft />
           </div>
@@ -87,6 +119,28 @@ const AnalysisPage: Component = () => {
           {activeProjectLabel()} — {s('common.analysis')}
         </h1>
       </div>
+
+      <Show when={query() && sheetIds().length === 0}>
+        <div class="page-stats">
+          <span>
+            {s('project.filter_result', {
+              query: query(),
+              filtered: stats()?.length ?? 0,
+              total: liveSheets().length,
+            })}
+          </span>
+        </div>
+      </Show>
+
+      <Show when={sheetIds().length > 0}>
+        <div class="page-stats">
+          <span>
+            {s('project.selected_sheets_count', {
+              count: sheetIds().length,
+            })}
+          </span>
+        </div>
+      </Show>
 
       <Show when={analyzing()}>
         <p class="hint">{s('project.analyzing')}</p>

@@ -150,7 +150,12 @@ const SettingsPage: Component = () => {
                           active={
                             ((settings[key] as string) ?? 'default') === variant
                           }
-                          onClick={() => setSettings(key as any, variant)}
+                          onClick={() =>
+                            setSettings(
+                              key as 'themeLight' | 'themeDark',
+                              variant,
+                            )
+                          }
                         />
                       )}
                     </For>

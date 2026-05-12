@@ -28,10 +28,11 @@ const App: Component = () => {
       if (code) {
         try {
           await handleCallback(code);
-        } catch (err: any) {
+        } catch (err) {
           logError('App:DropboxCallback', err);
           setTimeout(() => {
-            const key = err?.message ?? '';
+            const error = err as { message?: string };
+            const key = error?.message ?? '';
             const msg = key.startsWith('dropbox.')
               ? s(key)
               : s('dropbox.error_auth_callback');

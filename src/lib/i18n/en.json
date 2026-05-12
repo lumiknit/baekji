@@ -184,6 +184,8 @@
     "project_list": "Project List",
     "no_project": "No projects",
     "new_sheet": "New Sheet",
+    "new_sheet_above": "Add Sheet Above",
+    "new_sheet_below": "Add Sheet Below",
     "more_actions": "More",
     "filter_clear": "Clear filter",
     "filter_search": "View in project page",

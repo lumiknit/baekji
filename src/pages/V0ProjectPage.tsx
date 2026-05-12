@@ -134,7 +134,7 @@ const V0ProjectPage: Component = () => {
                 {(sheet) => (
                   <div class="v0-sheet-item">
                     <div class="v0-sheet-label">
-                      {(sheet.node as any).label ?? sheet.node.id}
+                      {sheet.node.label ?? sheet.node.id}
                     </div>
                     <pre class="v0-sheet-content">
                       {sheet.markdown || '(내용 없음)'}

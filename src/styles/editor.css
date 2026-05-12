@@ -161,25 +161,42 @@
   gap: var(--sp-4);
   padding: 0 1em;
   cursor: text;
+  position: relative;
 }
 
 .editor-section-marker--start {
   flex-direction: column;
   padding-top: 45dvh;
   align-items: stretch;
+  border-bottom: 1px solid var(--ultra-dim);
+  margin-bottom: 1rem;
+}
+
+.editor-section-marker--start::before {
+  bottom: 0;
 }
 
 .editor-section-marker--end {
   padding-bottom: 45dvh;
   align-items: flex-end;
+  border-top: 1px solid var(--ultra-dim);
+  margin-top: 1rem;
+}
+
+.editor-section-marker--end::after {
+  top: 0;
 }
 
 .editor-section-label {
   font-size: 0.625rem;
   letter-spacing: 0.1em;
-  opacity: 0.25;
+  color: var(--ultra-dim);
   white-space: nowrap;
   line-height: 1;
+  background: var(--bg);
+  padding: 0 var(--sp-2);
+  position: relative;
+  z-index: 1;
 }
 
 .editor-sod-line {
@@ -192,7 +209,7 @@
 
 .editor-section-marker .separator-line {
   margin: 0;
-  opacity: 0.2;
+  border-color: var(--ultra-dim);
   align-self: center;
 }
 

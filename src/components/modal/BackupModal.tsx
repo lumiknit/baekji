@@ -24,7 +24,8 @@ import { s } from '../../lib/i18n';
 declare const __APP_VERSION__: string;
 
 function sanitizeFilename(name: string): string {
-  return name.slice(0, 64).replace(/[\x00-\x1f\\/:"*?<>|]/g, '_');
+  // eslint-disable-next-line no-control-regex
+  return name.slice(0, 64).replace(/[\u0000-\u001f\\/:"*?<>|]/g, '_');
 }
 
 function timestampSuffix(): string {
@@ -62,7 +63,7 @@ const BackupModal: Component = () => {
       URL.revokeObjectURL(url);
       toast.success(s('backup.exported'));
       closeBackupModal();
-    } catch (err) {
+    } catch {
       toast.error(s('backup.export_error'));
     } finally {
       setExporting(false);
@@ -83,7 +84,7 @@ const BackupModal: Component = () => {
         await openProject(result.projectId);
         toast.success(s('backup.imported'));
         closeBackupModal();
-      } catch (err) {
+      } catch {
         toast.error(s('backup.import_error'));
       }
     };

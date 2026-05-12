@@ -8,6 +8,7 @@ import {
   TbOutlineChevronRight,
   TbOutlineDotsVertical,
   TbOutlineDatabaseExport,
+  TbOutlineSearch,
 } from 'solid-icons/tb';
 import {
   filteredSheets,
@@ -28,7 +29,11 @@ import {
   activeSheetId,
 } from '../../state/workspace_v1';
 import { setSidebarView } from '../../state/workspace';
-import { openBackupModal } from '../../state/modal';
+import {
+  openBackupModal,
+  openProjectSearchModal,
+  showConfirm,
+} from '../../state/modal';
 import TagFilterInput from './TagFilterInput';
 import SheetItem from './SheetItem';
 import Dropdown from '../Dropdown';
@@ -153,6 +158,11 @@ const SheetList: Component = () => {
               }
               items={[
                 {
+                  icon: TbOutlineSearch,
+                  label: s('common.search'),
+                  onSelect: openProjectSearchModal,
+                },
+                {
                   icon: TbOutlineFilePlus,
                   label: s('sidebar.new_sheet'),
                   onSelect: handleNewSheet,
@@ -230,9 +240,13 @@ const SheetList: Component = () => {
                 <button
                   class="tree-trash-empty-btn sb-icon-btn"
                   title={s('tree.trash_empty_btn')}
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    emptyTrash();
+                    const ok = await showConfirm(
+                      s('tree.trash_empty_btn'),
+                      s('tree.trash_empty_confirm'),
+                    );
+                    if (ok) emptyTrash();
                   }}
                 >
                   <div class="btn-pad">

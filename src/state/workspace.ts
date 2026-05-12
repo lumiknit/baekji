@@ -13,6 +13,7 @@ export const [sidebarWidth, setSidebarWidth] = makePersisted(
   createSignal(260),
   {
     name: 'baekji-sidebar-width',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storage: localforage as any,
   },
 );
@@ -22,6 +23,7 @@ export const [isSidebarOpen, setSidebarOpen] = makePersisted(
   createSignal(true),
   {
     name: 'baekji-sidebar-open',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storage: localforage as any,
   },
 );
@@ -31,6 +33,7 @@ export const [sidebarView, setSidebarView] = makePersisted(
   createSignal<'tree' | 'projects'>('tree'),
   {
     name: 'baekji-sidebar-view',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storage: localforage as any,
   },
 );
@@ -38,5 +41,6 @@ export const [sidebarView, setSidebarView] = makePersisted(
 // Device ID — persisted so same device always has the same ID
 export const [deviceId] = makePersisted(createSignal<string>(genOrderedId()), {
   name: 'baekji-device-id',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   storage: localforage as any,
 });
