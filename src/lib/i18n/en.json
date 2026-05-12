@@ -320,6 +320,7 @@
     "export_error": "Export failed.",
     "import_desc": "Restore a project from a .gz backup file.",
     "import_btn": "Load Backup File",
+    "import_clone": "Always clone as a new project",
     "imported": "Project restored from backup.",
     "import_error": "Failed to load backup. File may be corrupt or incompatible."
   }

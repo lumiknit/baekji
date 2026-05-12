@@ -15,7 +15,6 @@ import {
   TbOutlineArrowMerge,
   TbOutlineReportAnalytics,
   TbOutlineTag,
-  TbOutlineFilePlus,
   TbOutlineSquareArrowUp,
   TbOutlineSquareArrowDown,
   TbOutlineFileExport,

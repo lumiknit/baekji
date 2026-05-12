@@ -2,7 +2,6 @@ import type { Component } from 'solid-js';
 import {
   createSignal,
   createEffect,
-  For,
   onMount,
   onCleanup,
   Show,
@@ -15,8 +14,6 @@ import EditorCore, {
 } from '../components/editor/EditorCore';
 import EditorToolOverlay from '../components/editor/EditorToolOverlay';
 import TagEditor from '../components/editor/TagEditor';
-import { s } from '../lib/i18n';
-import toast from 'solid-toast';
 import type { SheetMeta } from '../lib/doc/v1';
 
 const SheetPage: Component = () => {
