@@ -15,6 +15,7 @@ import {
   TbOutlineArrowMerge,
   TbOutlineReportAnalytics,
   TbOutlineTag,
+  TbOutlineFilePlus,
 } from 'solid-icons/tb';
 import { openSheetDoc, closeSheetDoc, waitForSync } from '../../lib/doc/ydoc';
 import type { SheetMeta } from '../../lib/doc/v1';
@@ -33,6 +34,8 @@ import {
   isSelected,
   toggleSelect,
   selectedIds,
+  createSheet,
+  filteredSheets,
 } from '../../state/sheet_list';
 import { tagToHsl } from '../../lib/tag/color';
 import { isValidTag } from '../../lib/tag/query';
@@ -148,13 +151,21 @@ const SheetItem: Component<Props> = (props) => {
             );
         },
       },
+      {
+        icon: TbOutlineFilePlus,
+        label: s('sidebar.new_sheet'),
+        onSelect: () => {
+          const id = createSheet([], props.sheet.id);
+          if (id) navigate(`/sheets/${id}`);
+        },
+      },
       { separator: true as const },
     ];
     if (!isLast()) {
       items.push({
         icon: TbOutlineArrowMerge,
         label: s('tree.merge_down'),
-        onSelect: () => mergeSheetDown(props.sheet.id),
+        onSelect: () => mergeSheetDown(props.sheet.id, filteredSheets()),
       });
     }
     items.push({

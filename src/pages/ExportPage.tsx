@@ -1,8 +1,8 @@
 import type { Component } from 'solid-js';
-import { createSignal, Show, onMount } from 'solid-js';
-import { useNavigate, useSearchParams } from '@solidjs/router';
+import { createSignal, Show, createEffect } from 'solid-js';
+import { useParams, useNavigate, useSearchParams } from '@solidjs/router';
 import { TbOutlineArrowLeft, TbOutlineFileExport } from 'solid-icons/tb';
-import { activeProjectId, activeProjectLabel } from '../state/workspace_v1';
+import { activeProjectLabel, openProject } from '../state/workspace_v1';
 import { liveSheets } from '../state/sheet_list';
 import { openSheetDoc, closeSheetDoc, waitForSync } from '../lib/doc/ydoc';
 import { matchQuery } from '../lib/tag/query';
@@ -51,6 +51,7 @@ function sheetsToHtml(sheets: SheetData[], title: string): string {
 
 const ExportPage: Component = () => {
   const navigate = useNavigate();
+  const params = useParams();
   const [searchParams] = useSearchParams();
   const query = () => (searchParams.q as string | undefined) ?? '';
 
@@ -69,6 +70,7 @@ const ExportPage: Component = () => {
 
   const load = async () => {
     setLoading(true);
+    await openProject(params.pjId);
     const q = query().trim();
     const sheets = q
       ? liveSheets().filter((sh) => matchQuery(q, new Set(sh.tags)))
@@ -88,12 +90,14 @@ const ExportPage: Component = () => {
     setLoading(false);
   };
 
-  onMount(load);
+  createEffect(() => {
+    if (params.pjId) load();
+  });
 
   const handleFormatChange = (fmt: ExportFormat) => {
-    setFormat(fmt);
     const d = data();
     if (d) buildPreview(d, fmt);
+    setFormat(fmt);
   };
 
   const handleDownload = () => {
@@ -131,19 +135,20 @@ const ExportPage: Component = () => {
       <div class="page-header">
         <button
           class="sb-icon-btn"
-          onClick={() => navigate(`/project/${activeProjectId()}`)}
+          onClick={() => navigate(`/project/${params.pjId}`)}
         >
           <div class="btn-pad">
             <TbOutlineArrowLeft />
           </div>
         </button>
-        <h1 style={{ flex: 1, margin: 0, 'font-size': '1.2rem' }}>
+        <h1 class="page-header-title">
           {activeProjectLabel()} — {s('common.export')}
         </h1>
       </div>
 
       <div class="page-toolbar">
         <select
+          class="pj-format-select"
           value={format()}
           onChange={(e) =>
             handleFormatChange(e.currentTarget.value as ExportFormat)
@@ -170,20 +175,7 @@ const ExportPage: Component = () => {
       </Show>
 
       <Show when={preview()}>
-        <pre
-          style={{
-            background: 'var(--border)',
-            padding: 'var(--sp-3)',
-            'border-radius': 'var(--r)',
-            'font-size': 'var(--fs-sm)',
-            'white-space': 'pre-wrap',
-            'word-break': 'break-word',
-            'max-height': '60vh',
-            overflow: 'auto',
-          }}
-        >
-          {preview()}
-        </pre>
+        <pre class="preview-box">{preview()}</pre>
       </Show>
     </div>
   );

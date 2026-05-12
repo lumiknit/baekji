@@ -1,6 +1,6 @@
 import type { Component } from 'solid-js';
-import { createMemo, createSignal, For, Show } from 'solid-js';
-import { useNavigate, useSearchParams } from '@solidjs/router';
+import { createMemo, createSignal, For, createEffect, Show } from 'solid-js';
+import { useParams, useNavigate, useSearchParams } from '@solidjs/router';
 import {
   TbFillTrash,
   TbOutlineReportAnalytics,
@@ -9,9 +9,9 @@ import {
 } from 'solid-icons/tb';
 import {
   activeProjectDoc,
-  activeProjectId,
   activeProjectLabel,
   closeProject,
+  openProject,
 } from '../state/workspace_v1';
 import { liveSheets } from '../state/sheet_list';
 import { putProject, deleteProject } from '../lib/doc/db_v1';
@@ -23,7 +23,12 @@ import { s } from '../lib/i18n';
 
 const ProjectPage: Component = () => {
   const navigate = useNavigate();
+  const params = useParams();
   const [searchParams] = useSearchParams();
+
+  createEffect(() => {
+    if (params.pjId) openProject(params.pjId);
+  });
 
   const pd = () => activeProjectDoc();
   const projectLabel = activeProjectLabel;
@@ -54,7 +59,7 @@ const ProjectPage: Component = () => {
     const now = new Date().toISOString();
     p.meta.set('label', label);
     p.meta.set('updatedAt', now);
-    const id = activeProjectId();
+    const id = params.pjId;
     if (id) putProject({ id, label, updatedAt: now, tagColors: tagColors() });
   };
 
@@ -84,7 +89,7 @@ const ProjectPage: Component = () => {
     if (!p) return;
     const colors = { ...tagColors(), [tag]: { h, s: sv } };
     p.meta.set('tagColors', colors);
-    const id = activeProjectId();
+    const id = params.pjId;
     if (id)
       putProject({
         id,
@@ -100,7 +105,7 @@ const ProjectPage: Component = () => {
     const colors = { ...tagColors() };
     delete colors[tag];
     p.meta.set('tagColors', colors);
-    const id = activeProjectId();
+    const id = params.pjId;
     if (id)
       putProject({
         id,
@@ -117,7 +122,7 @@ const ProjectPage: Component = () => {
       s('project.danger_desc'),
     );
     if (!confirmed) return;
-    const id = activeProjectId();
+    const id = params.pjId;
     if (id) await deleteProject(id);
     await closeProject();
     setSidebarView('projects');
@@ -129,25 +134,14 @@ const ProjectPage: Component = () => {
       when={pd()}
       fallback={<div class="empty-state">{s('project.no_project_open')}</div>}
     >
-      <div
-        style={{
-          padding: '0 1.5rem 3rem',
-          'max-width': '700px',
-          margin: '0 auto',
-        }}
-      >
+      <div class="page-body">
         {/* ── Project name (inline edit) ── */}
-        <div class="page-header" style={{ 'padding-top': '2rem' }}>
+        <div class="page-header">
           <Show
             when={editingLabel()}
             fallback={
               <h1
-                style={{
-                  flex: 1,
-                  margin: 0,
-                  'font-size': '1.4rem',
-                  cursor: 'text',
-                }}
+                class="pj-name-label"
                 onClick={startRename}
                 title={s('project.rename_title')}
               >
@@ -189,7 +183,8 @@ const ProjectPage: Component = () => {
         {/* ── Toolbar: Analysis / Export / Backup ── */}
         <div class="page-toolbar">
           <button
-            onClick={() => navigate(`/project/${activeProjectId()}/analysis`)}
+            class="btn-border"
+            onClick={() => navigate(`/project/${params.pjId}/analysis`)}
           >
             <span class="icon">
               <TbOutlineReportAnalytics />
@@ -197,14 +192,15 @@ const ProjectPage: Component = () => {
             {s('common.analysis')}
           </button>
           <button
-            onClick={() => navigate(`/project/${activeProjectId()}/export`)}
+            class="btn-border"
+            onClick={() => navigate(`/project/${params.pjId}/export`)}
           >
             <span class="icon">
               <TbOutlineFileExport />
             </span>
             {s('common.export')}
           </button>
-          <button onClick={openBackupModal}>
+          <button class="btn-border" onClick={openBackupModal}>
             <span class="icon">
               <TbOutlineDatabaseExport />
             </span>
@@ -214,18 +210,11 @@ const ProjectPage: Component = () => {
 
         {/* ── Tag colors ── */}
         <Show when={allTags().length > 0}>
-          <h2 style={{ 'font-size': '1rem', 'margin-bottom': '0.5rem' }}>
+          <h2 class="pj-section-title">
             {s('project.tag_colors_title')}{' '}
-            <span style={{ 'font-size': '0.75rem' }}>({allTags().length})</span>
+            <span class="pj-section-count">({allTags().length})</span>
           </h2>
-          <div
-            style={{
-              display: 'flex',
-              'flex-direction': 'column',
-              gap: '4px',
-              'margin-bottom': '2rem',
-            }}
-          >
+          <div class="pj-tag-list">
             <For each={allTags()}>
               {([tag, count]) => {
                 const override = () => tagColors()[tag];
@@ -233,35 +222,20 @@ const ProjectPage: Component = () => {
                 const eff = () => override() ?? { h: ah, s: as_ };
 
                 return (
-                  <div
-                    style={{
-                      display: 'flex',
-                      'align-items': 'center',
-                      gap: '8px',
-                      padding: '4px 0',
-                    }}
-                  >
+                  <div class="pj-tag-row">
                     <span
                       class="tag"
                       style={{
                         background: `hsl(${eff().h}deg ${eff().s}% var(--color-l) / 0.25)`,
                         color: `hsl(${eff().h}deg ${eff().s}% var(--color-l))`,
-                        'min-width': '80px',
                       }}
                     >
                       {tag}
                     </span>
-                    <span style={{ 'font-size': '12px' }}>
+                    <span class="pj-tag-count">
                       {s('project.tag_item_count', { count })}
                     </span>
-                    <div
-                      style={{
-                        'margin-left': 'auto',
-                        display: 'flex',
-                        'align-items': 'center',
-                        gap: '6px',
-                      }}
-                    >
+                    <div class="pj-tag-actions">
                       <input
                         type="color"
                         class="tree-color-input"

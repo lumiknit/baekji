@@ -1,8 +1,8 @@
 import type { Component } from 'solid-js';
-import { createSignal, For, Show, onMount } from 'solid-js';
-import { useNavigate } from '@solidjs/router';
+import { createSignal, For, Show, createEffect } from 'solid-js';
+import { useParams, useNavigate } from '@solidjs/router';
 import { TbOutlineArrowLeft } from 'solid-icons/tb';
-import { activeProjectId, activeProjectLabel } from '../state/workspace_v1';
+import { activeProjectLabel, openProject } from '../state/workspace_v1';
 import { liveSheets } from '../state/sheet_list';
 import { openSheetDoc, closeSheetDoc, waitForSync } from '../lib/doc/ydoc';
 import { s } from '../lib/i18n';
@@ -28,6 +28,7 @@ type SheetStats = {
 
 const AnalysisPage: Component = () => {
   const navigate = useNavigate();
+  const params = useParams();
   const [analyzing, setAnalyzing] = createSignal(false);
   const [stats, setStats] = createSignal<SheetStats[] | null>(null);
 
@@ -49,6 +50,7 @@ const AnalysisPage: Component = () => {
   const run = async () => {
     setAnalyzing(true);
     setStats(null);
+    await openProject(params.pjId);
     const sheets = liveSheets();
     const results: SheetStats[] = [];
     for (const sheet of sheets) {
@@ -66,20 +68,22 @@ const AnalysisPage: Component = () => {
     setAnalyzing(false);
   };
 
-  onMount(run);
+  createEffect(() => {
+    if (params.pjId) run();
+  });
 
   return (
     <div class="page-body">
       <div class="page-header">
         <button
           class="sb-icon-btn"
-          onClick={() => navigate(`/project/${activeProjectId()}`)}
+          onClick={() => navigate(`/project/${params.pjId}`)}
         >
           <div class="btn-pad">
             <TbOutlineArrowLeft />
           </div>
         </button>
-        <h1 style={{ flex: 1, margin: 0, 'font-size': '1.2rem' }}>
+        <h1 class="page-header-title">
           {activeProjectLabel()} — {s('common.analysis')}
         </h1>
       </div>
@@ -90,7 +94,7 @@ const AnalysisPage: Component = () => {
 
       <Show when={stats()}>
         {(rows) => (
-          <div style={{ overflow: 'auto' }}>
+          <div class="overflow-y-auto">
             <table class="stats-table">
               <thead>
                 <tr>

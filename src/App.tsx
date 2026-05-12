@@ -12,16 +12,15 @@ import AnalysisPage from './pages/AnalysisPage';
 import ExportPage from './pages/ExportPage';
 import V0ProjectPage from './pages/V0ProjectPage';
 import SettingsPage from './pages/SettingsPage';
+import SearchPage from './pages/SearchPage';
 import { updateRootStyle } from './state/settings';
 import { handleCallback } from './lib/sync/dropbox_auth';
 import { s } from './lib/i18n';
 import { logError, logInfo } from './state/log';
-import { initTabSync } from './lib/sync';
 
 const App: Component = () => {
   onMount(() => {
     logInfo('App initialized');
-    initTabSync();
 
     (async () => {
       const params = new URLSearchParams(location.search);
@@ -59,6 +58,7 @@ const App: Component = () => {
         <Route path="/project/:pjId" component={ProjectPage} />
         <Route path="/project/:pjId/analysis" component={AnalysisPage} />
         <Route path="/project/:pjId/export" component={ExportPage} />
+        <Route path="/search" component={SearchPage} />
         <Route path="/v0-project/:pjId" component={V0ProjectPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/about" component={AboutPage} />

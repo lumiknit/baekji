@@ -77,52 +77,35 @@ const V0ProjectPage: Component = () => {
   };
 
   return (
-    <div style={{ padding: '2rem', 'max-width': '720px', margin: '0 auto' }}>
-      <h1 style={{ 'font-size': '1.2rem', 'margin-bottom': '0.5rem' }}>
-        레거시 프로젝트 (V0)
-      </h1>
-      <p
-        style={{
-          opacity: 0.5,
-          'font-size': '0.85rem',
-          'margin-bottom': '1.5rem',
-        }}
-      >
+    <div class="page-body">
+      <h1 class="page-header-title">레거시 프로젝트 (V0)</h1>
+      <p class="hint">
         구형 포맷(V0) 프로젝트입니다. 내용을 확인하고 필요한 내용을 복사하거나
         다운로드한 뒤 삭제하세요.
       </p>
 
       <Show when={data.loading}>
-        <div style={{ opacity: 0.5 }}>불러오는 중…</div>
+        <div class="empty-state">불러오는 중…</div>
       </Show>
 
       <Show when={!data.loading && (data() ?? []).length === 0}>
-        <div style={{ opacity: 0.5 }}>해당 프로젝트를 찾을 수 없습니다.</div>
+        <div class="empty-state">해당 프로젝트를 찾을 수 없습니다.</div>
       </Show>
 
       <For each={data() ?? []}>
         {(item) => (
-          <div
-            style={{
-              'margin-bottom': '2rem',
-              border: '1px solid var(--c-border)',
-              'border-radius': '8px',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                padding: '0.75rem 1rem',
-                background: 'var(--c-bg-2)',
-                display: 'flex',
-                'align-items': 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <span style={{ flex: 1, 'font-weight': 600 }}>
+          <div class="v0-card">
+            <div class="v0-card-header">
+              <span
+                class="v0-card-label"
+                style={{ flex: 1, 'font-weight': 600 }}
+              >
                 {item.version.label}
               </span>
-              <span style={{ opacity: 0.5, 'font-size': '0.8rem' }}>
+              <span
+                class="v0-card-meta"
+                style={{ opacity: 0.5, 'font-size': '0.8rem' }}
+              >
                 {item.version.updatedAt?.slice(0, 10)}
               </span>
               <button
@@ -133,7 +116,7 @@ const V0ProjectPage: Component = () => {
               </button>
               <button
                 class="btn-border btn-sm"
-                style={{ color: 'var(--c-danger, #e53)' }}
+                style={{ color: 'var(--accent)' }}
                 disabled={deleting()}
                 onClick={() =>
                   deleteVersion(item.version.id, item.version.label)
@@ -143,38 +126,17 @@ const V0ProjectPage: Component = () => {
               </button>
             </div>
 
-            <div style={{ padding: '0.75rem 1rem' }}>
+            <div class="v0-card-body">
               <Show when={item.sheets.length === 0}>
-                <div style={{ opacity: 0.4, 'font-size': '0.85rem' }}>
-                  시트 없음
-                </div>
+                <div class="empty-state">시트 없음</div>
               </Show>
               <For each={item.sheets}>
                 {(sheet) => (
-                  <div style={{ 'margin-bottom': '1.25rem' }}>
-                    <div
-                      style={{
-                        'font-size': '0.85rem',
-                        'font-weight': 600,
-                        opacity: 0.7,
-                        'margin-bottom': '0.25rem',
-                      }}
-                    >
+                  <div class="v0-sheet-item">
+                    <div class="v0-sheet-label">
                       {(sheet.node as any).label ?? sheet.node.id}
                     </div>
-                    <pre
-                      style={{
-                        background: 'var(--c-bg-2)',
-                        padding: '0.75rem',
-                        'border-radius': '6px',
-                        'font-size': '0.8rem',
-                        'white-space': 'pre-wrap',
-                        'word-break': 'break-word',
-                        margin: 0,
-                        'max-height': '300px',
-                        overflow: 'auto',
-                      }}
-                    >
+                    <pre class="v0-sheet-content">
                       {sheet.markdown || '(내용 없음)'}
                     </pre>
                   </div>

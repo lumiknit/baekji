@@ -3,7 +3,7 @@ export const dedent = (
   strings: TemplateStringsArray,
   ...values: any[]
 ): string => {
-  let raw = strings.reduce((acc, str, i) => {
+  const raw = strings.reduce((acc, str, i) => {
     return acc + str + (values[i] ?? '');
   }, '');
 

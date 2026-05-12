@@ -28,6 +28,7 @@ import {
   TbFillSettings,
   TbOutlineLayoutSidebarLeftExpand,
   TbOutlineCarouselVertical,
+  TbOutlineSearch,
 } from 'solid-icons/tb';
 
 const MainLayout: Component<RouteSectionProps> = (props) => {
@@ -103,6 +104,14 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
               <Show when={!isNarrow()}>{s('sidebar.project_list')}</Show>
             </div>
           </button>
+          <A href="/search" class="sb-nav-btn" title={s('common.search')}>
+            <div class="btn-pad">
+              <span class="icon">
+                <TbOutlineSearch />
+              </span>
+              <Show when={!isNarrow()}>{s('common.search')}</Show>
+            </div>
+          </A>
         </div>
         <div class="sidebar-content">
           <Switch>

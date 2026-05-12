@@ -46,14 +46,7 @@ const FontPicker: Component<{
   return (
     <label class="flex justify-between items-center gap-8">
       {props.label}
-      <div
-        class="flex gap-4 items-center"
-        style={{
-          flex: '1',
-          'max-width': '240px',
-          'justify-content': 'flex-end',
-        }}
-      >
+      <div class="flex gap-4 items-center flex-1 max-w-240 justify-end">
         <Show when={showInput()}>
           <input
             type="text"
@@ -62,7 +55,7 @@ const FontPicker: Component<{
             onInput={(e) =>
               setSettings('fonts', props.fontKey, e.currentTarget.value)
             }
-            style={{ flex: '1', 'min-width': '0' }}
+            class="flex-1 min-w-0"
           />
         </Show>
         <select
@@ -97,7 +90,7 @@ const NumberInputWithSlider: Component<{
           min={props.min}
           max={props.max}
           onChange={(e) => props.onChange(parseFloat(e.currentTarget.value))}
-          style={{ width: '80px' }}
+          class="pj-num-input"
         />
       </SettingRow>
       <input

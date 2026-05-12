@@ -89,7 +89,7 @@ export function orderKeyBetween(a: number | null, b: number | null): number {
 
 // ─── CRUD ────────────────────────────────────────────────────────
 
-export function createSheet(tags: string[] = []): string | null {
+export function createSheet(tags: string[], after?: string): string | null {
   const sheetsMap = getSheetsMap();
   const pd = activeProjectDoc();
   if (!sheetsMap || !pd) return null;
@@ -98,11 +98,27 @@ export function createSheet(tags: string[] = []): string | null {
   const id = genUnorderedId();
   const now = new Date().toISOString();
 
+  let orderKey: number;
+  if (after) {
+    const sheets = liveSheets();
+    const idx = sheets.findIndex((s) => s.id === after);
+    if (idx !== -1) {
+      const currentOrderKey = sheets[idx].orderKey;
+      const nextOrderKey =
+        idx + 1 < sheets.length ? sheets[idx + 1].orderKey : null;
+      orderKey = orderKeyBetween(currentOrderKey, nextOrderKey);
+    } else {
+      orderKey = orderKeyBetween(maxOrderKey(), null);
+    }
+  } else {
+    orderKey = orderKeyBetween(maxOrderKey(), null);
+  }
+
   const meta: SheetMeta = {
     id,
     projectId,
     updatedAt: now,
-    orderKey: maxOrderKey() + 1000,
+    orderKey,
     tags,
   };
 
@@ -156,9 +172,13 @@ export function emptyTrash(): void {
   for (const s of trashSheets()) sheetsMap.delete(s.id);
 }
 
-/** 두 시트 content를 합쳐서 첫 번째에 저장하고 두 번째를 휴지통으로 이동. */
-export async function mergeSheetDown(id: string): Promise<void> {
-  const sheets = liveSheets();
+/** 두 시트 content를 합쳐서 첫 번째에 저장하고 두 번째를 휴지통으로 이동.
+ * list가 주어지면 해당 리스트에서 id 다음 항목과 합침. */
+export async function mergeSheetDown(
+  id: string,
+  list?: SheetMeta[],
+): Promise<void> {
+  const sheets = list ?? liveSheets();
   const idx = sheets.findIndex((s) => s.id === id);
   if (idx < 0 || idx >= sheets.length - 1) return;
 

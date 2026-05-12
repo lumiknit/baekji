@@ -7,6 +7,7 @@ import {
   TbOutlineChevronDown,
   TbOutlineChevronRight,
   TbOutlineDotsVertical,
+  TbOutlineDatabaseExport,
 } from 'solid-icons/tb';
 import {
   filteredSheets,
@@ -24,8 +25,10 @@ import {
   activeProjectDoc,
   activeProjectId,
   activeProjectLabel,
+  activeSheetId,
 } from '../../state/workspace_v1';
 import { setSidebarView } from '../../state/workspace';
+import { openBackupModal } from '../../state/modal';
 import TagFilterInput from './TagFilterInput';
 import SheetItem from './SheetItem';
 import Dropdown from '../Dropdown';
@@ -100,7 +103,7 @@ const SheetList: Component = () => {
   const { draggingId, dropIndex, startDrag } = useDrag(filteredSheets);
 
   const handleNewSheet = () => {
-    const id = createSheet();
+    const id = createSheet([], activeSheetId() ?? undefined);
     if (id) navigate(`/sheets/${id}`);
   };
 
@@ -120,7 +123,7 @@ const SheetList: Component = () => {
           </div>
         }
       >
-        <div class="sidebar-project-header">
+        <div class="sb-header sidebar-project-header">
           <A href={`/project/${activeProjectId()}`} class="tree-project-link">
             <div class="btn-pad">
               <span class="tree-project-name">{projectLabel()}</span>
@@ -130,11 +133,11 @@ const SheetList: Component = () => {
           <div class="tree-project-header-btns">
             <button
               class="sb-icon-btn"
-              title={s('sidebar.new_sheet')}
-              onClick={handleNewSheet}
+              title={s('backup.title')}
+              onClick={openBackupModal}
             >
               <div class="btn-pad">
-                <TbOutlineFilePlus />
+                <TbOutlineDatabaseExport />
               </div>
             </button>
             <Dropdown
@@ -149,6 +152,12 @@ const SheetList: Component = () => {
                 </div>
               }
               items={[
+                {
+                  icon: TbOutlineFilePlus,
+                  label: s('sidebar.new_sheet'),
+                  onSelect: handleNewSheet,
+                },
+                { separator: true },
                 selectedIds().size > 0
                   ? { label: s('tree.deselect_all'), onSelect: clearSelection }
                   : { label: s('tree.select_all'), onSelect: selectAll },

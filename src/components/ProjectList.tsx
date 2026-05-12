@@ -70,7 +70,7 @@ const ProjectList: Component = () => {
 
   return (
     <div class="project-list">
-      <div class="project-list-header">
+      <div class="sb-header project-list-header">
         <input
           class="project-list-filter"
           type="text"

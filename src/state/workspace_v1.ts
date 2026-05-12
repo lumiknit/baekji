@@ -25,6 +25,9 @@ export const activeProjectDoc = _activeProjectDoc;
 export const activeProjectLabel = _activeProjectLabel;
 
 export async function openProject(id: string): Promise<void> {
+  if (activeProjectId() === id) {
+    return;
+  }
   if (_projectDoc) {
     closeProjectDoc(_projectDoc);
     _projectDoc = null;
