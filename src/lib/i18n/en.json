@@ -200,7 +200,17 @@
     "delete_selected_confirm": "Delete {{count}} items?",
     "deselect": "Deselect",
     "expand_all": "Expand all",
-    "collapse_all": "Collapse all"
+    "collapse_all": "Collapse all",
+    "trash": "Trash",
+    "trash_empty": "Trash is empty",
+    "trash_restore": "Restore",
+    "trash_delete_permanent": "Delete Permanently",
+    "trash_delete_permanent_confirm": "Permanently delete \"{{label}}\"? This cannot be undone.",
+    "trash_move_confirm": "Move {{count}} item(s) to trash?",
+    "trash_moved": "Moved to trash",
+    "trash_empty_confirm": "Empty trash? All items will be permanently deleted.",
+    "trash_empty_btn": "Empty Trash",
+    "undo": "Undo"
   },
   "analysis": {
     "include_spaces": "Include spaces",

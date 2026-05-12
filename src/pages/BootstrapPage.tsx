@@ -1,65 +1,28 @@
 import type { Component } from 'solid-js';
 import { onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
-import localforage from 'localforage';
-import { getAllVersionRoots, getNode } from '../lib/doc/db';
-import { s } from '../lib/i18n';
-import { setActivePjVerId } from '../state/workspace';
-import { createProject } from '../lib/doc/db_helper';
-
-const WELCOMED_KEY = 'baekji-welcomed';
+import { restoreLastProject, restoreLastSheet } from '../state/workspace_v1';
+import { setSidebarView } from '../state/workspace';
 
 const BootstrapPage: Component = () => {
   const navigate = useNavigate();
 
   onMount(async () => {
-    // Resume last opened node directly if it still exists.
-    // makePersisted JSON.stringifies values, so the stored value is e.g. '"node-id"' — parse it.
-    const lastNodeRaw = await localforage.getItem<string>('baekji-last-node');
-    let lastNode: string | null = null;
-    try {
-      lastNode = lastNodeRaw ? (JSON.parse(lastNodeRaw) as string) : null;
-    } catch {
-      // Corrupted stored value — ignore and fall through to normal boot
-    }
-    if (lastNode && (await getNode(lastNode))) {
-      navigate(`/nodes/${lastNode}`, { replace: true });
+    // V1 프로젝트 복원
+    await restoreLastProject();
+
+    // 마지막으로 열었던 시트로 이동
+    const lastSheet = await restoreLastSheet();
+    if (lastSheet) {
+      navigate(`/sheets/${lastSheet}`, { replace: true });
       return;
     }
 
-    const roots = await getAllVersionRoots();
-    const active = roots.filter((r) => r.active);
-
-    if (active.length > 0) {
-      const latest = [...active].sort((a, b) =>
-        b.updatedAt.localeCompare(a.updatedAt),
-      )[0];
-      setActivePjVerId(latest.id);
-      navigate(`/nodes/${latest.id}`, { replace: true });
-      return;
-    }
-
-    // First launch — no projects exist
-    const welcomed = await localforage.getItem<boolean>(WELCOMED_KEY);
-    let pjVerId: string;
-
-    if (!welcomed) {
-      await localforage.setItem(WELCOMED_KEY, true);
-      const { createWelcomeProject } = await import('../welcome/loader');
-      const { pjVerId: vid, firstSheetId } = await createWelcomeProject();
-      setActivePjVerId(vid);
-      navigate(`/nodes/${firstSheetId}`, { replace: true });
-      return;
-    } else {
-      const result = await createProject(s('home.default_project_name'));
-      pjVerId = result.pjVerId;
-    }
-
-    setActivePjVerId(pjVerId);
-    navigate(`/nodes/${pjVerId}`, { replace: true });
+    // 프로젝트는 열려 있지만 시트가 없으면 사이드바 표시
+    setSidebarView('tree');
   });
 
-  return <div class="p-16">Loading...</div>;
+  return <div class="p-16">Loading…</div>;
 };
 
 export default BootstrapPage;

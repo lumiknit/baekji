@@ -1,17 +1,15 @@
 import { useNavigate } from '@solidjs/router';
-import {
-  TbOutlineDotsVertical,
-  TbOutlinePlus,
-  TbOutlineCloud,
-} from 'solid-icons/tb';
+import { TbOutlineDotsVertical, TbOutlinePlus } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
 import { createResource, createSignal, For, Show } from 'solid-js';
-import { getAllVersionRoots, setActiveVersion } from '../lib/doc/db';
-import { createProject as createProjectInDB } from '../lib/doc/db_helper';
+import { getAllVersionRoots } from '../lib/doc/db';
+import { getAllProjects, putProject } from '../lib/doc/db_v1';
 import { s } from '../lib/i18n';
 import { formatRelativeDate } from '../lib/format_date';
-import { showPrompt, showBackup } from '../state/modal';
-import { setActivePjVerId, setSidebarView } from '../state/workspace';
+import { showPrompt } from '../state/modal';
+import { setSidebarView } from '../state/workspace';
+import { openProject, activeProjectDoc } from '../state/workspace_v1';
+import { genUnorderedId } from '../lib/uuid';
 import Dropdown from './Dropdown';
 
 const ProjectList: Component = () => {
@@ -19,41 +17,53 @@ const ProjectList: Component = () => {
   const [filter, setFilter] = createSignal('');
   const [showInactive, setShowInactive] = createSignal(false);
 
-  const [allVersions, { refetch }] = createResource(async () => {
-    return getAllVersionRoots();
+  const [v0Projects] = createResource(async () => {
+    const all = await getAllVersionRoots();
+    return all.filter((r) => r.active);
   });
 
-  const filtered = () => {
-    const q = filter().toLowerCase();
-    const all = allVersions() ?? [];
-    const list = showInactive() ? [...all] : all.filter((r) => r.active);
-    list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    if (!q) return list;
-    return list.filter((p) => p.label.toLowerCase().includes(q));
-  };
+  const [v1Projects, { refetch: refetchV1 }] = createResource(async () => {
+    return getAllProjects();
+  });
 
-  const openProject = (versionId: string) => {
-    setActivePjVerId(versionId);
+  const openV1Project = async (id: string) => {
+    await openProject(id);
     setSidebarView('tree');
-    navigate(`/nodes/${versionId}`);
+    navigate('/');
   };
 
-  const activateAndOpen = async (projectId: string, versionId: string) => {
-    await setActiveVersion(projectId, versionId);
-    refetch();
-    openProject(versionId);
-  };
-
-  const createProject = async () => {
+  const createV1Project = async () => {
     const label = await showPrompt(
       s('home.create_project'),
       s('home.project_name_prompt'),
       s('home.default_project_name'),
     );
     if (!label) return;
-    const { pjVerId } = await createProjectInDB(label);
-    refetch();
-    openProject(pjVerId);
+    const id = genUnorderedId();
+    const now = new Date().toISOString();
+    putProject({ id, label, updatedAt: now, tagColors: {} });
+    await openProject(id);
+    const pd = activeProjectDoc();
+    if (pd) {
+      pd.meta.set('id', id);
+      pd.meta.set('label', label);
+      pd.meta.set('updatedAt', now);
+    }
+    refetchV1();
+    setSidebarView('tree');
+    navigate('/');
+  };
+
+  const filteredV1 = () => {
+    const q = filter().toLowerCase();
+    const list = v1Projects() ?? [];
+    return q ? list.filter((p) => p.label.toLowerCase().includes(q)) : list;
+  };
+
+  const filteredV0 = () => {
+    const q = filter().toLowerCase();
+    const list = (v0Projects() ?? []).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return q ? list.filter((p) => p.label.toLowerCase().includes(q)) : list;
   };
 
   return (
@@ -70,77 +80,53 @@ const ProjectList: Component = () => {
           triggerClass="sb-icon-btn"
           triggerAriaLabel={s('common.more_actions')}
           align="right"
-          trigger={
-            <div class="btn-pad">
-              <span class="icon">
-                <TbOutlineDotsVertical />
-              </span>
-            </div>
-          }
-          items={[
-            {
-              label: showInactive()
-                ? s('project.hide_inactive')
-                : s('project.show_inactive'),
-              onSelect: () => setShowInactive((v) => !v),
-            },
-          ]}
+          trigger={<div class="btn-pad"><span class="icon"><TbOutlineDotsVertical /></span></div>}
+          items={[{
+            label: showInactive() ? s('project.hide_inactive') : s('project.show_inactive'),
+            onSelect: () => setShowInactive((v) => !v),
+          }]}
         />
       </div>
+
       <div class="project-list-items">
-        <button class="project-list-new-btn" onClick={createProject}>
+        <button class="project-list-new-btn" onClick={createV1Project}>
           <div class="btn-pad">
-            <span class="icon">
-              <TbOutlinePlus />
-            </span>
-            {s('project.new_project')}
+            <span class="icon"><TbOutlinePlus /></span>
+            새 프로젝트
           </div>
         </button>
-        <button class="project-list-new-btn" onClick={() => showBackup()}>
-          <div class="btn-pad">
-            <span class="icon">
-              <TbOutlineCloud />
-            </span>
-            {s('common.pj_backup')}
-          </div>
-        </button>
-        <Show
-          when={!allVersions.loading}
-          fallback={<div class="p-16">Loading...</div>}
-        >
-          <For each={filtered()}>
+
+        <For each={filteredV1()}>
+          {(p) => (
+            <div
+              class="project-list-item"
+              role="button"
+              tabIndex={0}
+              onClick={() => openV1Project(p.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openV1Project(p.id); }}
+            >
+              <div class="btn-pad">
+                <div class="project-list-item-label">{p.label}</div>
+                <div class="project-list-item-meta">{formatRelativeDate(p.updatedAt)}</div>
+              </div>
+            </div>
+          )}
+        </For>
+
+        <Show when={filteredV0().length > 0}>
+          <div style={{ padding: '4px 8px', opacity: 0.4, 'font-size': '0.75em' }}>레거시 (V0)</div>
+          <For each={filteredV0()}>
             {(p) => (
               <div
-                class="project-list-item"
-                classList={{ 'project-list-item--inactive': !p.active }}
-                title={`project: ${p.projectId}\nversion: ${p.id}`}
+                class="project-list-item project-list-item--inactive"
                 role="button"
                 tabIndex={0}
-                aria-label={p.label}
-                onClick={() =>
-                  p.active
-                    ? openProject(p.id)
-                    : activateAndOpen(p.projectId, p.id)
-                }
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    p.active
-                      ? openProject(p.id)
-                      : activateAndOpen(p.projectId, p.id);
-                  }
-                }}
+                onClick={() => navigate(`/v0-project/${p.projectId}`)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/v0-project/${p.projectId}`); }}
               >
                 <div class="btn-pad">
                   <div class="project-list-item-label">{p.label}</div>
-                  <div class="project-list-item-meta">
-                    <Show when={!p.active}>
-                      <span class="project-list-item-inactive-badge">
-                        {s('project.inactive')}
-                      </span>
-                    </Show>
-                    {formatRelativeDate(p.updatedAt)}
-                  </div>
+                  <div class="project-list-item-meta">{formatRelativeDate(p.updatedAt)}</div>
                 </div>
               </div>
             )}

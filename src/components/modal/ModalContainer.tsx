@@ -3,8 +3,6 @@ import { Show, onMount, onCleanup } from 'solid-js';
 import { modalState, closeModal } from '../../state/modal';
 import ConfirmModal from './ConfirmModal';
 import NameInputModal from './NameInputModal';
-import BackupModal from './BackupModal';
-import ImportCompareModal from './ImportCompareModal';
 
 const ModalContainer: Component = () => {
   onMount(() => {
@@ -30,15 +28,6 @@ const ModalContainer: Component = () => {
                 title={state().title}
                 message={state().message}
                 defaultValue={state().defaultValue}
-              />
-            </Show>
-            <Show when={state().type === 'backup'}>
-              <BackupModal projectInfo={state().projectInfo} />
-            </Show>
-            <Show when={state().type === 'import-compare'}>
-              <ImportCompareModal
-                existing={state().importCompareMeta!.existing}
-                incoming={state().importCompareMeta!.incoming}
               />
             </Show>
           </div>

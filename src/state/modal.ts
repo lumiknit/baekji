@@ -1,56 +1,18 @@
 import { createSignal } from 'solid-js';
 
-export type ModalType =
-  | 'confirm'
-  | 'prompt'
-  | 'link'
-  | 'image'
-  | 'export'
-  | 'backup'
-  | 'import-compare'
-  | null;
-
-export type ProjectInfo = {
-  id: string;
-  pjVerNodeId: string;
-  label: string;
-  exportedAt?: string;
-  exportedBy?: string;
-};
-
-export interface VersionCompareMeta {
-  label: string;
-  updatedAt: string;
-  exportedAt?: string;
-  exportedBy?: string;
-  appVersion?: string;
-  schemaVersion?: number;
-  sheetCount: number;
-  groupCount: number;
-}
+export type ModalType = 'confirm' | 'prompt' | null;
 
 interface ModalState {
   type: ModalType;
   title: string;
   message: string;
   defaultValue?: string;
-  imageMeta?: { src: string; alt: string };
-  projectInfo?: ProjectInfo;
-  importCompareMeta?: {
-    existing: VersionCompareMeta;
-    incoming: VersionCompareMeta;
-  };
   resolve: (value: any) => void;
 }
 
-export const [modalState, setModalState] = createSignal<ModalState | null>(
-  null,
-);
+export const [modalState, setModalState] = createSignal<ModalState | null>(null);
 
-export const showConfirm = (
-  title: string,
-  message: string,
-): Promise<boolean> => {
+export const showConfirm = (title: string, message: string): Promise<boolean> => {
   return new Promise((resolve) => {
     setModalState({ type: 'confirm', title, message, resolve });
   });
@@ -65,42 +27,6 @@ export const showPrompt = (
     setModalState({ type: 'prompt', title, message, defaultValue, resolve });
   });
 };
-
-export const showBackup = (projectInfo?: ProjectInfo): Promise<null> => {
-  return new Promise((resolve) => {
-    setModalState({
-      type: 'backup',
-      title: '',
-      message: '',
-      projectInfo,
-      resolve,
-    });
-  });
-};
-
-export type ImportCompareResult = 'cancel' | 'separate' | 'overwrite';
-
-export const showImportCompare = (
-  existing: VersionCompareMeta,
-  incoming: VersionCompareMeta,
-): Promise<ImportCompareResult> => {
-  return new Promise((resolve) => {
-    setModalState({
-      type: 'import-compare',
-      title: '',
-      message: '',
-      importCompareMeta: { existing, incoming },
-      resolve,
-    });
-  });
-};
-
-export function normalizeUrl(url: string): string {
-  const trimmed = url.trim();
-  if (!trimmed) return '';
-  if (/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(trimmed)) return trimmed;
-  return `https://${trimmed}`;
-}
 
 export const closeModal = (value: any = null) => {
   const state = modalState();
