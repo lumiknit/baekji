@@ -9,11 +9,13 @@ import {
   TbOutlineDotsVertical,
   TbOutlineDatabaseExport,
   TbOutlineSearch,
+  TbOutlineFileImport,
 } from 'solid-icons/tb';
 import {
   filteredSheets,
   trashSheets,
   createSheet,
+  createSheetWithContent,
   emptyTrash,
   reorderSheet,
   orderKeyBetween,
@@ -107,9 +109,28 @@ const SheetList: Component = () => {
 
   const { draggingId, dropIndex, startDrag } = useDrag(filteredSheets);
 
+  const activeSheetOption = () => {
+    const id = activeSheetId();
+    return id ? { after: id } : undefined;
+  };
+
   const handleNewSheet = () => {
-    const id = createSheet([], activeSheetId() ?? undefined);
+    const id = createSheet([], activeSheetOption());
     if (id) navigate(`/sheets/${id}`);
+  };
+
+  const handleImportFile = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.md,.txt';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const id = await createSheetWithContent([], text, activeSheetOption());
+      if (id) navigate(`/sheets/${id}`);
+    };
+    input.click();
   };
 
   return (
@@ -166,6 +187,11 @@ const SheetList: Component = () => {
                   icon: TbOutlineFilePlus,
                   label: s('sidebar.new_sheet'),
                   onSelect: handleNewSheet,
+                },
+                {
+                  icon: TbOutlineFileImport,
+                  label: s('common.import_sheet_from_file'),
+                  onSelect: handleImportFile,
                 },
                 { separator: true },
                 selectedIds().size > 0

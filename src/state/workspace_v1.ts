@@ -13,15 +13,12 @@ import { getAppState, setAppState } from '../lib/doc/db_v1';
 
 let _projectDoc: ProjectDoc | null = null;
 
-const [_activeProjectId, setActiveProjectId] = createSignal<string | null>(
-  null,
-);
 const [_activeProjectDoc, setActiveProjectDoc] =
   createSignal<ProjectDoc | null>(null);
 const [_activeProjectLabel, setActiveProjectLabel] = createSignal<string>('');
 
-export const activeProjectId = _activeProjectId;
 export const activeProjectDoc = _activeProjectDoc;
+export const activeProjectId = () => _activeProjectDoc()?.id ?? null;
 export const activeProjectLabel = _activeProjectLabel;
 
 export async function openProject(id: string): Promise<void> {
@@ -35,7 +32,6 @@ export async function openProject(id: string): Promise<void> {
   const pd = openProjectDoc(id);
   await waitForSync(pd.provider);
   _projectDoc = pd;
-  setActiveProjectId(id);
   setActiveProjectDoc(pd);
   setActiveProjectLabel((pd.meta.get('label') as string | undefined) ?? '');
   // Y.Map 변경 시 label 신호 동기화
@@ -50,7 +46,6 @@ export async function closeProject(): Promise<void> {
     closeProjectDoc(_projectDoc);
     _projectDoc = null;
   }
-  setActiveProjectId(null);
   setActiveProjectDoc(null);
   await setAppState('global', '', 'activeProjectId', null);
 }
@@ -70,13 +65,12 @@ export async function restoreLastSheet(): Promise<string | null> {
 
 let _sheetDoc: SheetDoc | null = null;
 
-const [_activeSheetId, setActiveSheetId] = createSignal<string | null>(null);
 const [_activeSheetDoc, setActiveSheetDoc] = createSignal<SheetDoc | null>(
   null,
 );
 
-export const activeSheetId = _activeSheetId;
 export const activeSheetDoc = _activeSheetDoc;
+export const activeSheetId = () => _activeSheetDoc()?.id ?? null;
 
 export async function openSheet(id: string): Promise<SheetDoc> {
   if (_sheetDoc) {
@@ -86,7 +80,6 @@ export async function openSheet(id: string): Promise<SheetDoc> {
   const sd = openSheetDoc(id);
   await waitForSync(sd.provider);
   _sheetDoc = sd;
-  setActiveSheetId(id);
   setActiveSheetDoc(sd);
   await setAppState('global', '', 'activeSheetId', id);
   return sd;
@@ -97,6 +90,5 @@ export function closeSheet(): void {
     closeSheetDoc(_sheetDoc);
     _sheetDoc = null;
   }
-  setActiveSheetId(null);
   setActiveSheetDoc(null);
 }

@@ -3,6 +3,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import type { ProjectMeta, SheetMeta } from './v1';
 
 export type ProjectDoc = {
+  id: string;
   doc: Y.Doc;
   provider: IndexeddbPersistence;
   meta: Y.Map<unknown>;
@@ -10,6 +11,7 @@ export type ProjectDoc = {
 };
 
 export type SheetDoc = {
+  id: string;
   doc: Y.Doc;
   provider: IndexeddbPersistence;
   content: Y.Text;
@@ -25,7 +27,7 @@ export function openProjectDoc(projectId: string): ProjectDoc {
   );
   const meta = doc.getMap<unknown>('meta');
   const sheets = doc.getMap<SheetMeta>('sheets');
-  return { doc, provider, meta, sheets };
+  return { id: projectId, doc, provider, meta, sheets };
 }
 
 export function closeProjectDoc(pd: ProjectDoc): void {
@@ -42,6 +44,7 @@ export function readProjectMeta(
     id: projectId,
     label: (meta.get('label') as string) ?? '',
     updatedAt: (meta.get('updatedAt') as string) ?? new Date().toISOString(),
+    committedAt: (meta.get('committedAt') as string) ?? '',
     tagColors: (meta.get('tagColors') as ProjectMeta['tagColors']) ?? {},
   };
 }
@@ -54,6 +57,7 @@ export function writeProjectMeta(
   meta.doc!.transact(() => {
     meta.set('label', data.label);
     meta.set('updatedAt', data.updatedAt);
+    meta.set('committedAt', data.committedAt);
     meta.set('tagColors', data.tagColors);
   });
 }
@@ -64,7 +68,7 @@ export function openSheetDoc(sheetId: string): SheetDoc {
   const doc = new Y.Doc();
   const provider = new IndexeddbPersistence(`baekji-v2-sheet-${sheetId}`, doc);
   const content = doc.getText('content');
-  return { doc, provider, content };
+  return { id: sheetId, doc, provider, content };
 }
 
 export function closeSheetDoc(sd: SheetDoc): void {
@@ -75,6 +79,31 @@ export function closeSheetDoc(sd: SheetDoc): void {
 // ─── Utility ──────────────────────────────────────────────────
 
 /** Wait for the IndexedDB provider to finish loading persisted data. */
-export function waitForSync(provider: IndexeddbPersistence): Promise<void> {
-  return provider.whenSynced.then(() => {});
+export async function waitForSync(
+  provider: IndexeddbPersistence,
+): Promise<void> {
+  await provider.whenSynced;
+}
+
+/** Read the full text content of a sheet by ID. */
+export async function readSheetText(sheetId: string): Promise<string> {
+  const sd = openSheetDoc(sheetId);
+  await waitForSync(sd.provider);
+  const text = sd.content.toString();
+  closeSheetDoc(sd);
+  return text;
+}
+
+/** Overwrite the full text content of a sheet by ID. */
+export async function writeSheetText(
+  sheetId: string,
+  text: string,
+): Promise<void> {
+  const sd = openSheetDoc(sheetId);
+  await waitForSync(sd.provider);
+  sd.doc.transact(() => {
+    sd.content.delete(0, sd.content.length);
+    sd.content.insert(0, text);
+  });
+  closeSheetDoc(sd);
 }

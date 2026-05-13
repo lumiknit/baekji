@@ -29,6 +29,7 @@ import {
   TbOutlineLayoutSidebarLeftExpand,
   TbOutlineCarouselVertical,
 } from 'solid-icons/tb';
+import { Dynamic } from 'solid-js/web';
 
 const MainLayout: Component<RouteSectionProps> = (props) => {
   const isMobile = createMediaQuery('(max-width: 768px)');
@@ -106,9 +107,10 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
         </div>
         <div class="sidebar-content">
           <Switch>
-            <Match when={sidebarView() === 'tree' && !!activeProjectDoc()}>
-              <SheetList />
+            <Match when={sidebarView() === 'projects'}>
+              <ProjectList />
             </Match>
+
             <Match when={sidebarView() === 'tree' && !activeProjectDoc()}>
               <div class="tree-no-project">
                 <span class="tree-no-project-label">
@@ -122,8 +124,8 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
                 </button>
               </div>
             </Match>
-            <Match when={sidebarView() === 'projects'}>
-              <ProjectList />
+            <Match when={sidebarView() === 'tree'}>
+              <SheetList />
             </Match>
           </Switch>
         </div>
@@ -140,18 +142,15 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
         onClick={() => setSidebarOpen(!isSidebarOpen())}
       >
         <div class="btn-pad">
-          <Switch>
-            <Match when={isSidebarOpen()}>
-              <span class="icon">
-                <TbFillLayoutSidebarLeftCollapse />
-              </span>
-            </Match>
-            <Match when={!isSidebarOpen()}>
-              <span class="icon">
-                <TbOutlineLayoutSidebarLeftExpand />
-              </span>
-            </Match>
-          </Switch>
+          <span class="icon">
+            <Dynamic
+              component={
+                isSidebarOpen()
+                  ? TbFillLayoutSidebarLeftCollapse
+                  : TbOutlineLayoutSidebarLeftExpand
+              }
+            />
+          </span>
         </div>
       </button>
 

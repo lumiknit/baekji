@@ -33,55 +33,12 @@
   gap: var(--sp-2);
 }
 
-/* ─── Import Compare ─────────────────────────────── */
-
-.import-compare-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85em;
-
-  th,
-  td {
-    padding: 4px 8px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-    word-break: break-all;
-  }
-
-  th {
-    opacity: 0.6;
-    font-weight: 600;
-  }
-}
-
-.import-compare-key {
-  opacity: 0.6;
-  white-space: nowrap;
-}
-
-.import-compare-diff {
-  color: var(--accent, #e07);
-  font-weight: 600;
-}
-
-.modal-label {
-  display: block;
-  font-size: var(--fs-sm);
-  color: var(--text);
-  margin-top: var(--sp-2);
-  margin-bottom: var(--sp-1);
-}
-
 /* ─── Backup Modal ───────────────────────────────── */
 
 .backup-divider {
   margin: var(--sp-4) 0;
   border: none;
   border-top: 1px solid var(--border);
-}
-
-.backup-section-title {
-  margin: 0;
 }
 
 .backup-token-box {
@@ -94,12 +51,6 @@
   gap: var(--sp-1);
 }
 
-.backup-token-row {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
 .backup-token-actions {
   display: flex;
   gap: var(--sp-1);
@@ -109,10 +60,6 @@
 .backup-expiry {
   font-size: var(--fs-xs, 0.75em);
   opacity: 0.6;
-}
-
-.backup-expiry-warn {
-  color: var(--accent, #e07);
 }
 
 .backup-show-all-label {
@@ -135,10 +82,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
-}
-
-.backup-file-title {
-  font-size: var(--fs-sm);
 }
 
 .backup-file-meta {

@@ -3,6 +3,7 @@ import type { SheetMeta } from '../lib/doc/v1';
 import { activeProjectDoc } from './workspace_v1';
 import { matchQuery } from '../lib/tag/query';
 import { genUnorderedId } from '../lib/uuid';
+import { readSheetText, writeSheetText } from '../lib/doc/ydoc';
 
 // ─── Sheet list state ────────────────────────────────────────────
 
@@ -13,7 +14,7 @@ export const [selectedIds, setSelectedIds] = createSignal<Set<string>>(
 );
 
 export const isSelected = (id: string) => selectedIds().has(id);
-export const clearSelection = () => setSelectedIds(new Set());
+export const clearSelection = () => setSelectedIds(new Set<string>());
 export const toggleSelect = (id: string) =>
   setSelectedIds((prev) => {
     const next = new Set(prev);
@@ -80,10 +81,12 @@ function maxOrderKey(): number {
   return sheets.length > 0 ? Math.max(...sheets.map((s) => s.orderKey)) : 0;
 }
 
+const ORDER_KEY_GAP = 1024;
+
 export function orderKeyBetween(a: number | null, b: number | null): number {
-  if (a === null && b === null) return 1000;
-  if (a === null) return b! - 1000;
-  if (b === null) return a + 1000;
+  if (a === null && b === null) return ORDER_KEY_GAP;
+  if (a === null) return b! - ORDER_KEY_GAP;
+  if (b === null) return a + ORDER_KEY_GAP;
   return (a + b) / 2;
 }
 
@@ -144,7 +147,16 @@ export function softDeleteSheet(id: string): void {
   if (!sheetsMap) return;
   const meta = sheetsMap.get(id);
   if (!meta) return;
-  sheetsMap.set(id, { ...meta, deletedAt: new Date().toISOString() });
+  const now = new Date().toISOString();
+  sheetsMap.set(id, { ...meta, updatedAt: now, deletedAt: now });
+}
+
+export function touchSheetUpdatedAt(id: string): void {
+  const sheetsMap = getSheetsMap();
+  if (!sheetsMap) return;
+  const meta = sheetsMap.get(id);
+  if (!meta) return;
+  sheetsMap.set(id, { ...meta, updatedAt: new Date().toISOString() });
 }
 
 export function restoreSheet(id: string): void {
@@ -185,6 +197,17 @@ export function emptyTrash(): void {
   for (const s of trashSheets()) sheetsMap.delete(s.id);
 }
 
+export async function createSheetWithContent(
+  tags: string[],
+  content: string,
+  options?: { after?: string; before?: string },
+): Promise<string | null> {
+  const id = createSheet(tags, options);
+  if (!id) return null;
+  await writeSheetText(id, content);
+  return id;
+}
+
 /** 두 시트 content를 합쳐서 첫 번째에 저장하고 두 번째를 휴지통으로 이동.
  * list가 주어지면 해당 리스트에서 id 다음 항목과 합침. */
 export async function mergeSheetDown(
@@ -197,23 +220,15 @@ export async function mergeSheetDown(
 
   const nextId = sheets[idx + 1].id;
 
-  const { openSheetDoc, closeSheetDoc, waitForSync } =
-    await import('../lib/doc/ydoc');
-  const sd1 = openSheetDoc(id);
-  const sd2 = openSheetDoc(nextId);
-  await Promise.all([waitForSync(sd1.provider), waitForSync(sd2.provider)]);
-
-  const text1 = sd1.content.toString().trimEnd();
-  const text2 = sd2.content.toString().trimStart();
+  const [text1Raw, text2Raw] = await Promise.all([
+    readSheetText(id),
+    readSheetText(nextId),
+  ]);
+  const text1 = text1Raw.trimEnd();
+  const text2 = text2Raw.trimStart();
   const merged = text1 + (text1 && text2 ? '\n\n' : '') + text2;
 
-  sd1.doc.transact(() => {
-    sd1.content.delete(0, sd1.content.length);
-    sd1.content.insert(0, merged);
-  });
-
-  closeSheetDoc(sd1);
-  closeSheetDoc(sd2);
+  await writeSheetText(id, merged);
   softDeleteSheet(nextId);
 }
 
@@ -228,40 +243,15 @@ export async function splitSheet(
   const meta = sheetsMap.get(id);
   if (!meta) return null;
 
-  // 1. Create new sheet for the second half
   const nextId = createSheet(meta.tags, { after: id });
   if (!nextId) return null;
 
-  const { openSheetDoc, closeSheetDoc, waitForSync } =
-    await import('../lib/doc/ydoc');
+  await Promise.all([writeSheetText(id, head), writeSheetText(nextId, tail)]);
 
-  // 2. Update current sheet content to head
-  const sd1 = openSheetDoc(id);
-  // 3. Update new sheet content to tail
-  const sd2 = openSheetDoc(nextId);
-
-  await Promise.all([waitForSync(sd1.provider), waitForSync(sd2.provider)]);
-
-  sd1.doc.transact(() => {
-    sd1.content.delete(0, sd1.content.length);
-    sd1.content.insert(0, head);
-  });
-
-  sd2.doc.transact(() => {
-    sd2.content.delete(0, sd2.content.length);
-    sd2.content.insert(0, tail);
-  });
-
-  // 4. Update updatedAt for both sheets to trigger UI/preview updates
   const now = new Date().toISOString();
   sheetsMap.set(id, { ...meta, updatedAt: now });
   const nextMeta = sheetsMap.get(nextId);
-  if (nextMeta) {
-    sheetsMap.set(nextId, { ...nextMeta, updatedAt: now });
-  }
-
-  closeSheetDoc(sd1);
-  closeSheetDoc(sd2);
+  if (nextMeta) sheetsMap.set(nextId, { ...nextMeta, updatedAt: now });
 
   return nextId;
 }

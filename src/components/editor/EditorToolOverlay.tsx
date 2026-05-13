@@ -9,7 +9,7 @@ import {
 } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
 import Dropdown from '../Dropdown';
-import { formatCompact } from '../../lib/number';
+import { formatCompact } from '../../lib/format';
 import { s } from '../../lib/i18n';
 
 interface EditorToolOverlayProps {

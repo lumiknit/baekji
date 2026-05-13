@@ -9,6 +9,7 @@ export const projectMetaSchema = z.object({
   id: z.string(),
   label: z.string(),
   updatedAt: z.string(),
+  committedAt: z.string().default(''),
   tagColors: z
     .record(z.string(), z.object({ h: z.number(), s: z.number() }))
     .default({}),
@@ -32,8 +33,8 @@ export type SheetMeta = z.infer<typeof sheetMetaSchema>;
 export const bakSheetSchema = z.object({
   id: z.string(),
   updatedAt: z.string(),
-  orderKey: z.number(),
   tags: z.array(z.string()).default([]),
+  deletedAt: z.string().optional(),
   content: z.string(),
 });
 export type BakSheet = z.infer<typeof bakSheetSchema>;

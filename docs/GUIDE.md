@@ -10,7 +10,7 @@ It provides a focused environment for writing that requires little to no documen
 
 ### Goals
 
-- Manage writing in a Project → Group → Sheet structure
+- Manage writing in a Project → Sheet structure with tag-based filtering
 - Markdown editor with live preview
 - Easy export and sharing
 - No installation required — works in any browser on desktop or mobile
@@ -21,6 +21,7 @@ It provides a focused environment for writing that requires little to no documen
 - Full markdown support or complex document formatting
 - Collaboration, media management, etc.
 - Diagrams, tables, or anything beyond plain writing
+- Hierarchical folder/group structures
 
 ---
 
@@ -28,13 +29,10 @@ It provides a focused environment for writing that requires little to no documen
 
 ### Content Structure
 
-Baekji organizes all writing in a **Project → Group → Sheet** hierarchy.
+Baekji organizes writing in a flat **Project → Sheet** structure.
 
-- **Project**: The top-level unit, containing groups and sheets.
-- **Group**: A folder-like container for sheets and sub-groups.
+- **Project**: The top-level unit, containing sheets.
 - **Sheet**: A single piece of writing, written and stored as Markdown.
-
-Groups and sheets work similarly to folders and files. They form a tree and can be freely nested. Items are not sorted automatically — you can reorder them by dragging with a mouse, or long-pressing on touch devices.
 
 All data is saved automatically in the browser and persists unless you explicitly clear browser storage.
 
@@ -42,11 +40,7 @@ All data is saved automatically in the browser and persists unless you explicitl
 
 The sidebar can be opened and closed with the button in the top-left corner.
 
-At the top of the sidebar you can switch between the **project list** and the **current project tree**.
-
-Click any item in the tree to open it, or press the `...` button to rename, recolor, move, or delete it.
-
-To delete multiple items at once, use the **list view** toggle in the top-right of the tree to enter multi-select mode.
+At the top of the sidebar you can switch between the **project list** and the **sheet list** of the current project.
 
 ### Projects
 
@@ -56,15 +50,21 @@ Projects are fully independent and do not affect each other.
 
 **Backup**: All project data can be exported as a single `.json` file. To use Baekji across multiple devices, export this file to a cloud storage service and import it on each device.
 
-### Groups
+### Sheet List
 
-Clicking a group shows its contents as a card grid of sheets and sub-groups.
+The sheet list shows all sheets in the current project as a scrollable linear list.
 
-- **Export**: Merges all sheets in the group into a single document and exports it as markdown, HTML, or plain text. Export order follows the tree order.
-- **Import from file**: Imports `.md` or `.txt` files as sheets, or restores an entire subtree from a `.json` backup.
-- **Analysis**: Shows per-sheet character count, word count, and byte size in a table.
+- Sheets can be **reordered** by dragging them.
+- Use the **tag filter** at the top to filter sheets by tags. Only sheets matching all specified tags are shown.
+- Multiple sheets can be selected for bulk operations (e.g. delete).
+- Deleted sheets go to the **Trash** section at the bottom of the list. You can restore them or empty the trash permanently.
 
-Group names are for organizational purposes only and are not included in exported output. Groups whose names start with `.` are treated as hidden and excluded from exports by default.
+### Tags
+
+Each sheet can have one or more tags assigned. Tags are used to filter and organize sheets within a project.
+
+- To add or edit tags on a sheet, use the `...` menu on the sheet item and select **Tags**.
+- In the tag filter input, type a tag name to narrow the sheet list to matching sheets.
 
 ### Sheets
 
@@ -87,10 +87,6 @@ When you reopen a sheet, the cursor is restored to where you left off.
 
 Use the search feature to find text across all sheets in the current project. Supports case-sensitive search and regular expressions.
 
-### Analysis
-
-The analysis page shows a table of character count, word count, and byte size for each sheet in a group. You can toggle whether spaces are included in the count.
-
 ### Settings
 
 The following can be configured in Settings:
@@ -108,14 +104,6 @@ The following can be configured in Settings:
 | `Ctrl+S` / `Cmd+S`       | Save   |
 | `Ctrl+Z` / `Cmd+Z`       | Undo   |
 | `Ctrl+Y` / `Cmd+Shift+Z` | Redo   |
-
-### Colors
-
-Groups and sheets can be assigned a color. Colors appear in the tree and card grid to help visually distinguish items.
-
-### Hidden Groups
-
-Groups whose names start with `.` are treated as hidden. They remain visible in the tree but are excluded from exports by default. This is useful for storing drafts, notes, or reference material separately.
 
 ### PWA (Install as App)
 

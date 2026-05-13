@@ -10,6 +10,7 @@ import {
   closeSheet,
   activeProjectDoc,
 } from '../../state/workspace_v1';
+import { touchSheetUpdatedAt } from '../../state/sheet_list';
 import { buildExtensions } from './cm_setup';
 import { s } from '../../lib/i18n';
 
@@ -18,6 +19,7 @@ export type EditorCoreHandle = {
   redo: () => void;
   copy: () => Promise<void>;
   scrollToEdge: (edge: 'start' | 'end') => void;
+  getSplitContent: () => { head: string; tail: string } | null;
 };
 
 interface Props {
@@ -31,6 +33,7 @@ const EditorCore: Component<Props> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let view: EditorView | undefined;
   let undoManager: Y.UndoManager | undefined;
+  let touchTimer: ReturnType<typeof setTimeout> | undefined;
 
   onMount(async () => {
     if (!activeProjectDoc()) {
@@ -48,6 +51,11 @@ const EditorCore: Component<Props> = (props) => {
           placeholderText: s('editor.placeholder'),
           onChange: () => {
             props.onCharCount(view?.state.doc.length ?? 0);
+            clearTimeout(touchTimer);
+            touchTimer = setTimeout(
+              () => touchSheetUpdatedAt(props.sheetId),
+              3000,
+            );
           },
           onSave: () => {},
           getTypewriterMode: () => false,
@@ -101,6 +109,7 @@ const EditorCore: Component<Props> = (props) => {
   });
 
   onCleanup(() => {
+    clearTimeout(touchTimer);
     view?.destroy();
     undoManager?.destroy();
     closeSheet();

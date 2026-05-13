@@ -68,10 +68,6 @@ a.btn-border:not([disabled]):hover {
   border-radius: var(--r);
 }
 
-.btn-border--color-left {
-  border-left-width: 3px;
-}
-
 .btn-primary,
 a.btn-primary {
   background: var(--text);

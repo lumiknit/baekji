@@ -5,7 +5,7 @@ import { createResource, createSignal, For, Show } from 'solid-js';
 import { getAllVersionRoots } from '../lib/doc/db';
 import { getAllProjects, putProject } from '../lib/doc/db_v1';
 import { s } from '../lib/i18n';
-import { formatRelativeDate } from '../lib/format_date';
+import { formatRelativeDate } from '../lib/format';
 import { showPrompt } from '../state/modal';
 import { setSidebarView } from '../state/workspace';
 import { openProject, activeProjectDoc } from '../state/workspace_v1';

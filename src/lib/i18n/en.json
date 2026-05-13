@@ -12,6 +12,7 @@
     "project": "Project",
     "stats": "Stats",
     "new_sheet": "New Sheet",
+    "import_sheet_from_file": "Sheet from File",
     "new_group": "New Group",
     "organize": "Organize",
     "done": "Done",
@@ -322,8 +323,17 @@
     "export_error": "Export failed.",
     "import_desc": "Restore a project from a .gz backup file.",
     "import_btn": "Load Backup File",
-    "import_clone": "Always clone as a new project",
+    "import_strategy": "Import strategy",
+    "import_strategy_merge": "Merge (default)",
+    "import_strategy_overwrite": "Overwrite",
+    "import_strategy_new": "Add as new project",
+    "import_strategy_merge_desc": "Detects conflicts between local edits and snapshot, merging both.",
+    "import_strategy_overwrite_desc": "Completely replaces local data with the snapshot.",
+    "import_strategy_new_desc": "Creates a copy with a new project ID.",
     "imported": "Project restored from backup.",
-    "import_error": "Failed to load backup. File may be corrupt or incompatible."
+    "import_error": "Failed to load backup. File may be corrupt or incompatible.",
+    "import_older_title": "Older snapshot",
+    "import_older_desc": "This snapshot ({{exportedAt}}) is older than the last committed version ({{committedAt}}). Continue anyway?",
+    "import_older_confirm": "Import anyway"
   }
 }

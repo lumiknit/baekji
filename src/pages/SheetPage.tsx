@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js';
 import { createSignal, createEffect, onMount, onCleanup, Show } from 'solid-js';
 import { useParams, useNavigate } from '@solidjs/router';
-import { activeProjectDoc, activeProjectId } from '../state/workspace_v1';
+import { activeProjectDoc } from '../state/workspace_v1';
 import { updateSheetTags, splitSheet } from '../state/sheet_list';
 import { showConfirm } from '../state/modal';
 import { s } from '../lib/i18n';
@@ -47,14 +47,14 @@ const SheetPage: Component = () => {
   };
 
   const handleAnalysis = () => {
-    const pjId = activeProjectId();
+    const pjId = activeProjectDoc()?.id;
     if (pjId) {
       navigate(`/project/${pjId}/analysis?sheetId=${params.id}`);
     }
   };
 
   const handleExport = () => {
-    const pjId = activeProjectId();
+    const pjId = activeProjectDoc()?.id;
     if (pjId) {
       navigate(`/project/${pjId}/export?sheetId=${params.id}`);
     }

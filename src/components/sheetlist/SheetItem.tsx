@@ -19,7 +19,7 @@ import {
   TbOutlineSquareArrowDown,
   TbOutlineFileExport,
 } from 'solid-icons/tb';
-import { openSheetDoc, closeSheetDoc, waitForSync } from '../../lib/doc/ydoc';
+import { readSheetText } from '../../lib/doc/ydoc';
 import type { SheetMeta } from '../../lib/doc/v1';
 import {
   activeSheetId,
@@ -78,10 +78,8 @@ const SheetItem: Component<Props> = (props) => {
   };
 
   const fetchPreview = async () => {
-    const sd = openSheetDoc(props.sheet.id);
-    await waitForSync(sd.provider);
-    setPreview(extractPreview(sd.content.toString()));
-    closeSheetDoc(sd);
+    const text = await readSheetText(props.sheet.id);
+    setPreview(extractPreview(text));
   };
 
   onMount(() => {
