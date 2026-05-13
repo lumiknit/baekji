@@ -241,14 +241,27 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
   const localMeta = readProjectMeta(projectId, pd.meta);
   const committedAt = localMeta.committedAt ?? '';
 
+  // Build lookup maps
+  const bakSheetMap = new Map(bak.sheets.map((s) => [s.id, s]));
+
   // Classify each snapshot sheet
   const classifications = new Map<string, SheetClassification>();
   for (const bakSheet of bak.sheets) {
     const local = pd.sheets.get(bakSheet.id);
-    classifications.set(
-      bakSheet.id,
-      classifySheet(bakSheet, local, committedAt),
-    );
+    classifications.set(bakSheet.id, classifySheet(bakSheet, local, committedAt));
+  }
+
+  // Downgrade conflict→ff when content is identical (read once, reuse below)
+  const cachedLocalContent = new Map<string, string>();
+  for (const bakSheet of bak.sheets) {
+    const cls = classifications.get(bakSheet.id);
+    if (cls?.kind === 'conflict') {
+      const localContent = await readSheetContent(bakSheet.id);
+      cachedLocalContent.set(bakSheet.id, localContent);
+      if (localContent === bakSheet.content) {
+        classifications.set(bakSheet.id, { kind: 'ff', local: cls.local });
+      }
+    }
   }
 
   // All local sheets ordered
@@ -257,11 +270,13 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
   );
 
   // Build merged order
-  const mergedOrder = buildMergedOrder(
-    localOrdered,
-    bak.sheets,
-    classifications,
-  );
+  const mergedOrder = buildMergedOrder(localOrdered, bak.sheets, classifications);
+
+  // conflict:remote entries keyed by the original sheet id
+  const conflictRemoteIdOf = new Map<string, string>();
+  for (const entry of mergedOrder) {
+    if (entry.conflictRemoteFor) conflictRemoteIdOf.set(entry.conflictRemoteFor, entry.id);
+  }
 
   // Assign orderKeys (spaced by 1000 to leave room)
   const orderKeyOf = new Map<string, number>();
@@ -269,44 +284,25 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
     orderKeyOf.set(mergedOrder[i].id, (i + 1) * 1000);
   }
 
-  // Apply all changes in a transaction
+  // Apply all meta changes in a transaction
   pd.doc.transact(() => {
     for (const entry of mergedOrder) {
-      const cls = entry.conflictRemoteFor
-        ? classifications.get(entry.conflictRemoteFor)
-        : entry.isNew && !entry.conflictRemoteFor
-          ? { kind: 'new' as const }
-          : entry.id
-            ? classifications.get(
-                bak.sheets.find(
-                  (s) =>
-                    s.id === entry.id &&
-                    !entry.isNew &&
-                    !entry.conflictRemoteFor,
-                )?.id ?? '',
-              )
-            : undefined;
-      void cls; // used below per-case
-
       const orderKey = orderKeyOf.get(entry.id) ?? 0;
 
       if (entry.conflictRemoteFor) {
-        // conflict:remote — new sheet from snapshot
-        const bakSheet = bak.sheets.find(
-          (s) => s.id === entry.conflictRemoteFor,
-        )!;
-        const tags = [...bakSheet.tags, 'conflict:remote'];
+        // conflict:remote — new sheet cloned from snapshot
+        const bakSheet = bakSheetMap.get(entry.conflictRemoteFor)!;
         pd.sheets.set(entry.id, {
           id: entry.id,
           projectId,
           updatedAt: bakSheet.updatedAt,
           orderKey,
-          tags,
+          tags: [...bakSheet.tags, 'conflict:remote'],
           ...(bakSheet.deletedAt ? { deletedAt: bakSheet.deletedAt } : {}),
         });
       } else if (entry.isNew) {
         // brand new sheet from snapshot
-        const bakSheet = bak.sheets.find((s) => s.id === entry.id)!;
+        const bakSheet = bakSheetMap.get(entry.id)!;
         pd.sheets.set(entry.id, {
           id: entry.id,
           projectId,
@@ -316,36 +312,26 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
           ...(bakSheet.deletedAt ? { deletedAt: bakSheet.deletedAt } : {}),
         });
       } else {
-        const bakSheet = bak.sheets.find((s) => s.id === entry.id);
+        const bakSheet = bakSheetMap.get(entry.id);
         const localSheet = pd.sheets.get(entry.id);
 
         if (!bakSheet) {
           // local-only: update orderKey only
-          if (localSheet) {
-            pd.sheets.set(entry.id, { ...localSheet, orderKey });
-          }
+          if (localSheet) pd.sheets.set(entry.id, { ...localSheet, orderKey });
         } else {
-          const entryClsRaw = classifications.get(entry.id);
-          if (!entryClsRaw || entryClsRaw.kind === 'ignore') {
-            // ignore: just update orderKey
-            if (localSheet) {
-              pd.sheets.set(entry.id, { ...localSheet, orderKey });
-            }
-          } else if (entryClsRaw.kind === 'ff') {
-            // fast-forward: overwrite meta with snapshot values
-            // First, save old local content to a trash copy
-            // (content copy handled below, outside transaction)
-            const tags = [...bakSheet.tags];
+          const cls = classifications.get(entry.id);
+          if (!cls || cls.kind === 'ignore') {
+            if (localSheet) pd.sheets.set(entry.id, { ...localSheet, orderKey });
+          } else if (cls.kind === 'ff') {
             pd.sheets.set(entry.id, {
               id: entry.id,
               projectId,
               updatedAt: bakSheet.updatedAt,
               orderKey,
-              tags,
+              tags: [...bakSheet.tags],
               ...(bakSheet.deletedAt ? { deletedAt: bakSheet.deletedAt } : {}),
             });
-          } else if (entryClsRaw.kind === 'conflict') {
-            // conflict:local — keep local meta, add tag, update orderKey
+          } else if (cls.kind === 'conflict') {
             if (localSheet) {
               const tags = localSheet.tags.includes('conflict:local')
                 ? localSheet.tags
@@ -358,43 +344,37 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
     }
   });
 
-  // Handle sheet content and trash copies for FF outside the meta transaction
+  // Handle sheet content outside the meta transaction
   for (const bakSheet of bak.sheets) {
-    const entryClsRaw = classifications.get(bakSheet.id);
-    if (!entryClsRaw) continue;
+    const cls = classifications.get(bakSheet.id);
+    if (!cls) continue;
 
-    if (entryClsRaw.kind === 'ff') {
-      // Save old content as a trash copy (unless deletedAt means no content to preserve)
-      const localMeta = entryClsRaw.local;
-      const oldContent = await readSheetContent(localMeta.id);
-      if (oldContent.trim()) {
-        const trashId = genUnorderedId();
-        const trashTags = [...localMeta.tags, 'overwritten'];
-        const now = new Date().toISOString();
-        pd.doc.transact(() => {
-          pd.sheets.set(trashId, {
-            id: trashId,
-            projectId,
-            updatedAt: now,
-            orderKey: -1, // will be moved to trash, orderKey doesn't matter
-            tags: trashTags,
-            deletedAt: now,
+    if (cls.kind === 'ff') {
+      const oldContent = cachedLocalContent.get(bakSheet.id)
+        ?? await readSheetContent(bakSheet.id);
+      if (oldContent !== bakSheet.content) {
+        if (oldContent.trim()) {
+          const trashId = genUnorderedId();
+          const now = new Date().toISOString();
+          pd.doc.transact(() => {
+            pd.sheets.set(trashId, {
+              id: trashId,
+              projectId,
+              updatedAt: now,
+              orderKey: -1,
+              tags: [...cls.local.tags, 'overwritten'],
+              deletedAt: now,
+            });
           });
-        });
-        await writeSheetContent(trashId, oldContent);
+          await writeSheetContent(trashId, oldContent);
+        }
+        await writeSheetContent(bakSheet.id, bakSheet.content);
       }
-      // Overwrite the existing sheet content with snapshot
+    } else if (cls.kind === 'new') {
       await writeSheetContent(bakSheet.id, bakSheet.content);
-    } else if (entryClsRaw.kind === 'new') {
-      await writeSheetContent(bakSheet.id, bakSheet.content);
-    } else if (entryClsRaw.kind === 'conflict') {
-      // Write conflict:remote content to the new sheet
-      const remoteEntry = mergedOrder.find(
-        (e) => e.conflictRemoteFor === bakSheet.id,
-      );
-      if (remoteEntry) {
-        await writeSheetContent(remoteEntry.id, bakSheet.content);
-      }
+    } else if (cls.kind === 'conflict') {
+      const remoteId = conflictRemoteIdOf.get(bakSheet.id);
+      if (remoteId) await writeSheetContent(remoteId, bakSheet.content);
     }
     // 'ignore': no content change
   }

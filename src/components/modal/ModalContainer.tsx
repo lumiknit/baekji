@@ -28,30 +28,6 @@ const ModalContainer: Component = () => {
 
   return (
     <>
-      <Show when={modalState()}>
-        {(state) => (
-          <div class="modal-overlay" onClick={() => closeModal(null)}>
-            <div class="modal-body" onClick={(e) => e.stopPropagation()}>
-              <Show when={state().type === 'confirm'}>
-                <ConfirmModal title={state().title} message={state().message} />
-              </Show>
-              <Show when={state().type === 'prompt'}>
-                <NameInputModal
-                  title={state().title}
-                  message={state().message}
-                  defaultValue={state().defaultValue}
-                />
-              </Show>
-              <Show when={state().type === 'tagEdit'}>
-                <TagEditModal
-                  title={state().title}
-                  initialTags={state().tags ?? []}
-                />
-              </Show>
-            </div>
-          </div>
-        )}
-      </Show>
       <Show when={backupModalOpen()}>
         <div class="modal-overlay" onClick={closeBackupModal}>
           <div class="modal-body" onClick={(e) => e.stopPropagation()}>
@@ -69,6 +45,24 @@ const ModalContainer: Component = () => {
             <ProjectSearchModal />
           </div>
         </div>
+      </Show>
+      <Show when={modalState()}>
+        {(state) => (
+          <div class="modal-overlay" onClick={() => closeModal(null)}>
+            <div class="modal-body" onClick={(e) => e.stopPropagation()}>
+              <Show when={state().type === 'confirm'}>
+                <ConfirmModal title={state().title} message={state().message} />
+              </Show>
+              <Show when={state().type === 'prompt'}>
+                <NameInputModal
+                  title={state().title}
+                  message={state().message}
+                  defaultValue={state().defaultValue}
+                />
+              </Show>
+            </div>
+          </div>
+        )}
       </Show>
     </>
   );

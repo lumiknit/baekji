@@ -173,29 +173,29 @@ input[type='checkbox']:checked::before {
   display: flex;
   flex-direction: column;
   min-width: 120px;
-}
 
-.dropdown-menu--right {
-  left: auto;
-  right: 0;
-}
+  &.dropdown-menu--right {
+    left: auto;
+    right: 0;
+  }
 
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--sp-1);
-  width: 100%;
-  padding: var(--sp-1) var(--sp-3);
-  white-space: nowrap;
-}
+  & .dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--sp-1);
+    width: 100%;
+    padding: var(--sp-1) var(--sp-3);
+    white-space: nowrap;
 
-.dropdown-item:hover {
-  background: var(--border);
-}
+    &:hover {
+      background: var(--border);
+    }
 
-.dropdown-item--danger {
-  color: red;
+    &.dropdown-item--danger {
+      color: red;
+    }
+  }
 }
 
 .dropdown-separator {

@@ -20,6 +20,7 @@ import { matchQuery } from '../lib/tag/query';
 import { showConfirm, openBackupModal } from '../state/modal';
 import { setSidebarView } from '../state/workspace';
 import { s } from '../lib/i18n';
+import ProjectDebug from '../components/debug/ProjectDebug';
 
 const ProjectPage: Component = () => {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ const ProjectPage: Component = () => {
   });
 
   // ── Inline rename ──────────────────────────────────────────────────
+  const [showDebug, setShowDebug] = createSignal(false);
   const [editingLabel, setEditingLabel] = createSignal(false);
   const [labelDraft, setLabelDraft] = createSignal('');
 
@@ -276,6 +278,16 @@ const ProjectPage: Component = () => {
             </For>
           </div>
         </Show>
+
+        {/* ── Debug ── */}
+        <div style={{ 'margin-top': '16px' }}>
+          <button class="btn-border" onClick={() => setShowDebug((v) => !v)}>
+            {showDebug() ? 'Hide debug' : 'Show debug'}
+          </button>
+          <Show when={showDebug()}>
+            <ProjectDebug />
+          </Show>
+        </div>
       </div>
     </Show>
   );

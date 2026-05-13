@@ -1,13 +1,16 @@
 import { useNavigate } from '@solidjs/router';
 import { TbOutlineDotsVertical, TbOutlinePlus } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
-import { createResource, createSignal, For, Show } from 'solid-js';
+import { createEffect, createResource, createSignal, For, Show } from 'solid-js';
 import { getAllVersionRoots } from '../lib/doc/db';
 import { getAllProjects, putProject } from '../lib/doc/db_v1';
 import { s } from '../lib/i18n';
 import { formatRelativeDate } from '../lib/format';
 import { showPrompt } from '../state/modal';
-import { setSidebarView } from '../state/workspace';
+import {
+  setSidebarView,
+  projectListVersion,
+} from '../state/workspace';
 import { openProject, activeProjectDoc } from '../state/workspace_v1';
 import { genUnorderedId } from '../lib/uuid';
 import Dropdown from './Dropdown';
@@ -24,6 +27,11 @@ const ProjectList: Component = () => {
 
   const [v1Projects, { refetch: refetchV1 }] = createResource(async () => {
     return getAllProjects();
+  });
+
+  createEffect(() => {
+    projectListVersion(); // subscribe
+    refetchV1();
   });
 
   const openV1Project = async (id: string) => {

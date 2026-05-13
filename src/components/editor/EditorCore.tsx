@@ -13,6 +13,20 @@ import {
   openProject,
 } from '../../state/workspace_v1';
 import { touchSheetUpdatedAt } from '../../state/sheet_list';
+
+const TOUCH_INTERVAL = 5_000;
+const pendingTouch = new Map<string, ReturnType<typeof setTimeout>>();
+
+function scheduleTouchUpdatedAt(sheetId: string) {
+  if (pendingTouch.has(sheetId)) return;
+  pendingTouch.set(
+    sheetId,
+    setTimeout(() => {
+      pendingTouch.delete(sheetId);
+      touchSheetUpdatedAt(sheetId);
+    }, TOUCH_INTERVAL),
+  );
+}
 import { buildExtensions } from './cm_setup';
 import { s } from '../../lib/i18n';
 
@@ -35,7 +49,6 @@ const EditorCore: Component<Props> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let view: EditorView | undefined;
   let undoManager: Y.UndoManager | undefined;
-  let touchTimer: ReturnType<typeof setTimeout> | undefined;
 
   onMount(async () => {
     if (!activeProjectDoc()) {
@@ -53,11 +66,7 @@ const EditorCore: Component<Props> = (props) => {
           placeholderText: s('editor.placeholder'),
           onChange: () => {
             props.onCharCount(view?.state.doc.length ?? 0);
-            clearTimeout(touchTimer);
-            touchTimer = setTimeout(
-              () => touchSheetUpdatedAt(props.sheetId),
-              3000,
-            );
+            scheduleTouchUpdatedAt(props.sheetId);
           },
           onSave: () => {},
           getTypewriterMode: () => false,
@@ -111,7 +120,6 @@ const EditorCore: Component<Props> = (props) => {
   });
 
   onCleanup(() => {
-    clearTimeout(touchTimer);
     view?.destroy();
     undoManager?.destroy();
     closeSheet();
