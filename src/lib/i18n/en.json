@@ -249,6 +249,8 @@
   "tree": {
     "no_project": "No project selected",
     "view_list": "View List",
+    "select_mode": "Select",
+    "select_mode_exit": "Done",
     "select_all": "Select All",
     "deselect_all": "Deselect All",
     "selected_count_label": "{{count}} selected",

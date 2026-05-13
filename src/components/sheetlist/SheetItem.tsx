@@ -18,12 +18,13 @@ import {
   TbOutlineSquareArrowUp,
   TbOutlineSquareArrowDown,
   TbOutlineFileExport,
+  TbOutlineCheck,
 } from 'solid-icons/tb';
 import { readSheetText } from '../../lib/doc/ydoc';
 import type { SheetMeta } from '../../lib/doc/v1';
 import {
   activeSheetId,
-  activeProjectId,
+  activeProjectDoc,
   activeSheetDoc,
 } from '../../state/workspace_v1';
 import {
@@ -35,14 +36,19 @@ import {
   updateSheetTags,
   isSelected,
   toggleSelect,
-  selectedIds,
-  createSheet,
+  rangeSelect,
   filteredSheets,
+  createSheet,
+  isSelectMode,
+  enterSelectMode,
 } from '../../state/sheet_list';
 import { tagToHsl } from '../../lib/tag/color';
 import { showConfirm, showTagEdit } from '../../state/modal';
 import Dropdown from '../Dropdown';
 import { s } from '../../lib/i18n';
+
+const LONG_PRESS_MS = 500;
+const DRAG_THRESHOLD_PX = 8;
 
 function stripMarkdown(line: string): string {
   return line
@@ -55,6 +61,7 @@ interface Props {
   sheet: SheetMeta;
   isTrash?: boolean;
   onDragStart?: (e: PointerEvent) => void;
+  onOpenSelectionMenu?: () => void;
 }
 
 const SheetItem: Component<Props> = (props) => {
@@ -87,7 +94,6 @@ const SheetItem: Component<Props> = (props) => {
   });
 
   createEffect(() => {
-    // Re-fetch preview when updatedAt changes (e.g. after split or sync)
     void props.sheet.updatedAt;
     fetchPreview();
   });
@@ -114,14 +120,75 @@ const SheetItem: Component<Props> = (props) => {
     });
   }
 
-  const handleClick = () => {
-    if (props.isTrash) return;
-    if (selectedIds().size > 0) {
-      toggleSelect(props.sheet.id);
-      return;
+  // ─── Gesture handling ─────────────────────────────────────────
+
+  const openMenu = () => {
+    if (isSelectMode()) {
+      props.onOpenSelectionMenu?.();
+    } else {
+      setMenuOpen(true);
     }
-    navigate(`/sheets/${props.sheet.id}`);
   };
+
+  const handlePointerDown = (e: PointerEvent) => {
+    if (props.isTrash) return;
+    if (e.button !== 0) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let ended = false;
+
+    const longPressTimer = setTimeout(() => {
+      ended = true;
+      cleanup();
+      openMenu();
+    }, LONG_PRESS_MS);
+
+    const onMove = (me: PointerEvent) => {
+      if (
+        Math.hypot(me.clientX - startX, me.clientY - startY) > DRAG_THRESHOLD_PX
+      ) {
+        clearTimeout(longPressTimer);
+        ended = true;
+        cleanup();
+        props.onDragStart?.(me);
+      }
+    };
+
+    const onUp = (ue: PointerEvent) => {
+      clearTimeout(longPressTimer);
+      cleanup();
+      if (ended) return;
+
+      if (ue.shiftKey && isSelectMode()) {
+        rangeSelect(props.sheet.id, filteredSheets());
+      } else if (ue.ctrlKey || ue.metaKey) {
+        if (!isSelectMode()) enterSelectMode();
+        toggleSelect(props.sheet.id);
+      } else if (isSelectMode()) {
+        toggleSelect(props.sheet.id);
+      } else {
+        navigate(`/sheets/${props.sheet.id}`);
+      }
+    };
+
+    const cleanup = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  // Keep for desktop right-click and iOS Safari contextmenu fallback.
+  // Long-press timer above covers cases where contextmenu doesn't fire.
+  const handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+    openMenu();
+  };
+
+  // ─── Dropdown items ───────────────────────────────────────────
 
   const handleEditTags = async () => {
     const nextTags = await showTagEdit(s('sheet.edit_tags'), props.sheet.tags);
@@ -134,9 +201,7 @@ const SheetItem: Component<Props> = (props) => {
       s('sheet.delete_permanent'),
       s('sheet.delete_permanent_confirm'),
     );
-    if (ok) {
-      deleteSheetPermanently(props.sheet.id);
-    }
+    if (ok) deleteSheetPermanently(props.sheet.id);
   };
 
   const dropdownItems = () => {
@@ -151,7 +216,7 @@ const SheetItem: Component<Props> = (props) => {
         icon: TbOutlineReportAnalytics,
         label: s('common.analysis'),
         onSelect: () => {
-          const id = activeProjectId();
+          const id = activeProjectDoc()?.id;
           if (id) navigate(`/project/${id}/analysis?sheetId=${props.sheet.id}`);
         },
       },
@@ -159,7 +224,7 @@ const SheetItem: Component<Props> = (props) => {
         icon: TbOutlineFileExport,
         label: s('common.export'),
         onSelect: () => {
-          const id = activeProjectId();
+          const id = activeProjectDoc()?.id;
           if (id) navigate(`/project/${id}/export?sheetId=${props.sheet.id}`);
         },
       },
@@ -202,16 +267,22 @@ const SheetItem: Component<Props> = (props) => {
     return items;
   };
 
+  // ─── Render ───────────────────────────────────────────────────
+
   return (
     <div
       class={`sl-item${isActive() ? ' sl-item--active' : ''}${props.isTrash ? ' sl-item--trash' : ''}${isSelected(props.sheet.id) ? ' sl-item--selected' : ''}${menuOpen() ? ' sl-item--open' : ''}`}
-      onClick={handleClick}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setMenuOpen(true);
-      }}
-      onPointerDown={props.isTrash ? undefined : props.onDragStart}
+      onPointerDown={handlePointerDown}
+      onContextMenu={handleContextMenu}
     >
+      <Show when={isSelectMode() && !props.isTrash}>
+        <div class="sl-item-checkbox">
+          <Show when={isSelected(props.sheet.id)}>
+            <TbOutlineCheck />
+          </Show>
+        </div>
+      </Show>
+
       <div class="sl-item-body">
         <Show when={props.sheet.tags.length > 0}>
           <div class="sl-item-tags">
@@ -244,7 +315,7 @@ const SheetItem: Component<Props> = (props) => {
         </div>
       </div>
 
-      <div class="sl-item-actions" onClick={(e) => e.stopPropagation()}>
+      <div class="sl-item-actions" onPointerDown={(e) => e.stopPropagation()}>
         <Show
           when={!props.isTrash}
           fallback={
@@ -270,19 +341,21 @@ const SheetItem: Component<Props> = (props) => {
             </>
           }
         >
-          <Dropdown
-            triggerClass="sb-icon-btn"
-            triggerAriaLabel={s('sheet.more_actions')}
-            align="right"
-            open={menuOpen}
-            onOpenChange={setMenuOpen}
-            trigger={
-              <div class="btn-pad">
-                <TbOutlineDotsVertical />
-              </div>
-            }
-            items={dropdownItems()}
-          />
+          <Show when={!isSelectMode()}>
+            <Dropdown
+              triggerClass="sb-icon-btn"
+              triggerAriaLabel={s('sheet.more_actions')}
+              align="right"
+              open={menuOpen}
+              onOpenChange={setMenuOpen}
+              trigger={
+                <div class="btn-pad">
+                  <TbOutlineDotsVertical />
+                </div>
+              }
+              items={dropdownItems()}
+            />
+          </Show>
         </Show>
       </div>
     </div>

@@ -54,7 +54,6 @@ export async function deleteProject(id: string): Promise<void> {
   await db.delete(PROJECTS, id);
 }
 
-
 // ─── Full Reset ───────────────────────────────────────────────
 
 export async function fullResetMeta(): Promise<void> {

@@ -533,10 +533,15 @@
 }
 
 .sl-selection-bar {
+  position: relative;
+  z-index: var(--z-dropdown);
   font-size: var(--fs-sm);
-  opacity: 0.6;
   padding: 2px var(--sp-2);
   background: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
 }
 
 .sl-list {
@@ -544,14 +549,6 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0;
-
-  & > div::after {
-    display: block;
-    content: '';
-    background: var(--ultra-dim);
-    margin: 0 1rem;
-    height: 1px;
-  }
 }
 
 .sl-item {
@@ -564,6 +561,7 @@
   margin: 0 4px;
   gap: var(--sp-1);
   border-radius: var(--r);
+  border-bottom: 1px solid var(--ultra-dim);
 }
 
 .sl-item:hover {
@@ -629,11 +627,12 @@
   z-index: var(--z-sticky);
   display: flex;
   align-items: center;
-  gap: 2px;
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 2px;
   visibility: hidden;
+}
+
+.sl-item-actions .sb-icon-btn {
+  padding: 2px;
+  min-height: unset;
 }
 
 .sl-item:hover .sl-item-actions,
@@ -642,15 +641,33 @@
   visibility: visible;
 }
 
+.sl-item--open {
+  z-index: var(--z-dropdown);
+}
+
 .sl-item-actions .dropdown-menu {
   z-index: var(--z-dropdown);
 }
 
+.sl-item-wrap {
+  position: relative;
+}
+
 .sl-drop-line {
+  position: relative;
+  z-index: calc(var(--z-dropdown) + 1);
   height: 2px;
   margin: 0 4px;
   background: var(--accent);
   border-radius: 1px;
+}
+
+.sl-drop-line--top {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  margin: 0 4px;
 }
 
 /* ─── Sheet Page (V1 Editor) ──────────────────────── */

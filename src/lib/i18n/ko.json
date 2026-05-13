@@ -249,6 +249,8 @@
   "tree": {
     "no_project": "프로젝트가 선택되지 않았습니다",
     "view_list": "목록 보기",
+    "select_mode": "선택",
+    "select_mode_exit": "완료",
     "select_all": "모두 선택",
     "deselect_all": "선택 해제",
     "selected_count_label": "{{count}}개 선택됨",

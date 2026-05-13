@@ -12,16 +12,55 @@ export const [filterQuery, setFilterQuery] = createSignal('');
 export const [selectedIds, setSelectedIds] = createSignal<Set<string>>(
   new Set(),
 );
+export const [isSelectMode, setSelectMode] = createSignal(false);
+// last toggled id for shift+click range select
+const [_anchorId, setAnchorId] = createSignal<string | null>(null);
+
+export const enterSelectMode = () => setSelectMode(true);
+export const exitSelectMode = () => {
+  setSelectMode(false);
+  setSelectedIds(new Set<string>());
+  setAnchorId(null);
+};
 
 export const isSelected = (id: string) => selectedIds().has(id);
-export const clearSelection = () => setSelectedIds(new Set<string>());
+export const clearSelection = () => {
+  setSelectedIds(new Set<string>());
+  setAnchorId(null);
+};
 export const toggleSelect = (id: string) =>
   setSelectedIds((prev) => {
     const next = new Set(prev);
     if (next.has(id)) next.delete(id);
     else next.add(id);
+    setAnchorId(id);
+    if (next.size === 0) setSelectMode(false);
     return next;
   });
+
+export const rangeSelect = (
+  toId: string,
+  sheets: ReturnType<typeof liveSheets>,
+) => {
+  const anchor = _anchorId();
+  if (!anchor) {
+    toggleSelect(toId);
+    return;
+  }
+  const ids = sheets.map((s) => s.id);
+  const a = ids.indexOf(anchor);
+  const b = ids.indexOf(toId);
+  if (a === -1 || b === -1) {
+    toggleSelect(toId);
+    return;
+  }
+  const [from, to] = a < b ? [a, b] : [b, a];
+  setSelectedIds((prev) => {
+    const next = new Set(prev);
+    for (let i = from; i <= to; i++) next.add(ids[i]);
+    return next;
+  });
+};
 
 export const liveSheets = createMemo(() =>
   allSheets()
@@ -41,8 +80,10 @@ export const filteredSheets = createMemo(() => {
   return liveSheets().filter((s) => matchQuery(q, new Set(s.tags)));
 });
 
-export const selectAll = () =>
+export const selectAll = () => {
   setSelectedIds(new Set<string>(filteredSheets().map((s) => s.id)));
+  setSelectMode(true);
+};
 
 // ─── Y.Map subscription ──────────────────────────────────────────
 

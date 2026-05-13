@@ -1,11 +1,7 @@
 import type { Component } from 'solid-js';
 import { onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
-import {
-  lastProjectId,
-  lastSheetId,
-  openProject,
-} from '../state/workspace_v1';
+import { lastProjectId, lastSheetId, openProject } from '../state/workspace_v1';
 import { setSidebarView } from '../state/workspace';
 
 const BootstrapPage: Component = () => {
