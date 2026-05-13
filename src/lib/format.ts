@@ -22,7 +22,9 @@ export function timestampSuffix(): string {
   return `${y}${mo}${d}_${h}${m}`;
 }
 
-export function formatExpiry(expiresAt: number): string {
+export function formatExpiry(expiresAt: number | undefined): string {
+  if (expiresAt === undefined || expiresAt === 0)
+    return s('dropbox.expiry_unknown');
   const diff = expiresAt - Date.now();
   if (diff <= 0) return s('dropbox.expiry_expired');
   const h = Math.floor(diff / 3_600_000);

@@ -13,7 +13,7 @@ import {
   TbOutlineFileExport,
   TbOutlineCheck,
 } from 'solid-icons/tb';
-import { readSheetText } from '../../lib/doc/ydoc';
+import { withSheetDoc } from '../../lib/doc/docCache';
 import type { SheetMeta } from '../../lib/doc/v1';
 import {
   activeSheetId,
@@ -78,7 +78,9 @@ const SheetItem: Component<Props> = (props) => {
   };
 
   const fetchPreview = async () => {
-    const text = await readSheetText(props.sheet.id);
+    const text = await withSheetDoc(props.sheet.id, async (sd) =>
+      sd.content.toString(),
+    );
     setPreview(extractPreview(text));
   };
 

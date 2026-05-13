@@ -7,21 +7,24 @@ import {
   TbOutlineChevronDown,
   TbOutlineChevronRight,
   TbOutlineDotsVertical,
-  TbOutlineDatabaseExport,
   TbOutlineSearch,
   TbOutlineFileImport,
   TbOutlineListCheck,
 } from 'solid-icons/tb';
+import BackupIcon from '../BackupIcon';
 import {
   filteredSheets,
+  liveSheets,
   trashSheets,
   createSheet,
   createSheetWithContent,
   emptyTrash,
   reorderSheet,
   orderKeyBetween,
+  orderKeysBetween,
   filterQuery,
   selectedIds,
+  softDeleteSheet,
   selectAll,
   clearSelection,
   isSelectMode,
@@ -82,17 +85,43 @@ function useDrag(getSheets: () => SheetMeta[]) {
       const target = dropIndex();
       if (dragId !== null && target !== null) {
         const sheets = getSheets();
-        const fromIdx = sheets.findIndex((s) => s.id === dragId);
-        if (fromIdx !== -1 && target !== fromIdx && target !== fromIdx + 1) {
-          const newKey = orderKeyBetween(
-            fromIdx < target
-              ? (sheets[target]?.orderKey ?? null)
-              : (sheets[target - 1]?.orderKey ?? null),
-            fromIdx < target
-              ? (sheets[target + 1]?.orderKey ?? null)
-              : (sheets[target]?.orderKey ?? null),
+        const selected =
+          isSelectMode() && selectedIds().has(dragId)
+            ? sheets.filter((s) => selectedIds().has(s.id)).map((s) => s.id)
+            : [dragId];
+
+        if (selected.length === 1) {
+          const fromIdx = sheets.findIndex((s) => s.id === dragId);
+          if (fromIdx !== -1 && target !== fromIdx && target !== fromIdx + 1) {
+            const newKey = orderKeyBetween(
+              fromIdx < target
+                ? (sheets[target]?.orderKey ?? null)
+                : (sheets[target - 1]?.orderKey ?? null),
+              fromIdx < target
+                ? (sheets[target + 1]?.orderKey ?? null)
+                : (sheets[target]?.orderKey ?? null),
+            );
+            reorderSheet(dragId, newKey);
+          }
+        } else {
+          // target is an index into filteredSheets; convert to orderKey bounds
+          const filtered = getSheets(); // filteredSheets
+          const beforeKey = filtered[target - 1]?.orderKey ?? null;
+          const afterKey = filtered[target]?.orderKey ?? null;
+
+          // Build the ordered list of selected IDs from liveSheets (preserving original order)
+          const selectedSet = new Set(selected);
+          const allOrdered = liveSheets();
+          const orderedSelected = allOrdered
+            .filter((s) => selectedSet.has(s.id))
+            .map((s) => s.id);
+
+          const keys = orderKeysBetween(
+            orderedSelected.length,
+            beforeKey,
+            afterKey,
           );
-          reorderSheet(dragId, newKey);
+          orderedSelected.forEach((id, i) => reorderSheet(id, keys[i]));
         }
       }
       setDraggingId(null);
@@ -174,7 +203,7 @@ const SheetList: Component = () => {
               onClick={openBackupModal}
             >
               <div class="btn-pad">
-                <TbOutlineDatabaseExport />
+                <BackupIcon />
               </div>
             </button>
             <Dropdown
@@ -225,6 +254,7 @@ const SheetList: Component = () => {
               triggerClass="sl-selection-bar-trigger"
               triggerAriaLabel={s('sidebar.more_actions')}
               align="left"
+              direction="up"
               open={selectionMenuOpen}
               onOpenChange={setSelectionMenuOpen}
               trigger={
@@ -238,6 +268,35 @@ const SheetList: Component = () => {
               items={[
                 { label: s('tree.select_all'), onSelect: selectAll },
                 { label: s('tree.deselect_all'), onSelect: clearSelection },
+                { separator: true },
+                ...(selectedIds().size === 2
+                  ? [
+                      {
+                        label: s('tree.compare_merge'),
+                        onSelect: () => {
+                          const [idA, idB] = [...selectedIds()];
+                          exitSelectMode();
+                          navigate(`/compare/${idA}/${idB}`);
+                        },
+                      },
+                    ]
+                  : []),
+                {
+                  icon: TbFillTrash,
+                  label: s('tree.delete_selected'),
+                  danger: true,
+                  onSelect: async () => {
+                    const ids = [...selectedIds()];
+                    if (ids.length === 0) return;
+                    const ok = await showConfirm(
+                      s('tree.delete_selected'),
+                      s('tree.delete_selected_confirm', { count: ids.length }),
+                    );
+                    if (!ok) return;
+                    for (const id of ids) softDeleteSheet(id);
+                    exitSelectMode();
+                  },
+                },
               ]}
             />
             <button class="btn-border btn-sm" onClick={exitSelectMode}>

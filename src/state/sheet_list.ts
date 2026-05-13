@@ -3,7 +3,7 @@ import type { SheetMeta } from '../lib/doc/v1';
 import { activeProjectDoc } from './workspace_v1';
 import { matchQuery } from '../lib/tag/query';
 import { genUnorderedId } from '../lib/uuid';
-import { readSheetText, writeSheetText } from '../lib/doc/ydoc';
+import { withSheetDoc } from '../lib/doc/docCache';
 
 // ─── Sheet list state ────────────────────────────────────────────
 
@@ -139,6 +139,17 @@ export function orderKeyBetween(a: number | null, b: number | null): number {
   return (a + b) / 2;
 }
 
+export function orderKeysBetween(
+  n: number,
+  a: number | null,
+  b: number | null,
+): number[] {
+  const start = a === null ? (b === null ? 0 : b - ORDER_KEY_GAP * (n + 1)) : a;
+  const end = b === null ? start + ORDER_KEY_GAP * (n + 1) : b;
+  const step = (end - start) / (n + 1);
+  return Array.from({ length: n }, (_, i) => start + step * (i + 1));
+}
+
 // ─── CRUD ────────────────────────────────────────────────────────
 
 export function createSheet(
@@ -222,6 +233,7 @@ export function deleteSheetPermanently(id: string): void {
   const sheetsMap = getSheetsMap();
   if (!sheetsMap) return;
   sheetsMap.delete(id);
+  indexedDB.deleteDatabase(`baekji-v2-sheet-${id}`);
 }
 
 export function updateSheetTags(id: string, tags: string[]): void {
@@ -240,10 +252,27 @@ export function reorderSheet(id: string, newOrderKey: number): void {
   sheetsMap.set(id, { ...meta, orderKey: newOrderKey });
 }
 
+export function reindexOrderKeys(): void {
+  const sheetsMap = getSheetsMap();
+  const pd = activeProjectDoc();
+  if (!sheetsMap || !pd) return;
+  const sorted = Array.from(sheetsMap.values()).sort(
+    (a, b) => a.orderKey - b.orderKey,
+  );
+  pd.doc.transact(() => {
+    sorted.forEach((sheet, i) => {
+      sheetsMap.set(sheet.id, { ...sheet, orderKey: (i + 1) * ORDER_KEY_GAP });
+    });
+  });
+}
+
 export function emptyTrash(): void {
   const sheetsMap = getSheetsMap();
   if (!sheetsMap) return;
-  for (const s of trashSheets()) sheetsMap.delete(s.id);
+  for (const s of trashSheets()) {
+    sheetsMap.delete(s.id);
+    indexedDB.deleteDatabase(`baekji-v2-sheet-${s.id}`);
+  }
 }
 
 export async function createSheetWithContent(
@@ -253,7 +282,12 @@ export async function createSheetWithContent(
 ): Promise<string | null> {
   const id = createSheet(tags, options);
   if (!id) return null;
-  await writeSheetText(id, content);
+  await withSheetDoc(id, async (sd) => {
+    sd.doc.transact(() => {
+      sd.content.delete(0, sd.content.length);
+      sd.content.insert(0, content);
+    });
+  });
   return id;
 }
 
@@ -270,14 +304,19 @@ export async function mergeSheetDown(
   const nextId = sheets[idx + 1].id;
 
   const [text1Raw, text2Raw] = await Promise.all([
-    readSheetText(id),
-    readSheetText(nextId),
+    withSheetDoc(id, async (sd) => sd.content.toString()),
+    withSheetDoc(nextId, async (sd) => sd.content.toString()),
   ]);
   const text1 = text1Raw.trimEnd();
   const text2 = text2Raw.trimStart();
   const merged = text1 + (text1 && text2 ? '\n\n' : '') + text2;
 
-  await writeSheetText(id, merged);
+  await withSheetDoc(id, async (sd) => {
+    sd.doc.transact(() => {
+      sd.content.delete(0, sd.content.length);
+      sd.content.insert(0, merged);
+    });
+  });
   softDeleteSheet(nextId);
 }
 
@@ -295,7 +334,20 @@ export async function splitSheet(
   const nextId = createSheet(meta.tags, { after: id });
   if (!nextId) return null;
 
-  await Promise.all([writeSheetText(id, head), writeSheetText(nextId, tail)]);
+  await Promise.all([
+    withSheetDoc(id, async (sd) => {
+      sd.doc.transact(() => {
+        sd.content.delete(0, sd.content.length);
+        sd.content.insert(0, head);
+      });
+    }),
+    withSheetDoc(nextId, async (sd) => {
+      sd.doc.transact(() => {
+        sd.content.delete(0, sd.content.length);
+        sd.content.insert(0, tail);
+      });
+    }),
+  ]);
 
   const now = new Date().toISOString();
   sheetsMap.set(id, { ...meta, updatedAt: now });

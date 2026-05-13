@@ -1,3 +1,31 @@
+/* ─── App Error Banner ───────────────────────────── */
+
+.app-error-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--color-danger, #c0392b);
+  color: #fff;
+  font-size: var(--fs-sm);
+}
+
+.app-error-banner-msg {
+  flex: 1;
+}
+
+.app-error-banner-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-shrink: 0;
+}
+
 /* ─── Page Structure ─────────────────────────────── */
 
 .page-header {
@@ -999,4 +1027,91 @@
   background: var(--bg);
   border: 1px solid var(--border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ─── Compare Page ────────────────────────────────── */
+
+.compare-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+}
+
+.compare-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.compare-title {
+  flex: 1;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compare-loading {
+  text-align: center;
+  color: var(--text);
+  opacity: 0.6;
+}
+
+.compare-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-family: monospace;
+}
+
+.compare-chunk {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.compare-chunk--removed {
+  background: rgba(192, 57, 43, 0.12);
+  border-left: 3px solid rgba(192, 57, 43, 0.6);
+}
+
+.compare-chunk--added {
+  background: rgba(39, 174, 96, 0.12);
+  border-left: 3px solid rgba(39, 174, 96, 0.6);
+}
+
+.compare-chunk--kept.compare-chunk--removed {
+  background: rgba(192, 57, 43, 0.22);
+}
+
+.compare-chunk--kept.compare-chunk--added {
+  background: rgba(39, 174, 96, 0.22);
+}
+
+.compare-chunk--discarded {
+  opacity: 0.35;
+}
+
+.compare-chunk-text {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.compare-chunk-btns {
+  display: flex;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  border-top: 1px solid var(--border);
+}
+
+.btn-active {
+  background: var(--hl);
+  color: var(--bg);
+  border-color: var(--hl);
 }

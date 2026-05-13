@@ -179,6 +179,11 @@ input[type='checkbox']:checked::before {
     right: 0;
   }
 
+  &.dropdown-menu--up {
+    top: auto;
+    bottom: 100%;
+  }
+
   & .dropdown-item {
     display: flex;
     align-items: center;

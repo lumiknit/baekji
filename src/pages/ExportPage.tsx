@@ -10,7 +10,7 @@ import {
 } from 'solid-icons/tb';
 import { activeProjectLabel, openProject } from '../state/workspace_v1';
 import { liveSheets } from '../state/sheet_list';
-import { openSheetDoc, closeSheetDoc, waitForSync } from '../lib/doc/ydoc';
+import { withSheetDoc } from '../lib/doc/docCache';
 import { matchQuery } from '../lib/tag/query';
 import { s } from '../lib/i18n';
 import toast from 'solid-toast';
@@ -84,7 +84,7 @@ const ExportPage: Component = () => {
 
   const load = async () => {
     setLoading(true);
-    await openProject(params.pjId);
+    await openProject(params.pjId!);
 
     const ids = sheetIds();
     let sheets = liveSheets();
@@ -99,13 +99,13 @@ const ExportPage: Component = () => {
 
     const result: SheetData[] = [];
     for (const sheet of sheets) {
-      const sd = openSheetDoc(sheet.id);
-      await waitForSync(sd.provider);
+      const text = await withSheetDoc(sheet.id, async (sd) =>
+        sd.content.toString(),
+      );
       result.push({
         label: sheet.tags[0] ?? sheet.id.slice(0, 8),
-        text: sd.content.toString(),
+        text,
       });
-      closeSheetDoc(sd);
     }
     setData(result);
     buildPreview(result, format(), joiner());

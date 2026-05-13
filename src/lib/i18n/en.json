@@ -1,5 +1,6 @@
 {
   "common": {
+    "go_back": "Go Back",
     "ok": "OK",
     "cancel": "Cancel",
     "confirm": "Confirm",
@@ -178,6 +179,11 @@
     "theme_default": "Default",
     "theme_warm": "Warm",
     "theme_cool": "Cool",
+    "storage_title": "Storage",
+    "storage_check": "Check Usage",
+    "storage_usage": "Used: {{used}} / {{quota}}",
+    "storage_clean_orphans": "Free Up Storage",
+    "storage_clean_done": "Freed up {{count}} unused database(s).",
     "reset_title": "⚠️ Full Reset",
     "reset_confirm": "All data (projects, documents, settings) will be permanently deleted. This action cannot be undone. Continue?",
     "reset_description": "Completely wipes all projects, documents, settings, and cache, restoring the app to its initial state. Service Worker and cache will also be removed.",
@@ -232,6 +238,7 @@
     "danger_title": "Danger Zone",
     "danger_desc": "Deleting a project permanently removes all sheets.",
     "delete": "Delete Project",
+    "cleanup": "Clean Up",
     "legacy_label": "Legacy (V0)"
   },
   "sheet": {
@@ -255,6 +262,8 @@
     "deselect_all": "Deselect All",
     "selected_count_label": "{{count}} selected",
     "selected_count": "{{count}} selected",
+    "delete_selected": "Delete Selected",
+    "compare_merge": "Compare & Merge",
     "delete_selected_confirm": "Delete {{count}} items?",
     "deselect": "Deselect",
     "expand_all": "Expand all",
@@ -303,6 +312,8 @@
     "list_hint": "Showing up to 5 most recent files.",
     "downloading": "Downloading...",
     "expiry_expired": "Expired",
+    "expiry_unknown": "Refresh needed",
+    "error_no_refresh_token": "No refresh token received. Please log in again.",
     "expiry_hours": "Expires in {{h}}h {{m}}m",
     "expiry_minutes": "Expires in {{m}}m",
     "error_auth_callback": "Dropbox authentication failed.",
@@ -315,6 +326,11 @@
   "import": {
     "error_title": "Import Error",
     "error_invalid_file": "Unsupported file format."
+  },
+  "errors": {
+    "quota_exceeded_msg": "Storage is full. Your input may not be saved. Back up now or clean up in Settings > Storage.",
+    "backup_now": "Back Up Now",
+    "dismiss": "Dismiss"
   },
   "backup": {
     "title": "Project Backup",
@@ -332,10 +348,20 @@
     "import_strategy_merge_desc": "Detects conflicts between local edits and snapshot, merging both.",
     "import_strategy_overwrite_desc": "Completely replaces local data with the snapshot.",
     "import_strategy_new_desc": "Creates a copy with a new project ID.",
+    "loading": "Loading backup…",
+    "loading_error": "Failed to load backup.",
+    "partial_import_warning": "Some sheets could not be loaded. Please retry or keep the original backup file.",
     "imported": "Project restored from backup.",
     "import_error": "Failed to load backup. File may be corrupt or incompatible.",
     "import_older_title": "Older snapshot",
     "import_older_desc": "This snapshot ({{exportedAt}}) is older than the last committed version ({{committedAt}}). Continue anyway?",
     "import_older_confirm": "Import anyway"
+  },
+  "compare": {
+    "title": "Compare & Merge: {{a}} vs {{b}}",
+    "finish": "Save to A, trash B",
+    "pick_a": "Keep A",
+    "pick_b": "Take B",
+    "skip": "Skip"
   }
 }

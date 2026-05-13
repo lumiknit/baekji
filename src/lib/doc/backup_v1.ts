@@ -3,8 +3,6 @@ import { bakV1Schema } from './v1';
 import {
   openProjectDoc,
   closeProjectDoc,
-  openSheetDoc,
-  closeSheetDoc,
   waitForSync,
   readProjectMeta,
   writeProjectMeta,
@@ -29,10 +27,9 @@ export async function exportProjectAsBakV1(
 
   const bakSheets: BakSheet[] = [];
   for (const sheet of sheets) {
-    const sd = openSheetDoc(sheet.id);
-    await waitForSync(sd.provider);
-    const content = sd.content.toString();
-    closeSheetDoc(sd);
+    const content = await withSheetDoc(sheet.id, async (sd) =>
+      sd.content.toString(),
+    );
     bakSheets.push({
       id: sheet.id,
       updatedAt: sheet.updatedAt,
@@ -73,6 +70,7 @@ export type ImportStrategy = 'new' | 'overwrite' | 'merge';
 export interface ImportResult {
   projectId: string;
   existed: boolean;
+  emptiedSheetIds: string[];
 }
 
 export async function importBakV1(
@@ -134,18 +132,22 @@ async function importOverwrite(bak: BakV1): Promise<ImportResult> {
     }
   });
 
+  const emptiedSheetIds: string[] = [];
   for (const bakSheet of bak.sheets) {
-    const sd = openSheetDoc(bakSheet.id);
-    await waitForSync(sd.provider);
-    sd.doc.transact(() => {
-      sd.content.delete(0, sd.content.length);
-      sd.content.insert(0, bakSheet.content);
+    await withSheetDoc(bakSheet.id, async (sd) => {
+      sd.doc.transact(() => {
+        sd.content.delete(0, sd.content.length);
+        sd.content.insert(0, bakSheet.content);
+      });
     });
-    closeSheetDoc(sd);
+    if (bakSheet.content.trim()) {
+      const written = await readSheetContent(bakSheet.id);
+      if (!written.trim()) emptiedSheetIds.push(bakSheet.id);
+    }
   }
 
   closeProjectDoc(pd);
-  return { projectId, existed: !!existing };
+  return { projectId, existed: !!existing, emptiedSheetIds };
 }
 
 // ─── Merge ────────────────────────────────────────────────────
@@ -180,7 +182,7 @@ function buildMergedOrder(
   localOrdered: SheetMeta[],
   bakSheets: BakSheet[],
   classifications: Map<string, SheetClassification>,
-): Array<{ id: string; isNew?: true; conflictRemoteFor?: string }> {
+): Array<{ id: string; isNew?: true; remoteCloneOf?: string }> {
   const snapshotIds = new Set(bakSheets.map((s) => s.id));
 
   // Map each local-only sheet to the last snapshot sheet preceding it in local order
@@ -199,7 +201,7 @@ function buildMergedOrder(
   const result: Array<{
     id: string;
     isNew?: true;
-    conflictRemoteFor?: string;
+    remoteCloneOf?: string;
   }> = [];
 
   // Local-only sheets before any snapshot sheet
@@ -219,7 +221,7 @@ function buildMergedOrder(
       // conflict: local first, then remote copy
       result.push({ id: bak.id }); // local (conflict:local tag)
       const newId = genUnorderedId();
-      result.push({ id: newId, isNew: true, conflictRemoteFor: bak.id });
+      result.push({ id: newId, isNew: true, remoteCloneOf: bak.id });
     }
 
     // Local-only sheets that follow this snapshot sheet in local order
@@ -248,7 +250,10 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
   const classifications = new Map<string, SheetClassification>();
   for (const bakSheet of bak.sheets) {
     const local = pd.sheets.get(bakSheet.id);
-    classifications.set(bakSheet.id, classifySheet(bakSheet, local, committedAt));
+    classifications.set(
+      bakSheet.id,
+      classifySheet(bakSheet, local, committedAt),
+    );
   }
 
   // Downgrade conflict→ff when content is identical (read once, reuse below)
@@ -270,12 +275,16 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
   );
 
   // Build merged order
-  const mergedOrder = buildMergedOrder(localOrdered, bak.sheets, classifications);
+  const mergedOrder = buildMergedOrder(
+    localOrdered,
+    bak.sheets,
+    classifications,
+  );
 
   // conflict:remote entries keyed by the original sheet id
-  const conflictRemoteIdOf = new Map<string, string>();
+  const remoteCloneIdOf = new Map<string, string>();
   for (const entry of mergedOrder) {
-    if (entry.conflictRemoteFor) conflictRemoteIdOf.set(entry.conflictRemoteFor, entry.id);
+    if (entry.remoteCloneOf) remoteCloneIdOf.set(entry.remoteCloneOf, entry.id);
   }
 
   // Assign orderKeys (spaced by 1000 to leave room)
@@ -289,9 +298,9 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
     for (const entry of mergedOrder) {
       const orderKey = orderKeyOf.get(entry.id) ?? 0;
 
-      if (entry.conflictRemoteFor) {
+      if (entry.remoteCloneOf) {
         // conflict:remote — new sheet cloned from snapshot
-        const bakSheet = bakSheetMap.get(entry.conflictRemoteFor)!;
+        const bakSheet = bakSheetMap.get(entry.remoteCloneOf)!;
         pd.sheets.set(entry.id, {
           id: entry.id,
           projectId,
@@ -321,7 +330,8 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
         } else {
           const cls = classifications.get(entry.id);
           if (!cls || cls.kind === 'ignore') {
-            if (localSheet) pd.sheets.set(entry.id, { ...localSheet, orderKey });
+            if (localSheet)
+              pd.sheets.set(entry.id, { ...localSheet, orderKey });
           } else if (cls.kind === 'ff') {
             pd.sheets.set(entry.id, {
               id: entry.id,
@@ -345,13 +355,15 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
   });
 
   // Handle sheet content outside the meta transaction
+  const writtenSheets: Array<{ id: string; expectedContent: string }> = [];
   for (const bakSheet of bak.sheets) {
     const cls = classifications.get(bakSheet.id);
     if (!cls) continue;
 
     if (cls.kind === 'ff') {
-      const oldContent = cachedLocalContent.get(bakSheet.id)
-        ?? await readSheetContent(bakSheet.id);
+      const oldContent =
+        cachedLocalContent.get(bakSheet.id) ??
+        (await readSheetContent(bakSheet.id));
       if (oldContent !== bakSheet.content) {
         if (oldContent.trim()) {
           const trashId = genUnorderedId();
@@ -369,14 +381,38 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
           await writeSheetContent(trashId, oldContent);
         }
         await writeSheetContent(bakSheet.id, bakSheet.content);
+        if (bakSheet.content.trim())
+          writtenSheets.push({
+            id: bakSheet.id,
+            expectedContent: bakSheet.content,
+          });
       }
     } else if (cls.kind === 'new') {
       await writeSheetContent(bakSheet.id, bakSheet.content);
+      if (bakSheet.content.trim())
+        writtenSheets.push({
+          id: bakSheet.id,
+          expectedContent: bakSheet.content,
+        });
     } else if (cls.kind === 'conflict') {
-      const remoteId = conflictRemoteIdOf.get(bakSheet.id);
-      if (remoteId) await writeSheetContent(remoteId, bakSheet.content);
+      const remoteId = remoteCloneIdOf.get(bakSheet.id);
+      if (remoteId) {
+        await writeSheetContent(remoteId, bakSheet.content);
+        if (bakSheet.content.trim())
+          writtenSheets.push({
+            id: remoteId,
+            expectedContent: bakSheet.content,
+          });
+      }
     }
     // 'ignore': no content change
+  }
+
+  // Verify written sheets are not empty
+  const emptiedSheetIds: string[] = [];
+  for (const { id } of writtenSheets) {
+    const actual = await readSheetContent(id);
+    if (!actual.trim()) emptiedSheetIds.push(id);
   }
 
   // Update project meta
@@ -390,28 +426,25 @@ async function importMerge(bak: BakV1): Promise<ImportResult> {
   await putProject(updatedMeta);
 
   closeProjectDoc(pd);
-  return { projectId, existed: !!existing };
+  return { projectId, existed: !!existing, emptiedSheetIds };
 }
 
 // ─── Sheet content helpers ────────────────────────────────────
 
+import { withSheetDoc } from './docCache';
+
 async function readSheetContent(sheetId: string): Promise<string> {
-  const sd = openSheetDoc(sheetId);
-  await waitForSync(sd.provider);
-  const content = sd.content.toString();
-  closeSheetDoc(sd);
-  return content;
+  return withSheetDoc(sheetId, async (sd) => sd.content.toString());
 }
 
 async function writeSheetContent(
   sheetId: string,
   content: string,
 ): Promise<void> {
-  const sd = openSheetDoc(sheetId);
-  await waitForSync(sd.provider);
-  sd.doc.transact(() => {
-    sd.content.delete(0, sd.content.length);
-    sd.content.insert(0, content);
+  await withSheetDoc(sheetId, async (sd) => {
+    sd.doc.transact(() => {
+      sd.content.delete(0, sd.content.length);
+      sd.content.insert(0, content);
+    });
   });
-  closeSheetDoc(sd);
 }

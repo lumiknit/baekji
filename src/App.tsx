@@ -13,6 +13,8 @@ import ExportPage from './pages/ExportPage';
 import V0ProjectPage from './pages/V0ProjectPage';
 import SettingsPage from './pages/SettingsPage';
 import SearchPage from './pages/SearchPage';
+import LoadingBackupPage from './pages/LoadingBackupPage';
+import ComparePage from './pages/ComparePage';
 import { updateRootStyle } from './state/settings';
 import { handleCallback } from './lib/sync/dropbox_auth';
 import { s } from './lib/i18n';
@@ -63,6 +65,8 @@ const App: Component = () => {
         <Route path="/v0-project/:pjId" component={V0ProjectPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/about" component={AboutPage} />
+        <Route path="/loading-backup" component={LoadingBackupPage} />
+        <Route path="/compare/:idA/:idB" component={ComparePage} />
       </HashRouter>
     </>
   );

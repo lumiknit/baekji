@@ -6,6 +6,7 @@ import {
   TbOutlineReportAnalytics,
   TbOutlineFileExport,
   TbOutlineDatabaseExport,
+  TbOutlineRefresh,
 } from 'solid-icons/tb';
 import {
   activeProjectDoc,
@@ -13,7 +14,8 @@ import {
   closeProject,
   openProject,
 } from '../state/workspace_v1';
-import { liveSheets } from '../state/sheet_list';
+import { liveSheets, reindexOrderKeys } from '../state/sheet_list';
+import { compactSheetDoc } from '../lib/doc/storage';
 import { putProject, deleteProject } from '../lib/doc/db_v1';
 import { tagToHsl, hexToHsl } from '../lib/tag/color';
 import { matchQuery } from '../lib/tag/query';
@@ -21,6 +23,12 @@ import { showConfirm, openBackupModal } from '../state/modal';
 import { setSidebarView } from '../state/workspace';
 import { s } from '../lib/i18n';
 import ProjectDebug from '../components/debug/ProjectDebug';
+import { z } from 'zod/v4';
+
+const tagColorSchema = z.record(
+  z.string(),
+  z.object({ h: z.number(), s: z.number() }),
+);
 
 const ProjectPage: Component = () => {
   const navigate = useNavigate();
@@ -62,7 +70,14 @@ const ProjectPage: Component = () => {
     p.meta.set('label', label);
     p.meta.set('updatedAt', now);
     const id = params.pjId;
-    if (id) putProject({ id, label, updatedAt: now, tagColors: tagColors() });
+    if (id)
+      putProject({
+        id,
+        label,
+        updatedAt: now,
+        committedAt: (p.meta.get('committedAt') as string) ?? '',
+        tagColors: tagColors(),
+      });
   };
 
   // ── Tag stats ──────────────────────────────────────────────────────
@@ -79,11 +94,7 @@ const ProjectPage: Component = () => {
   const tagColors = () => {
     const p = pd();
     if (!p) return {} as Record<string, { h: number; s: number }>;
-    return (
-      (p.meta.get('tagColors') as
-        | Record<string, { h: number; s: number }>
-        | undefined) ?? {}
-    );
+    return tagColorSchema.safeParse(p.meta.get('tagColors')).data ?? {};
   };
 
   const setTagColorOverride = (tag: string, h: number, sv: number) => {
@@ -97,6 +108,7 @@ const ProjectPage: Component = () => {
         id,
         label: projectLabel(),
         updatedAt: new Date().toISOString(),
+        committedAt: (p.meta.get('committedAt') as string) ?? '',
         tagColors: colors,
       });
   };
@@ -113,8 +125,24 @@ const ProjectPage: Component = () => {
         id,
         label: projectLabel(),
         updatedAt: new Date().toISOString(),
+        committedAt: (p.meta.get('committedAt') as string) ?? '',
         tagColors: colors,
       });
+  };
+
+  // ── Cleanup ────────────────────────────────────────────────────────
+  const [cleaning, setCleaning] = createSignal(false);
+  const handleCleanup = async () => {
+    setCleaning(true);
+    try {
+      reindexOrderKeys();
+      const sheets = liveSheets();
+      for (const sheet of sheets) {
+        await compactSheetDoc(sheet.id);
+      }
+    } finally {
+      setCleaning(false);
+    }
   };
 
   // ── Delete project ─────────────────────────────────────────────────
@@ -215,6 +243,17 @@ const ProjectPage: Component = () => {
               <TbOutlineDatabaseExport />
             </span>
             {s('backup.title')}
+          </button>
+
+          <button
+            class="btn-border"
+            onClick={handleCleanup}
+            disabled={cleaning()}
+          >
+            <span class="icon">
+              <TbOutlineRefresh />
+            </span>
+            {cleaning() ? s('common.loading') : s('project.cleanup')}
           </button>
 
           <button class="btn-danger" onClick={handleDeleteProject}>

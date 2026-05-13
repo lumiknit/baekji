@@ -14,6 +14,7 @@ interface DropdownProps {
   triggerClass?: string;
   triggerAriaLabel?: string;
   align?: 'left' | 'right';
+  direction?: 'up' | 'down';
   open?: Accessor<boolean>;
   onOpenChange?: (v: boolean) => void;
 }
@@ -62,7 +63,7 @@ const Dropdown: Component<DropdownProps> = (props) => {
       </button>
       <Show when={open()}>
         <div
-          class={`dropdown-menu ${props.align === 'right' ? 'dropdown-menu--right' : ''}`}
+          class={`dropdown-menu ${props.align === 'right' ? 'dropdown-menu--right' : ''} ${props.direction === 'up' ? 'dropdown-menu--up' : ''}`}
         >
           <For each={props.items}>
             {(item) =>

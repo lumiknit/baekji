@@ -22,6 +22,7 @@ import { A, useLocation, type RouteSectionProps } from '@solidjs/router';
 import SheetList from './sheetlist/SheetList';
 import ProjectList from './ProjectList';
 import ModalContainer from './modal/ModalContainer';
+import AppErrorBanner from './AppErrorBanner';
 import { s } from '../lib/i18n';
 import {
   TbFillLayoutSidebarLeftCollapse,
@@ -74,6 +75,7 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
     <div
       class={`main-layout ${isSidebarOpen() ? 'sidebar-open' : 'sidebar-closed'}`}
     >
+      <AppErrorBanner />
       <div
         class={`sidebar${isNarrow() ? ' narrow' : ''}`}
         style={{

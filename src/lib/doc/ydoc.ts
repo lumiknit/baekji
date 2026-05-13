@@ -1,6 +1,18 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import type { ProjectMeta, SheetMeta } from './v1';
+import { pushAppError } from '../../state/errors';
+
+function attachQuotaHandler(provider: IndexeddbPersistence): void {
+  provider.whenSynced.catch((err: unknown) => {
+    const e = err as { name?: string; code?: number } | null;
+    if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+      pushAppError({ kind: 'quota_exceeded' });
+    } else {
+      pushAppError({ kind: 'idb_write_failed', detail: String(err) });
+    }
+  });
+}
 
 export type ProjectDoc = {
   id: string;
@@ -25,6 +37,7 @@ export function openProjectDoc(projectId: string): ProjectDoc {
     `baekji-v2-project-${projectId}`,
     doc,
   );
+  attachQuotaHandler(provider);
   const meta = doc.getMap<unknown>('meta');
   const sheets = doc.getMap<SheetMeta>('sheets');
   return { id: projectId, doc, provider, meta, sheets };
@@ -67,6 +80,7 @@ export function writeProjectMeta(
 export function openSheetDoc(sheetId: string): SheetDoc {
   const doc = new Y.Doc();
   const provider = new IndexeddbPersistence(`baekji-v2-sheet-${sheetId}`, doc);
+  attachQuotaHandler(provider);
   const content = doc.getText('content');
   return { id: sheetId, doc, provider, content };
 }
@@ -83,27 +97,4 @@ export async function waitForSync(
   provider: IndexeddbPersistence,
 ): Promise<void> {
   await provider.whenSynced;
-}
-
-/** Read the full text content of a sheet by ID. */
-export async function readSheetText(sheetId: string): Promise<string> {
-  const sd = openSheetDoc(sheetId);
-  await waitForSync(sd.provider);
-  const text = sd.content.toString();
-  closeSheetDoc(sd);
-  return text;
-}
-
-/** Overwrite the full text content of a sheet by ID. */
-export async function writeSheetText(
-  sheetId: string,
-  text: string,
-): Promise<void> {
-  const sd = openSheetDoc(sheetId);
-  await waitForSync(sd.provider);
-  sd.doc.transact(() => {
-    sd.content.delete(0, sd.content.length);
-    sd.content.insert(0, text);
-  });
-  closeSheetDoc(sd);
 }

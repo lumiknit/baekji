@@ -40,8 +40,7 @@ export const [sidebarView, setSidebarView] = makePersisted(
 
 // Bumped whenever the project list should be refreshed (e.g. after backup import)
 export const [projectListVersion, setProjectListVersion] = createSignal(0);
-export const invalidateProjectList = () =>
-  setProjectListVersion((v) => v + 1);
+export const invalidateProjectList = () => setProjectListVersion((v) => v + 1);
 
 // Device ID — persisted so same device always has the same ID
 export const [deviceId] = makePersisted(createSignal<string>(genOrderedId()), {

@@ -495,6 +495,20 @@ export async function fullReset(): Promise<void> {
     /* ignore */
   }
 
+  // Delete all baekji-* IndexedDB databases
+  try {
+    if (indexedDB.databases) {
+      const all = await indexedDB.databases();
+      await Promise.all(
+        all
+          .filter((db) => db.name?.startsWith('baekji-'))
+          .map((db) => deleteDB(db.name!)),
+      );
+    }
+  } catch {
+    /* ignore */
+  }
+
   if ('serviceWorker' in navigator) {
     const regs = await navigator.serviceWorker.getRegistrations();
     await Promise.all(regs.map((r) => r.unregister()));
