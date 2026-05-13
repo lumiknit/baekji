@@ -1,4 +1,5 @@
 import { createSignal } from 'solid-js';
+import { makePersisted } from '@solid-primitives/storage';
 import {
   openProjectDoc,
   closeProjectDoc,
@@ -7,7 +8,18 @@ import {
   waitForSync,
 } from '../lib/doc/ydoc';
 import type { ProjectDoc, SheetDoc } from '../lib/doc/ydoc';
-import { getAppState, setAppState } from '../lib/doc/db_v1';
+
+// ─── Persistent last-location signals ────────────────────────────
+
+export const [lastProjectId, setLastProjectId] = makePersisted(
+  createSignal<string | null>(null),
+  { name: 'baekji.lastProjectId' },
+);
+
+export const [lastSheetId, setLastSheetId] = makePersisted(
+  createSignal<string | null>(null),
+  { name: 'baekji.lastSheetId' },
+);
 
 // ─── Active Project ──────────────────────────────────────────────
 
@@ -22,9 +34,7 @@ export const activeProjectId = () => _activeProjectDoc()?.id ?? null;
 export const activeProjectLabel = _activeProjectLabel;
 
 export async function openProject(id: string): Promise<void> {
-  if (activeProjectId() === id) {
-    return;
-  }
+  if (activeProjectId() === id) return;
   if (_projectDoc) {
     closeProjectDoc(_projectDoc);
     _projectDoc = null;
@@ -34,11 +44,10 @@ export async function openProject(id: string): Promise<void> {
   _projectDoc = pd;
   setActiveProjectDoc(pd);
   setActiveProjectLabel((pd.meta.get('label') as string | undefined) ?? '');
-  // Y.Map 변경 시 label 신호 동기화
+  setLastProjectId(id);
   pd.meta.observe(() => {
     setActiveProjectLabel((pd.meta.get('label') as string | undefined) ?? '');
   });
-  await setAppState('global', '', 'activeProjectId', id);
 }
 
 export async function closeProject(): Promise<void> {
@@ -47,18 +56,7 @@ export async function closeProject(): Promise<void> {
     _projectDoc = null;
   }
   setActiveProjectDoc(null);
-  await setAppState('global', '', 'activeProjectId', null);
-}
-
-export async function restoreLastProject(): Promise<void> {
-  const id = (await getAppState('global', '', 'activeProjectId')) as
-    | string
-    | null;
-  if (id) await openProject(id);
-}
-
-export async function restoreLastSheet(): Promise<string | null> {
-  return (await getAppState('global', '', 'activeSheetId')) as string | null;
+  setLastProjectId(null);
 }
 
 // ─── Active Sheet ────────────────────────────────────────────────
@@ -81,7 +79,7 @@ export async function openSheet(id: string): Promise<SheetDoc> {
   await waitForSync(sd.provider);
   _sheetDoc = sd;
   setActiveSheetDoc(sd);
-  await setAppState('global', '', 'activeSheetId', id);
+  setLastSheetId(id);
   return sd;
 }
 

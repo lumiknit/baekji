@@ -9,6 +9,8 @@ import {
   openSheet,
   closeSheet,
   activeProjectDoc,
+  lastProjectId,
+  openProject,
 } from '../../state/workspace_v1';
 import { touchSheetUpdatedAt } from '../../state/sheet_list';
 import { buildExtensions } from './cm_setup';
@@ -37,8 +39,8 @@ const EditorCore: Component<Props> = (props) => {
 
   onMount(async () => {
     if (!activeProjectDoc()) {
-      const { restoreLastProject } = await import('../../state/workspace_v1');
-      await restoreLastProject();
+      const id = lastProjectId();
+      if (id) await openProject(id);
     }
 
     try {

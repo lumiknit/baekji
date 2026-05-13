@@ -54,43 +54,6 @@ export async function deleteProject(id: string): Promise<void> {
   await db.delete(PROJECTS, id);
 }
 
-// ─── AppState ─────────────────────────────────────────────────
-
-export type AppStateKey = {
-  scope: string;
-  scopeId: string;
-  key: string;
-  value: unknown;
-};
-
-export async function getAppState(
-  scope: string,
-  scopeId: string,
-  key: string,
-): Promise<unknown> {
-  const db = await getDB();
-  const entry = await db.get(APP_STATE, [scope, scopeId, key]);
-  return entry?.value;
-}
-
-export async function setAppState(
-  scope: string,
-  scopeId: string,
-  key: string,
-  value: unknown,
-): Promise<void> {
-  const db = await getDB();
-  await db.put(APP_STATE, { scope, scopeId, key, value });
-}
-
-export async function deleteAppState(
-  scope: string,
-  scopeId: string,
-  key: string,
-): Promise<void> {
-  const db = await getDB();
-  await db.delete(APP_STATE, [scope, scopeId, key]);
-}
 
 // ─── Full Reset ───────────────────────────────────────────────
 
