@@ -278,14 +278,9 @@ const SheetList: Component = () => {
           </Show>
 
           <div class="tree-trash-section">
-            <div
+            <button
               class="tree-trash-header"
-              role="button"
-              tabIndex={0}
               onClick={() => setTrashOpen((v) => !v)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') setTrashOpen((v) => !v);
-              }}
             >
               <span class="icon">
                 {trashOpen() ? (
@@ -317,7 +312,7 @@ const SheetList: Component = () => {
                   </div>
                 </button>
               </Show>
-            </div>
+            </button>
 
             <Show when={trashOpen()}>
               <Show

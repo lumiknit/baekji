@@ -35,11 +35,6 @@
 
 /* ─── Backup Modal ───────────────────────────────── */
 
-.backup-divider {
-  margin: var(--sp-4) 0;
-  border: none;
-  border-top: 1px solid var(--border);
-}
 
 .backup-token-box {
   padding: var(--sp-2) var(--sp-3);
@@ -95,10 +90,4 @@
 
 .modal-input {
   width: 100%;
-  padding: var(--sp-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
 }

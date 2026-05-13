@@ -15,7 +15,7 @@ import {
 } from '../state/workspace_v1';
 import { liveSheets } from '../state/sheet_list';
 import { putProject, deleteProject } from '../lib/doc/db_v1';
-import { tagToHsl } from '../lib/tag/color';
+import { tagToHsl, hexToHsl } from '../lib/tag/color';
 import { matchQuery } from '../lib/tag/query';
 import { showConfirm, openBackupModal } from '../state/modal';
 import { setSidebarView } from '../state/workspace';
@@ -256,23 +256,8 @@ const ProjectPage: Component = () => {
                         class="tree-color-input"
                         title={s('project.tag_color_set')}
                         onInput={(e) => {
-                          const hex = e.currentTarget.value;
-                          const r = parseInt(hex.slice(1, 3), 16) / 255;
-                          const g = parseInt(hex.slice(3, 5), 16) / 255;
-                          const b = parseInt(hex.slice(5, 7), 16) / 255;
-                          const max = Math.max(r, g, b),
-                            min = Math.min(r, g, b);
-                          const d = max - min;
-                          let h = 0;
-                          if (d !== 0) {
-                            if (max === r) h = ((g - b) / d + 6) % 6;
-                            else if (max === g) h = (b - r) / d + 2;
-                            else h = (r - g) / d + 4;
-                            h = Math.round(h * 60);
-                          }
-                          const sv =
-                            max === 0 ? 0 : Math.round((d / max) * 100);
-                          setTagColorOverride(tag, h, sv);
+                          const { h, s } = hexToHsl(e.currentTarget.value);
+                          setTagColorOverride(tag, h, s);
                         }}
                       />
                       <Show when={override()}>

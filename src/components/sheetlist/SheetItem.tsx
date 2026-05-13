@@ -1,12 +1,5 @@
 import type { Component } from 'solid-js';
-import {
-  createSignal,
-  createEffect,
-  For,
-  Show,
-  onMount,
-  onCleanup,
-} from 'solid-js';
+import { createSignal, createEffect, For, Show } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import {
   TbOutlineDotsVertical,
@@ -89,36 +82,19 @@ const SheetItem: Component<Props> = (props) => {
     setPreview(extractPreview(text));
   };
 
-  onMount(() => {
-    fetchPreview();
-  });
-
   createEffect(() => {
     void props.sheet.updatedAt;
     fetchPreview();
   });
 
-  {
-    let observedContent: import('yjs').Text | null = null;
-    const onUpdate = () => {
-      const sd = activeSheetDoc();
-      if (sd) setPreview(extractPreview(sd.content.toString()));
-    };
-    createEffect(() => {
-      if (observedContent) {
-        observedContent.unobserve(onUpdate);
-        observedContent = null;
-      }
-      if (activeSheetId() !== props.sheet.id) return;
-      const sd = activeSheetDoc();
-      if (!sd) return;
-      observedContent = sd.content;
-      observedContent.observe(onUpdate);
-    });
-    onCleanup(() => {
-      if (observedContent) observedContent.unobserve(onUpdate);
-    });
-  }
+  createEffect(() => {
+    if (activeSheetId() !== props.sheet.id) return;
+    const sd = activeSheetDoc();
+    if (!sd) return;
+    const onUpdate = () => setPreview(extractPreview(sd.content.toString()));
+    sd.content.observe(onUpdate);
+    return () => sd.content.unobserve(onUpdate);
+  });
 
   // ─── Gesture handling ─────────────────────────────────────────
 
@@ -307,11 +283,7 @@ const SheetItem: Component<Props> = (props) => {
         <div
           class={`sl-item-preview${preview() === null ? ' sl-item-preview--loading' : ''}${preview() === '' ? ' sl-item-preview--empty' : ''}`}
         >
-          <Show when={preview() !== null} fallback="…">
-            <Show when={preview()} fallback={s('sheet.empty_content')}>
-              {preview()}
-            </Show>
-          </Show>
+          {preview() === null ? '…' : preview() || s('sheet.empty_content')}
         </div>
       </div>
 

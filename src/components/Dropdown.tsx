@@ -51,10 +51,9 @@ const Dropdown: Component<DropdownProps> = (props) => {
       class={`dropdown ${props.class || ''}`}
       ref={(el) => (containerRef = el)}
       onPointerDown={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
     >
       <button
-        class={`dropdown-trigger${props.triggerClass ? ` ${props.triggerClass}` : ''}`}
+        class={props.triggerClass ?? ''}
         onClick={toggle}
         title={props.title}
         aria-label={props.triggerAriaLabel}

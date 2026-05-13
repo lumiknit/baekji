@@ -1,9 +1,6 @@
 /* ─── Buttons ─────────────────────────────────────── */
 
-button,
-a.btn-skeleton,
-a.btn-border,
-a.btn-primary {
+:is(button, a.btn-skeleton, a.btn-border, a.btn-primary) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -24,41 +21,25 @@ button {
   font: inherit;
 }
 
-a.btn-skeleton,
-a.btn-border,
-a.btn-primary,
-a.btn-danger-solid {
-  border-bottom: none;
-}
-
-a.btn-skeleton:hover,
-a.btn-border:hover,
-a.btn-primary:hover,
-a.btn-danger-solid:hover {
-  border-bottom: none;
+a:is(.btn-skeleton, .btn-border, .btn-primary, .btn-danger-solid) {
   color: inherit;
+  border-bottom: none;
+
+  &:hover {
+    border-bottom: none;
+    color: inherit;
+  }
 }
 
-a.btn-skeleton,
-a.btn-border,
-a.btn-primary {
-  color: inherit;
-}
-
-button:disabled,
-a.btn-skeleton[disabled],
-a.btn-border[disabled],
-.btn-primary:disabled,
-.btn-danger-solid:disabled,
-.btn-border:disabled {
+:is(button, .btn-primary, .btn-danger-solid, .btn-border):disabled,
+a:is(.btn-skeleton, .btn-border, .btn-primary)[disabled] {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
 }
 
 button:not(:disabled):hover,
-a.btn-skeleton:not([disabled]):hover,
-a.btn-border:not([disabled]):hover {
+a:is(.btn-skeleton, .btn-border):not([disabled]):hover {
   background: var(--border);
 }
 
@@ -149,7 +130,7 @@ input[type='checkbox'] {
   width: 1.25em;
   height: 1.25em;
   border: 1.5px solid var(--border);
-  border-radius: calc(var(--r) * 0.5);
+  border-radius: 3px;
   background: var(--bg);
   cursor: pointer;
   flex-shrink: 0;
@@ -238,8 +219,8 @@ input[type='checkbox']:checked::before {
 
 .tag--removable {
   cursor: pointer;
-}
 
-.tag--removable:hover {
-  border: 1px solid var(--border);
+  &:hover {
+    border: 1px solid var(--border);
+  }
 }

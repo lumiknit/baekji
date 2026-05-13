@@ -49,34 +49,32 @@ const TagEditor: Component<TagEditorProps> = (props) => {
       <Show
         when={isEditing()}
         fallback={
-          <div class="tag-editor-view">
-            <div class="tag-list">
-              <For each={props.tags()}>
-                {(tag) => {
-                  const { h, s: sat } = tagToHsl(tag);
-                  return (
-                    <span
-                      class="tag tag--removable"
-                      style={{
-                        background: `hsl(${h}deg ${sat}% 60% / 0.25)`,
-                        color: `hsl(${h}deg ${sat}% var(--color-l))`,
-                      }}
-                      onClick={() => removeTag(tag)}
-                      title={s('sheet.remove_tag')}
-                    >
-                      {tag} <span class="tag-del">×</span>
-                    </span>
-                  );
-                }}
-              </For>
-              <button
-                class="tag tag--edit"
-                onClick={startEditing}
-                title={s('common.edit')}
-              >
-                <TbOutlineEdit />
-              </button>
-            </div>
+          <div class="tag-list">
+            <For each={props.tags()}>
+              {(tag) => {
+                const { h, s: sat } = tagToHsl(tag);
+                return (
+                  <span
+                    class="tag tag--removable"
+                    style={{
+                      background: `hsl(${h}deg ${sat}% 60% / 0.25)`,
+                      color: `hsl(${h}deg ${sat}% var(--color-l))`,
+                    }}
+                    onClick={() => removeTag(tag)}
+                    title={s('sheet.remove_tag')}
+                  >
+                    {tag} <span class="tag-del">×</span>
+                  </span>
+                );
+              }}
+            </For>
+            <button
+              class="tag tag--edit"
+              onClick={startEditing}
+              title={s('common.edit')}
+            >
+              <TbOutlineEdit />
+            </button>
           </div>
         }
       >
