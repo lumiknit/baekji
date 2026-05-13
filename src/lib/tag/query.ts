@@ -15,12 +15,25 @@
 // ---------------------------------------------------------------------------
 // Tag validation
 
-/** Characters forbidden in a tag: reserved operators and whitespace */
-const INVALID_TAG_CHARS = /[&|()*!\s]/;
+/** Characters forbidden in a tag: reserved operators, whitespace, and comma */
+const INVALID_TAG_CHARS = /[&|()*!,\s]/;
 
 export function isValidTag(tag: string): boolean {
   if (!tag || tag.length === 0) return false;
   return !INVALID_TAG_CHARS.test(tag);
+}
+
+/**
+ * Convert arbitrary text into a valid canonical tag.
+ * Runs of invalid chars (including existing underscores) collapse to a single '_',
+ * leading/trailing underscores are stripped, and the result is lowercased.
+ * Returns empty string if nothing remains.
+ */
+export function canonicalTag(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/[&|()*!,\s_]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
 // ---------------------------------------------------------------------------

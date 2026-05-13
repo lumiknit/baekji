@@ -74,6 +74,14 @@ export const trashSheets = createMemo(() =>
     .sort((a, b) => a.orderKey - b.orderKey),
 );
 
+export const allTags = createMemo(() => {
+  const tags = new Set<string>();
+  for (const sheet of liveSheets()) {
+    for (const tag of sheet.tags) tags.add(tag);
+  }
+  return Array.from(tags).sort();
+});
+
 export const filteredSheets = createMemo(() => {
   const q = filterQuery().trim();
   if (!q) return liveSheets();

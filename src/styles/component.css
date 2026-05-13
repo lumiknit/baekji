@@ -479,7 +479,6 @@
   opacity: 0.15;
 }
 
-
 /* ─── Sheet List (V1 Sidebar) ─────────────────────── */
 
 .sl-toolbar {
@@ -693,6 +692,38 @@
   .tag:hover & {
     opacity: 1;
   }
+}
+
+.tag--clickable {
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.15);
+  }
+}
+
+.tag--more {
+  padding: 2px 6px;
+  background: var(--border);
+  border-radius: var(--r);
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  border: 1px dashed var(--border-dark);
+  opacity: 0.7;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.sl-tag-dropdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: var(--sp-2);
+  max-width: 280px;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .tag--edit {

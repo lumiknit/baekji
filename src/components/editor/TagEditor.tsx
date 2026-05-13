@@ -6,9 +6,11 @@ import {
   type Accessor,
 } from 'solid-js';
 import { tagToHsl } from '../../lib/tag/color';
-import { isValidTag } from '../../lib/tag/query';
+import { canonicalTag, isValidTag } from '../../lib/tag/query';
 import { s } from '../../lib/i18n';
 import { TbOutlineEdit, TbOutlineCheck, TbOutlineX } from 'solid-icons/tb';
+import { allTags } from '../../state/sheet_list';
+import TagList from '../tag/TagList';
 
 interface TagEditorProps {
   tags: Accessor<string[]>;
@@ -31,7 +33,7 @@ const TagEditor: Component<TagEditorProps> = (props) => {
   const saveEditing = () => {
     const newTags = editValue()
       .split(/[,\n]/)
-      .map((t) => t.trim().replace(/\s+/g, '_'))
+      .map((t) => canonicalTag(t.trim()))
       .filter((t) => t && isValidTag(t));
 
     // Unique tags
@@ -93,6 +95,21 @@ const TagEditor: Component<TagEditorProps> = (props) => {
                 cancelEditing();
               }
             }}
+          />
+          <TagList
+            tags={() =>
+              allTags().filter(
+                (t) =>
+                  !editValue()
+                    .split(/[,\n]/)
+                    .map((x) => x.trim())
+                    .includes(t),
+              )
+            }
+            onTagClick={(tag) =>
+              setEditValue((v) => (v ? `${v.trimEnd()}, ${tag}` : tag))
+            }
+            max={0}
           />
           <div class="tag-editor-actions">
             <button

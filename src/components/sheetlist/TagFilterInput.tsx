@@ -7,16 +7,34 @@ import {
   setFilterQuery,
   filteredSheets,
   liveSheets,
+  allTags,
 } from '../../state/sheet_list';
 import { activeProjectId } from '../../state/workspace_v1';
 import { s } from '../../lib/i18n';
-import Dropdown from '../Dropdown';
+import TagList from '../tag/TagList';
 
 const TagFilterInput: Component = () => {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = createSignal(filterQuery());
   const [tagMenuOpen, setTagMenuOpen] = createSignal(false);
+  let dropdownRef: HTMLDivElement | undefined;
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const handleOutsideClick = (e: MouseEvent) => {
+    if (
+      tagMenuOpen() &&
+      dropdownRef &&
+      !dropdownRef.contains(e.target as Node)
+    ) {
+      setTagMenuOpen(false);
+    }
+  };
+  document.addEventListener('mousedown', handleOutsideClick, { capture: true });
+  onCleanup(() =>
+    document.removeEventListener('mousedown', handleOutsideClick, {
+      capture: true,
+    }),
+  );
 
   const handleInput = (val: string) => {
     setInputValue(val);
@@ -41,14 +59,6 @@ const TagFilterInput: Component = () => {
     navigate(`/project/${id}${q ? `?q=${encodeURIComponent(q)}` : ''}`);
   };
 
-  const allTags = () => {
-    const tags = new Set<string>();
-    for (const sheet of liveSheets()) {
-      for (const tag of sheet.tags) tags.add(tag);
-    }
-    return Array.from(tags).sort();
-  };
-
   const handleTagToggle = (tag: string) => {
     const q = filterQuery().trim();
     const parts = q ? q.split('&').map((p) => p.trim()) : [];
@@ -68,17 +78,20 @@ const TagFilterInput: Component = () => {
   return (
     <div class="sl-filter-container">
       <div class="sl-filter-wrap">
-        <Dropdown
-          triggerClass="sl-filter-btn"
-          triggerAriaLabel={s('sidebar.tag_list')}
-          open={tagMenuOpen}
-          onOpenChange={setTagMenuOpen}
-          trigger={<TbOutlineChevronDown />}
-          items={allTags().map((tag) => ({
-            label: tag,
-            onSelect: () => handleTagToggle(tag),
-          }))}
-        />
+        <div class="dropdown" ref={(el) => (dropdownRef = el)}>
+          <button
+            class="sl-filter-btn"
+            aria-label={s('sidebar.tag_list')}
+            onClick={() => setTagMenuOpen((v) => !v)}
+          >
+            <TbOutlineChevronDown />
+          </button>
+          <Show when={tagMenuOpen()}>
+            <div class="dropdown-menu sl-tag-dropdown">
+              <TagList tags={allTags} onTagClick={handleTagToggle} max={0} />
+            </div>
+          </Show>
+        </div>
         <input
           class="sl-filter-input"
           type="text"
