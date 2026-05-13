@@ -1,9 +1,9 @@
 /** Trim first spaces. This can be used with backtick. */
 export const dedent = (
   strings: TemplateStringsArray,
-  ...values: any[]
+  ...values: unknown[]
 ): string => {
-  let raw = strings.reduce((acc, str, i) => {
+  const raw = strings.reduce((acc, str, i) => {
     return acc + str + (values[i] ?? '');
   }, '');
 

@@ -10,6 +10,14 @@ export const syncTokenSchema = z.object({
 
 export type SyncToken = z.infer<typeof syncTokenSchema>;
 
+export const persistedTokenSchema = z.object({
+  refreshToken: z.string(),
+  displayName: z.string().optional(),
+  email: z.string().optional(),
+});
+
+export type PersistedToken = z.infer<typeof persistedTokenSchema>;
+
 export const dropboxPkceStateSchema = z.object({
   codeVerifier: z.string(),
 });

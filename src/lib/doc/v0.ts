@@ -195,6 +195,14 @@ export const docDataNodeCommonSchema = docNodeCommonSchema.extend({
       .describe('Saturation of the node color, in percentage (0-100)'),
   }),
   tags: z.array(z.string()).describe('Array of tags associated with the node'),
+
+  deletedAt: z
+    .string()
+    .optional()
+    .describe(
+      'ISO timestamp set when the node is soft-deleted (moved to trash). ' +
+        'Only the directly-deleted node gets this field; its descendants do not.',
+    ),
 });
 
 export const docGroupNodeSchema = docDataNodeCommonSchema.extend({

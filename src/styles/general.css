@@ -1,6 +1,6 @@
 /* ─── Design Tokens ──────────────────────────────── */
 :root {
-  --accent: color-mix(in srgb, var(--border) 80%, var(--text) 20%);
+  --accent: var(--hl);
 
   /* Typography */
   --font-serif: serif;

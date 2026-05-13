@@ -1,287 +1,192 @@
 import type { Component } from 'solid-js';
-import {
-  createSignal,
-  createEffect,
-  For,
-  Show,
-  Switch,
-  Match,
-  untrack,
-} from 'solid-js';
-import { useParams, A } from '@solidjs/router';
-import { loadMarkdownSheetState } from '../lib/doc/db_helper';
-import { projectTree } from '../state/project_tree';
-import type { TreeNodeMeta } from '../state/project_tree';
+import { createSignal, For, Show, createEffect } from 'solid-js';
+import { useParams, useNavigate, useSearchParams } from '@solidjs/router';
+import { TbOutlineArrowLeft } from 'solid-icons/tb';
+import { activeProjectLabel, openProject } from '../state/workspace_v1';
+import { liveSheets } from '../state/sheet_list';
+import { openSheetDoc, closeSheetDoc, waitForSync } from '../lib/doc/ydoc';
+import { matchQuery } from '../lib/tag/query';
 import { s } from '../lib/i18n';
-import { logError } from '../state/log';
-import toast from 'solid-toast';
-import { TbFillFolderOpen, TbOutlineFile } from 'solid-icons/tb';
-import { getNode } from '../lib/doc/db';
-import { setActivePjVerId } from '../state/workspace';
 
-interface RowStats {
+function computeStats(text: string) {
+  const bytes = new TextEncoder().encode(text).length;
+  const chars = text.length;
+  const charsNoSpace = text.replace(/\s/g, '').length;
+  const charsNoSpecial = text.replace(/[^\p{L}\p{N}]/gu, '').length;
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  return { bytes, chars, charsNoSpace, charsNoSpecial, words };
+}
+
+type SheetStats = {
   id: string;
   label: string;
-  type: 'group' | 'sheet';
-  depth: number;
+  bytes: number;
   chars: number;
   charsNoSpace: number;
+  charsNoSpecial: number;
   words: number;
-}
-
-function calcText(
-  text: string,
-  includeSpace: boolean,
-): { chars: number; charsNoSpace: number; words: number } {
-  const noSpace = text.replace(/\s/g, '');
-  // Filter out markdown symbols and punctuation for word count
-  // We match sequences of letters and numbers
-  const wordsMatch = text.match(/[\p{L}\p{N}]+/gu);
-  return {
-    chars: includeSpace ? text.length : noSpace.length,
-    charsNoSpace: noSpace.length,
-    words: wordsMatch?.length ?? 0,
-  };
-}
-
-function collectNodes(
-  nodes: Record<string, TreeNodeMeta>,
-  id: string,
-  depth: number,
-  visited: Set<string> = new Set(),
-): { id: string; type: 'group' | 'sheet'; depth: number }[] {
-  const node = nodes[id];
-  if (!node || visited.has(id)) return [];
-  visited.add(id);
-
-  if (node.type === 'sheet') return [{ id, type: 'sheet', depth }];
-  const result: { id: string; type: 'group' | 'sheet'; depth: number }[] = [
-    { id, type: 'group', depth },
-  ];
-  for (const childId of node.children) {
-    result.push(...collectNodes(nodes, childId, depth + 1, visited));
-  }
-  return result;
-}
+};
 
 const AnalysisPage: Component = () => {
+  const navigate = useNavigate();
   const params = useParams();
-  const nodeId = () => params.id ?? '';
-
-  const [includeSpace, setIncludeSpace] = createSignal(true);
-  const [rows, setRows] = createSignal<RowStats[]>([]);
-  const [loading, setLoading] = createSignal(false);
-  let currentRunId = 0;
-
-  const rootNode = () => projectTree.nodes[nodeId()];
-  const rootLabel = () => rootNode()?.label || s('common.untitled');
-
-  const runAnalysis = async () => {
-    const nodes = projectTree.nodes;
-    const targetId = nodeId();
-    if (!nodes[targetId]) return;
-
-    const runId = ++currentRunId;
-    setLoading(true);
-    setRows([]);
-
-    try {
-      const flat = collectNodes(nodes, targetId, 0);
-      const statsMap: Record<
-        string,
-        { chars: number; charsNoSpace: number; words: number }
-      > = {};
-
-      const sheetItems = flat.filter((item) => item.type === 'sheet');
-
-      // Fetch in small chunks to avoid overwhelming IndexedDB on mobile
-      const chunkSize = 5;
-      for (let i = 0; i < sheetItems.length; i += chunkSize) {
-        const chunk = sheetItems.slice(i, i + chunkSize);
-        await Promise.all(
-          chunk.map(async (item) => {
-            const state = await loadMarkdownSheetState(item.id);
-            statsMap[item.id] = calcText(state.markdown, includeSpace());
-          }),
-        );
-      }
-
-      // Bottom-up aggregation for groups
-      for (let i = flat.length - 1; i >= 0; i--) {
-        const item = flat[i];
-        if (item.type === 'group') {
-          const node = nodes[item.id];
-          let chars = 0,
-            charsNoSpace = 0,
-            words = 0;
-          for (const childId of node?.children ?? []) {
-            const cs = statsMap[childId];
-            if (cs) {
-              chars += cs.chars;
-              charsNoSpace += cs.charsNoSpace;
-              words += cs.words;
-            }
-          }
-          statsMap[item.id] = { chars, charsNoSpace, words };
-        }
-      }
-
-      if (runId !== currentRunId) return;
-
-      setRows(
-        flat.map((item) => ({
-          id: item.id,
-          label: nodes[item.id]?.label || s('common.untitled'),
-          type: item.type,
-          depth: item.depth,
-          ...(statsMap[item.id] ?? {
-            chars: 0,
-            charsNoSpace: 0,
-            words: 0,
-          }),
-        })),
-      );
-    } catch (err) {
-      if (runId !== currentRunId) return;
-      logError('AnalysisPage:runAnalysis', err);
-      toast.error(String(err));
-    } finally {
-      if (runId === currentRunId) {
-        setLoading(false);
-      }
-    }
+  const [searchParams] = useSearchParams();
+  const query = () => (searchParams.q as string | undefined) ?? '';
+  const sheetIds = () => {
+    const val = searchParams.sheetId;
+    if (!val) return [];
+    return Array.isArray(val) ? val : [val];
   };
 
-  createEffect(async () => {
-    const node = await getNode(nodeId());
-    if (!node) return;
-    if (node.type === 'versionRoot') setActivePjVerId(node.id);
-    else setActivePjVerId(node.pjVerId);
-  });
+  const [analyzing, setAnalyzing] = createSignal(false);
+  const [stats, setStats] = createSignal<SheetStats[] | null>(null);
+
+  const total = () => {
+    const rows = stats();
+    if (!rows) return null;
+    return rows.reduce(
+      (acc, cur) => ({
+        bytes: acc.bytes + cur.bytes,
+        chars: acc.chars + cur.chars,
+        charsNoSpace: acc.charsNoSpace + cur.charsNoSpace,
+        charsNoSpecial: acc.charsNoSpecial + cur.charsNoSpecial,
+        words: acc.words + cur.words,
+      }),
+      { bytes: 0, chars: 0, charsNoSpace: 0, charsNoSpecial: 0, words: 0 },
+    );
+  };
+
+  const run = async () => {
+    setAnalyzing(true);
+    setStats(null);
+    await openProject(params.pjId);
+
+    const ids = sheetIds();
+    let sheets = liveSheets();
+    if (ids.length > 0) {
+      sheets = sheets.filter((sh) => ids.includes(sh.id));
+    } else {
+      const q = query().trim();
+      if (q) {
+        sheets = sheets.filter((sh) => matchQuery(q, new Set(sh.tags)));
+      }
+    }
+
+    const results: SheetStats[] = [];
+    for (const sheet of sheets) {
+      const sd = openSheetDoc(sheet.id);
+      await waitForSync(sd.provider);
+      const text = sd.content.toString();
+      closeSheetDoc(sd);
+
+      const preview = text.trim().slice(0, 16).replace(/\n/g, ' ');
+
+      results.push({
+        id: sheet.id,
+        label: preview || s('sheet.empty'),
+        ...computeStats(text),
+      });
+    }
+    setStats(results);
+    setAnalyzing(false);
+  };
 
   createEffect(() => {
-    // Track dependencies
-    const id = nodeId();
-    const isReady = !projectTree.loading && !!projectTree.nodes[id];
-    includeSpace();
-
-    if (isReady) {
-      // Use untrack to prevent runAnalysis internal signal reads/writes
-      // from causing an infinite loop in this effect.
-      untrack(() => runAnalysis());
-    }
+    if (params.pjId) run();
   });
 
-  const backHref = () => `/nodes/${nodeId()}`;
-
-  const total = () => rows().find((r) => r.id === nodeId());
-
-  const manuscriptPapers = (chars: number) =>
-    (chars / 200).toLocaleString(undefined, {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    });
-
-  const readingTime = (chars: number, words: number) => {
-    const minByChars = Math.ceil(chars / 700);
-    const minByWords = Math.ceil(words / 225);
-    return { minByChars, minByWords };
+  const handleBack = () => {
+    const ids = sheetIds();
+    if (ids.length === 1) {
+      navigate(`/sheets/${ids[0]}`);
+    } else {
+      const q = query();
+      navigate(
+        `/project/${params.pjId}${q ? `?q=${encodeURIComponent(q)}` : ''}`,
+      );
+    }
   };
 
   return (
-    <div class="p-16 mt-32 max-w-720 m-auto w-full">
-      <A href={backHref()}>←</A>
-      <div class="analysis-header">
-        <h1>
-          {rootLabel()} — {s('common.analysis')}
+    <div class="page-body">
+      <div class="page-header">
+        <button class="sb-icon-btn" onClick={handleBack}>
+          <div class="btn-pad">
+            <TbOutlineArrowLeft />
+          </div>
+        </button>
+        <h1 class="page-header-title">
+          {activeProjectLabel()} — {s('common.analysis')}
         </h1>
       </div>
 
-      <div class="analysis-options">
-        <label class="flex items-center gap-8">
-          <input
-            type="checkbox"
-            checked={includeSpace()}
-            onChange={(e) => setIncludeSpace(e.currentTarget.checked)}
-          />
-          {s('analysis.include_spaces')}
-        </label>
-      </div>
+      <Show when={query() && sheetIds().length === 0}>
+        <div class="page-stats">
+          <span>
+            {s('project.filter_result', {
+              query: query(),
+              filtered: stats()?.length ?? 0,
+              total: liveSheets().length,
+            })}
+          </span>
+        </div>
+      </Show>
 
-      <Show when={total()}>
-        {(t) => (
-          <div class="analysis-summary-grid">
-            <div class="summary-item btn-border">
-              <span class="label">{s('stats.characters')}</span>
-              <span class="value">{t().chars.toLocaleString()}</span>
-            </div>
-            <div class="summary-item btn-border">
-              <span class="label">{s('stats.words')}</span>
-              <span class="value">{t().words.toLocaleString()}</span>
-            </div>
-            <div class="summary-item btn-border">
-              <span class="label">{s('stats.manuscript_papers')}</span>
-              <span class="value">{manuscriptPapers(t().charsNoSpace)}</span>
-            </div>
-            <div class="summary-item btn-border">
-              <span class="label">{s('stats.reading_time')}</span>
-              <span class="value-group">
-                <span>
-                  {readingTime(t().chars, t().words).minByChars}m (char)
-                </span>
-                <span>
-                  {readingTime(t().chars, t().words).minByWords}m (word)
-                </span>
-              </span>
-            </div>
+      <Show when={sheetIds().length > 0}>
+        <div class="page-stats">
+          <span>
+            {s('project.selected_sheets_count', {
+              count: sheetIds().length,
+            })}
+          </span>
+        </div>
+      </Show>
+
+      <Show when={analyzing()}>
+        <p class="hint">{s('project.analyzing')}</p>
+      </Show>
+
+      <Show when={stats()}>
+        {(rows) => (
+          <div class="overflow-y-auto">
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th>{s('project.stat_sheet')}</th>
+                  <th>{s('project.stat_bytes')}</th>
+                  <th>{s('project.stat_chars')}</th>
+                  <th>{s('project.stat_no_space')}</th>
+                  <th>{s('project.stat_no_special')}</th>
+                  <th>{s('project.stat_words')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <For each={rows()}>
+                  {(r) => (
+                    <tr>
+                      <td class="stats-table-label">{r.label}</td>
+                      <td>{r.bytes.toLocaleString()}</td>
+                      <td>{r.chars.toLocaleString()}</td>
+                      <td>{r.charsNoSpace.toLocaleString()}</td>
+                      <td>{r.charsNoSpecial.toLocaleString()}</td>
+                      <td>{r.words.toLocaleString()}</td>
+                    </tr>
+                  )}
+                </For>
+                <Show when={rows().length > 1}>
+                  <tr class="stats-table-total">
+                    <td>{s('project.stat_total')}</td>
+                    <td>{total()!.bytes.toLocaleString()}</td>
+                    <td>{total()!.chars.toLocaleString()}</td>
+                    <td>{total()!.charsNoSpace.toLocaleString()}</td>
+                    <td>{total()!.charsNoSpecial.toLocaleString()}</td>
+                    <td>{total()!.words.toLocaleString()}</td>
+                  </tr>
+                </Show>
+              </tbody>
+            </table>
           </div>
         )}
-      </Show>
-
-      <Show when={loading()}>
-        <div class="analysis-loading">{s('analysis.loading')}</div>
-      </Show>
-
-      <Show when={!loading() && rows().length > 0}>
-        <div class="analysis-table-wrap">
-          <table class="analysis-table">
-            <thead>
-              <tr>
-                <th>{s('analysis.col_name')}</th>
-                <th>{s('stats.characters')}</th>
-                <th>{s('stats.words')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <For each={rows()}>
-                {(row) => (
-                  <tr class={row.type === 'group' ? 'is-group' : ''}>
-                    <td
-                      class="cell-name"
-                      style={{ 'padding-left': `${8 + row.depth * 16}px` }}
-                    >
-                      <Switch>
-                        <Match when={row.type === 'group'}>
-                          <span class="icon">
-                            <TbFillFolderOpen />
-                          </span>
-                        </Match>
-                        <Match when={row.type === 'sheet'}>
-                          <span class="icon">
-                            <TbOutlineFile />
-                          </span>
-                        </Match>
-                      </Switch>
-                      <span class="label-text">{row.label}</span>
-                    </td>
-                    <td>{row.chars.toLocaleString()}</td>
-                    <td>{row.words.toLocaleString()}</td>
-                  </tr>
-                )}
-              </For>
-            </tbody>
-          </table>
-        </div>
       </Show>
     </div>
   );

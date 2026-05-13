@@ -11,40 +11,31 @@
   flex-wrap: wrap;
   align-items: center;
   min-height: 44px;
-}
 
-.editor-toolbar::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: var(--sp-4);
-  right: var(--sp-4);
-  height: 1px;
-  background: var(--border);
-}
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: var(--sp-4);
+    right: var(--sp-4);
+    height: 1px;
+    background: var(--border);
+  }
 
-.main-layout.sidebar-closed .editor-toolbar {
-  padding-left: 52px;
-}
+  .main-layout.sidebar-closed & {
+    padding-left: 52px;
+  }
 
-.editor-toolbar .separator {
-  width: 1px;
-  height: 16px;
-  background: var(--border);
-  margin: 0 1px;
-}
+  & .separator {
+    width: 1px;
+    height: 16px;
+    background: var(--border);
+    margin: 0 1px;
+  }
 
-.editor-toolbar button.bold {
-  background: var(--border);
-}
-
-.save-btn {
-  margin-left: auto;
-}
-
-.status-indicator {
-  font-size: var(--fs-sm);
-  margin-left: auto;
+  & button.bold {
+    background: var(--border);
+  }
 }
 
 /* ─── Editor Tool Overlay ─────────────────────────── */
@@ -96,63 +87,6 @@
   font-size: var(--fs-xs);
 }
 
-/* ─── Editor Stats Overlay (legacy) ──────────────── */
-
-.editor-stats-overlay {
-  position: fixed;
-  bottom: var(--sp-4);
-  right: var(--sp-4);
-  padding: var(--sp-1) var(--sp-3);
-  font-size: var(--fs-xs);
-  z-index: var(--z-toolbar);
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  opacity: 0.5;
-}
-
-@property --gauge-pct {
-  syntax: '<percentage>';
-  inherits: false;
-  initial-value: 0%;
-}
-
-.editor-saving-gauge {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  --gauge-pct: 0%;
-  background: conic-gradient(
-    var(--fg) var(--gauge-pct),
-    var(--border) var(--gauge-pct)
-  );
-}
-
-@keyframes editor-gauge-fill {
-  from {
-    --gauge-pct: 0%;
-  }
-  to {
-    --gauge-pct: 100%;
-  }
-}
-
-.editor-stats-btn {
-  display: flex;
-  gap: var(--sp-2);
-  font-family: var(--font-mono);
-  opacity: 0.7;
-  cursor: pointer;
-  border-radius: var(--r);
-  padding: 2px var(--sp-1);
-}
-
-.editor-stats-btn:hover {
-  opacity: 1;
-  background: var(--border);
-}
-
 /* ─── Section Markers ─────────────────────────────── */
 
 .editor-section-marker {
@@ -161,29 +95,55 @@
   gap: var(--sp-4);
   padding: 0 1em;
   cursor: text;
+  position: relative;
 }
 
 .editor-section-marker--start {
+  flex-direction: column;
   padding-top: 45dvh;
-  align-items: flex-start;
+  align-items: stretch;
+  border-bottom: 1px solid var(--ultra-dim);
+  margin-bottom: 1rem;
+}
+
+.editor-section-marker--start::before {
+  bottom: 0;
 }
 
 .editor-section-marker--end {
   padding-bottom: 45dvh;
   align-items: flex-end;
+  border-top: 1px solid var(--ultra-dim);
+  margin-top: 1rem;
+}
+
+.editor-section-marker--end::after {
+  top: 0;
 }
 
 .editor-section-label {
   font-size: 0.625rem;
   letter-spacing: 0.1em;
-  opacity: 0.25;
+  color: var(--ultra-dim);
   white-space: nowrap;
   line-height: 1;
+  background: var(--bg);
+  padding: 0 var(--sp-2);
+  position: relative;
+  z-index: 1;
+}
+
+.editor-sod-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  width: 100%;
+  padding-top: var(--sp-2);
 }
 
 .editor-section-marker .separator-line {
   margin: 0;
-  opacity: 0.2;
+  border-color: var(--ultra-dim);
   align-self: center;
 }
 

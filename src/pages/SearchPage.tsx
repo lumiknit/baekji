@@ -1,152 +1,136 @@
 import type { Component } from 'solid-js';
-import { For, Show } from 'solid-js';
-import { useNavigate, A } from '@solidjs/router';
-import { getSheetContentAsMarkdown } from '../lib/doc/db_helper';
-import { projectTree } from '../state/project_tree';
-import type { TreeNodeMeta } from '../state/project_tree';
-import { searchState, setSearchState } from '../state/search';
+import { createSignal, For, Show, onMount } from 'solid-js';
+import { useNavigate } from '@solidjs/router';
+import { TbOutlineSearch, TbOutlineFileText } from 'solid-icons/tb';
+import { liveSheets } from '../state/sheet_list';
+import { openSheetDoc, closeSheetDoc, waitForSync } from '../lib/doc/ydoc';
 import { s } from '../lib/i18n';
 
-function allSheets(nodes: Record<string, TreeNodeMeta>): string[] {
-  return Object.values(nodes)
-    .filter((n) => n.type === 'sheet')
-    .map((n) => n.id);
-}
-
-function buildMatcher(
-  q: string,
-  caseSensitive: boolean,
-  useRegex: boolean,
-): (text: string) => string | null {
-  if (!q) return () => null;
-  try {
-    const escaped = useRegex ? q : q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const flags = caseSensitive ? '' : 'i';
-    return (text: string) => {
-      const m = new RegExp(escaped, flags).exec(text);
-      if (!m) return null;
-      const start = Math.max(0, m.index - 40);
-      const end = Math.min(text.length, m.index + m[0].length + 40);
-      return (
-        (start > 0 ? '…' : '') +
-        text.slice(start, end) +
-        (end < text.length ? '…' : '')
-      );
-    };
-  } catch {
-    return () => null;
-  }
-}
+type SearchResult = {
+  id: string;
+  tags: string[];
+  content: string;
+  matches: { start: number; end: number }[];
+};
 
 const SearchPage: Component = () => {
   const navigate = useNavigate();
+  const [query, setQuery] = createSignal('');
+  const [results, setResults] = createSignal<SearchResult[]>([]);
+  const [searching, setSearching] = createSignal(false);
 
-  let inputRef: HTMLInputElement | undefined;
-
-  const runSearch = async () => {
-    const q = searchState.query.trim();
-    if (!q) return;
-
-    setSearchState({ searching: true, results: [], searched: false });
-
-    const matcher = buildMatcher(
-      q,
-      searchState.caseSensitive,
-      searchState.useRegex,
-    );
-    const sheets = allSheets(projectTree.nodes);
-    const found: typeof searchState.results = [];
-
-    for (const id of sheets) {
-      const markdown = await getSheetContentAsMarkdown(id);
-      const label = projectTree.nodes[id]?.label || s('common.untitled');
-      const snippet = matcher(markdown);
-      if (snippet !== null) {
-        found.push({ id, label, snippet });
-        setSearchState('results', [...found]);
-      }
+  const handleSearch = async () => {
+    const q = query().trim().toLowerCase();
+    if (!q) {
+      setResults([]);
+      return;
     }
 
-    setSearchState({ searching: false, searched: true });
+    setSearching(true);
+    const sheets = liveSheets();
+    const newResults: SearchResult[] = [];
+
+    for (const sheet of sheets) {
+      const sd = openSheetDoc(sheet.id);
+      await waitForSync(sd.provider);
+      const text = sd.content.toString();
+      const lowerText = text.toLowerCase();
+
+      const matches: { start: number; end: number }[] = [];
+      let pos = lowerText.indexOf(q);
+      while (pos !== -1) {
+        matches.push({ start: pos, end: pos + q.length });
+        pos = lowerText.indexOf(q, pos + q.length);
+      }
+
+      if (matches.length > 0) {
+        newResults.push({
+          id: sheet.id,
+          tags: sheet.tags,
+          content: text,
+          matches,
+        });
+      }
+      closeSheetDoc(sd);
+    }
+
+    setResults(newResults);
+    setSearching(false);
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') runSearch();
-  };
-
-  const backHref = () => {
-    const pjVerId = projectTree.meta?.pjVerId;
-    return pjVerId ? `/nodes/${pjVerId}` : '/';
-  };
+  onMount(() => {
+    const el = document.getElementById('search-input');
+    el?.focus();
+  });
 
   return (
-    <div class="p-16 mt-32 max-w-720 m-auto overflow-x-hidden">
-      <div class="page-header mb-24">
-        <A href={backHref()}>←</A>
+    <div class="page-body">
+      <div class="page-header">
         <h1>{s('common.search')}</h1>
       </div>
 
-      <div class="flex gap-8 items-center mb-8">
-        <input
-          ref={inputRef}
-          type="text"
-          class="search-input flex-1"
-          placeholder={s('common.search_placeholder')}
-          value={searchState.query}
-          onInput={(e) => setSearchState('query', e.currentTarget.value)}
-          onKeyDown={handleKeyDown}
-          autofocus
-        />
-        <button
-          class="btn-border"
-          onClick={runSearch}
-          disabled={searchState.searching}
-        >
-          {searchState.searching ? '…' : s('common.search')}
-        </button>
+      <div class="search-panel">
+        <div class="search-input-row">
+          <input
+            id="search-input"
+            class="search-input"
+            value={query()}
+            onInput={(e) => setQuery(e.currentTarget.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder={s('common.search_placeholder')}
+          />
+          <button class="btn-border" onClick={handleSearch}>
+            <span class="icon">
+              <TbOutlineSearch />
+            </span>
+          </button>
+        </div>
       </div>
 
-      <div class="flex gap-16 mb-24 text-sm">
-        <label class="flex items-center gap-4">
-          <input
-            type="checkbox"
-            checked={searchState.caseSensitive}
-            onChange={(e) =>
-              setSearchState('caseSensitive', e.currentTarget.checked)
-            }
-          />
-          Aa
-        </label>
-        <label class="flex items-center gap-4">
-          <input
-            type="checkbox"
-            checked={searchState.useRegex}
-            onChange={(e) =>
-              setSearchState('useRegex', e.currentTarget.checked)
-            }
-          />
-          .*
-        </label>
+      <div class="search-results-list">
+        <Show when={searching()}>
+          <div class="empty-state">{s('common.searching')}</div>
+        </Show>
+
+        <Show when={!searching() && results().length === 0 && query()}>
+          <div class="empty-state">{s('common.search_no_results')}</div>
+        </Show>
+
+        <For each={results()}>
+          {(res) => (
+            <div
+              class="search-result-item"
+              onClick={() => navigate(`/sheets/${res.id}`)}
+            >
+              <div class="search-result-header">
+                <span class="icon">
+                  <TbOutlineFileText />
+                </span>
+                <div class="tag-list">
+                  <For each={res.tags}>
+                    {(tag) => <span class="tag">{tag}</span>}
+                  </For>
+                </div>
+              </div>
+              <div class="search-result-preview">
+                {(() => {
+                  const firstMatch = res.matches[0];
+                  const start = Math.max(0, firstMatch.start - 40);
+                  const end = Math.min(res.content.length, firstMatch.end + 80);
+                  const snippet = res.content.slice(start, end);
+                  return (
+                    <>
+                      {start > 0 && '...'}
+                      {snippet}
+                      {end < res.content.length && '...'}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+        </For>
       </div>
-
-      <Show
-        when={
-          searchState.searched &&
-          searchState.results.length === 0 &&
-          !searchState.searching
-        }
-      >
-        <div class="opacity-50 italic">{s('common.search_no_results')}</div>
-      </Show>
-
-      <For each={searchState.results}>
-        {(r) => (
-          <div class="search-result" onClick={() => navigate(`/nodes/${r.id}`)}>
-            <div class="search-result-label">{r.label}</div>
-            <div class="search-result-snippet">{r.snippet}</div>
-          </div>
-        )}
-      </For>
     </div>
   );
 };

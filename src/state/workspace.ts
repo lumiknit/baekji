@@ -13,6 +13,7 @@ export const [sidebarWidth, setSidebarWidth] = makePersisted(
   createSignal(260),
   {
     name: 'baekji-sidebar-width',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storage: localforage as any,
   },
 );
@@ -22,6 +23,7 @@ export const [isSidebarOpen, setSidebarOpen] = makePersisted(
   createSignal(true),
   {
     name: 'baekji-sidebar-open',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storage: localforage as any,
   },
 );
@@ -31,52 +33,18 @@ export const [sidebarView, setSidebarView] = makePersisted(
   createSignal<'tree' | 'projects'>('tree'),
   {
     name: 'baekji-sidebar-view',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storage: localforage as any,
   },
 );
 
-// Active project version root ID
-export const [activePjVerId, setActivePjVerId] = createSignal<string | null>(
-  null,
-);
+// Bumped whenever the project list should be refreshed (e.g. after backup import)
+export const [projectListVersion, setProjectListVersion] = createSignal(0);
+export const invalidateProjectList = () => setProjectListVersion((v) => v + 1);
 
-// Persistent device ID — generated once on first visit, used in backup metadata
+// Device ID — persisted so same device always has the same ID
 export const [deviceId] = makePersisted(createSignal<string>(genOrderedId()), {
   name: 'baekji-device-id',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   storage: localforage as any,
 });
-
-// Last globally opened node ID
-export const [lastGlobalNodeId, setLastGlobalNodeId] = makePersisted(
-  createSignal<string | null>(null),
-  { name: 'baekji-last-node', storage: localforage as any },
-);
-
-// Group open/close state: undefined = default (closed), true = open, false = closed
-export const [groupOpenState, setGroupOpenState] = makePersisted(
-  createSignal<Record<string, boolean | undefined>>({}),
-  {
-    name: 'baekji-group-open-state',
-    storage: localforage as any,
-  },
-);
-
-export function setGroupOpen(groupId: string, open: boolean): void {
-  setGroupOpenState((prev) => ({ ...prev, [groupId]: open }));
-}
-
-export function setAllGroupsOpen(
-  nodes: Record<string, { type: string }>,
-  open: boolean,
-): void {
-  const patch: Record<string, boolean> = {};
-  for (const [id, node] of Object.entries(nodes)) {
-    if (node.type === 'group') patch[id] = open;
-  }
-  setGroupOpenState((prev) => ({ ...prev, ...patch }));
-}
-
-export function isGroupOpen(groupId: string, defaultOpen = false): boolean {
-  const v = groupOpenState()[groupId];
-  return v === undefined ? defaultOpen : v;
-}

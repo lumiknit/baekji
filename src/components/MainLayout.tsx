@@ -16,11 +16,13 @@ import {
   sidebarView,
   setSidebarView,
 } from '../state/workspace';
+import { activeProjectDoc } from '../state/workspace_v1';
 import { createMediaQuery } from '@solid-primitives/media';
 import { A, useLocation, type RouteSectionProps } from '@solidjs/router';
-import TreeView from './treeview/TreeView';
+import SheetList from './sheetlist/SheetList';
 import ProjectList from './ProjectList';
 import ModalContainer from './modal/ModalContainer';
+import AppErrorBanner from './AppErrorBanner';
 import { s } from '../lib/i18n';
 import {
   TbFillLayoutSidebarLeftCollapse,
@@ -28,6 +30,7 @@ import {
   TbOutlineLayoutSidebarLeftExpand,
   TbOutlineCarouselVertical,
 } from 'solid-icons/tb';
+import { Dynamic } from 'solid-js/web';
 
 const MainLayout: Component<RouteSectionProps> = (props) => {
   const isMobile = createMediaQuery('(max-width: 768px)');
@@ -46,7 +49,7 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
   });
 
   createEffect(() => {
-    location.pathname; // track
+    void location.pathname;
     if (isMobile()) setSidebarOpen(false);
   });
 
@@ -72,6 +75,7 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
     <div
       class={`main-layout ${isSidebarOpen() ? 'sidebar-open' : 'sidebar-closed'}`}
     >
+      <AppErrorBanner />
       <div
         class={`sidebar${isNarrow() ? ' narrow' : ''}`}
         style={{
@@ -105,11 +109,25 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
         </div>
         <div class="sidebar-content">
           <Switch>
-            <Match when={sidebarView() === 'tree'}>
-              <TreeView />
-            </Match>
             <Match when={sidebarView() === 'projects'}>
               <ProjectList />
+            </Match>
+
+            <Match when={sidebarView() === 'tree' && !activeProjectDoc()}>
+              <div class="tree-no-project">
+                <span class="tree-no-project-label">
+                  {s('sidebar.no_project')}
+                </span>
+                <button
+                  class="btn-border btn-sm"
+                  onClick={() => setSidebarView('projects')}
+                >
+                  {s('tree.view_list')}
+                </button>
+              </div>
+            </Match>
+            <Match when={sidebarView() === 'tree'}>
+              <SheetList />
             </Match>
           </Switch>
         </div>
@@ -126,18 +144,15 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
         onClick={() => setSidebarOpen(!isSidebarOpen())}
       >
         <div class="btn-pad">
-          <Switch>
-            <Match when={isSidebarOpen()}>
-              <span class="icon">
-                <TbFillLayoutSidebarLeftCollapse />
-              </span>
-            </Match>
-            <Match when={!isSidebarOpen()}>
-              <span class="icon">
-                <TbOutlineLayoutSidebarLeftExpand />
-              </span>
-            </Match>
-          </Switch>
+          <span class="icon">
+            <Dynamic
+              component={
+                isSidebarOpen()
+                  ? TbFillLayoutSidebarLeftCollapse
+                  : TbOutlineLayoutSidebarLeftExpand
+              }
+            />
+          </span>
         </div>
       </button>
 

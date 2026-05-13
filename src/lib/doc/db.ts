@@ -232,6 +232,37 @@ export async function deleteSheetDeltasByContentId(
   await tx.done;
 }
 
+// ─── Soft Delete / Restore ────────────────────────────────────
+
+/** Marks a node as deleted by setting deletedAt. Does not touch descendants. */
+export async function softDeleteNode(nodeId: string): Promise<void> {
+  const db = await getDB();
+  const node = (await db.get(NODES, nodeId)) as DocNode | undefined;
+  if (!node || node.type === 'versionRoot') return;
+  await db.put(NODES, {
+    ...node,
+    deletedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+/** Restores a soft-deleted node by removing deletedAt and moving it to newParentId. */
+export async function restoreNode(
+  nodeId: string,
+  newParentId: string,
+): Promise<void> {
+  const db = await getDB();
+  const node = (await db.get(NODES, nodeId)) as DocNode | undefined;
+  if (!node || node.type === 'versionRoot') return;
+  const updated = {
+    ...node,
+    parentId: newParentId,
+    updatedAt: new Date().toISOString(),
+  } as Record<string, unknown>;
+  delete updated['deletedAt'];
+  await db.put(NODES, updated);
+}
+
 // ─── Bulk Insert (for import, atomic) ─────────────────────────
 
 export async function insertVersion(
@@ -460,6 +491,20 @@ export async function fullReset(): Promise<void> {
     db.close();
     dbPromise = null;
     await deleteDB(DB_NAME);
+  } catch {
+    /* ignore */
+  }
+
+  // Delete all baekji-* IndexedDB databases
+  try {
+    if (indexedDB.databases) {
+      const all = await indexedDB.databases();
+      await Promise.all(
+        all
+          .filter((db) => db.name?.startsWith('baekji-'))
+          .map((db) => deleteDB(db.name!)),
+      );
+    }
   } catch {
     /* ignore */
   }

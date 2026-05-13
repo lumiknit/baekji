@@ -1,6 +1,5 @@
 import {
-  TbOutlineCircleCheck,
-  TbOutlineDeviceFloppy,
+  TbOutlineFileExport,
   TbOutlineArrowsSplit,
   TbOutlineAnalyze,
   TbOutlineArrowBackUp,
@@ -9,41 +8,31 @@ import {
   TbOutlineCopy,
 } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
-import { Show } from 'solid-js';
-import CircularProgress from '../CircularProgress';
 import Dropdown from '../Dropdown';
-import { formatCompact } from '../../lib/number';
+import { formatCompact } from '../../lib/format';
 import { s } from '../../lib/i18n';
 
 interface EditorToolOverlayProps {
   charCount: () => number;
-  isDirty: () => boolean;
-  autosaveEndTime: () => Date | null;
   onUndo: () => void;
   onRedo: () => void;
-  onSave: () => void;
   onCopy: () => void;
+  onExport: () => void;
   onSplit: () => void;
   onAnalysis: () => void;
 }
 
 const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
   return (
-    <div class="editor-tool-overlay">
+    <div
+      class="editor-tool-overlay"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div class="editor-tool-status">
         <span class="editor-tool-charcount">
           {s('editor.size', { count: formatCompact(props.charCount()) })}
         </span>
-        <Show
-          when={props.isDirty()}
-          fallback={<TbOutlineCircleCheck size={14} />}
-        >
-          <CircularProgress
-            endTime={props.autosaveEndTime()}
-            size={14}
-            strokeWidth={0.4}
-          />
-        </Show>
       </div>
 
       <button
@@ -67,24 +56,25 @@ const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
         trigger={<TbOutlineDots size={14} />}
         items={[
           {
-            icon: TbOutlineDeviceFloppy,
-            label: s('editor.save'),
-            onSelect: props.onSave,
-          },
-          {
             icon: TbOutlineCopy,
-            label: s('editor.copy'),
+            label: s('common.copy'),
             onSelect: props.onCopy,
           },
+          {
+            icon: TbOutlineFileExport,
+            label: s('common.export'),
+            onSelect: props.onExport,
+          },
+          {
+            icon: TbOutlineAnalyze,
+            label: s('common.analysis'),
+            onSelect: props.onAnalysis,
+          },
+          { separator: true },
           {
             icon: TbOutlineArrowsSplit,
             label: s('editor.split'),
             onSelect: props.onSplit,
-          },
-          {
-            icon: TbOutlineAnalyze,
-            label: s('editor.analysis'),
-            onSelect: props.onAnalysis,
           },
         ]}
       />

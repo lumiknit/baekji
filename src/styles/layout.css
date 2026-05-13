@@ -27,7 +27,6 @@
 
 /* Disable the global a:hover underline inside the sidebar */
 .sidebar a:hover {
-  border-bottom: none;
   color: inherit;
 }
 
@@ -37,16 +36,16 @@
   align-items: center;
   justify-content: flex-end;
   position: relative;
-}
 
-.sidebar-nav::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: var(--sp-3);
-  right: var(--sp-3);
-  height: 1px;
-  background: var(--border);
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: var(--sp-3);
+    right: var(--sp-3);
+    height: 1px;
+    background: var(--border);
+  }
 }
 
 .sidebar-content {
@@ -64,7 +63,7 @@
   height: 100dvh;
   background: transparent;
   margin-left: -2px;
-  z-index: calc(var(--z-sidebar) + 1);
+  z-index: 101;
   touch-action: none;
 }
 
@@ -98,21 +97,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.sidebar-toggle:hover {
-  background: transparent;
-}
-.sidebar-toggle > .btn-pad {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r);
-}
-.sidebar-toggle:hover > .btn-pad,
-.sidebar-toggle.active > .btn-pad {
-  background: var(--border);
+
+  &:hover {
+    background: transparent;
+  }
+
+  & > .btn-pad {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r);
+  }
+
+  &:hover > .btn-pad,
+  &.active > .btn-pad {
+    background: var(--border);
+  }
 }
 
 @media (max-width: 768px) {

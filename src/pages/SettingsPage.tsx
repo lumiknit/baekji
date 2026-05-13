@@ -5,8 +5,16 @@ import { settings, setSettings } from '../state/settings';
 import type { FontSettings } from '../state/settings';
 import ThemePreview from '../components/ThemePreview';
 import { s } from '../lib/i18n';
+import toast from 'solid-toast';
 import { showConfirm } from '../state/modal';
 import { fullReset } from '../lib/doc/db';
+import { getAllProjects } from '../lib/doc/db_v1';
+import { openProjectDoc, closeProjectDoc, waitForSync } from '../lib/doc/ydoc';
+import {
+  estimateStorageUsage,
+  deleteOrphanSheetDatabases,
+  formatBytes,
+} from '../lib/doc/storage';
 
 const SettingRow: Component<{ label: string; children: JSX.Element }> = (
   props,
@@ -46,14 +54,7 @@ const FontPicker: Component<{
   return (
     <label class="flex justify-between items-center gap-8">
       {props.label}
-      <div
-        class="flex gap-4 items-center"
-        style={{
-          flex: '1',
-          'max-width': '240px',
-          'justify-content': 'flex-end',
-        }}
-      >
+      <div class="flex gap-4 items-center flex-1 max-w-240 justify-end">
         <Show when={showInput()}>
           <input
             type="text"
@@ -62,7 +63,7 @@ const FontPicker: Component<{
             onInput={(e) =>
               setSettings('fonts', props.fontKey, e.currentTarget.value)
             }
-            style={{ flex: '1', 'min-width': '0' }}
+            class="flex-1 min-w-0"
           />
         </Show>
         <select
@@ -97,7 +98,7 @@ const NumberInputWithSlider: Component<{
           min={props.min}
           max={props.max}
           onChange={(e) => props.onChange(parseFloat(e.currentTarget.value))}
-          style={{ width: '80px' }}
+          class="pj-num-input"
         />
       </SettingRow>
       <input
@@ -120,6 +121,30 @@ const SettingsPage: Component = () => {
       s('settings.reset_confirm'),
     );
     if (confirmed) await fullReset();
+  };
+
+  const [storageInfo, setStorageInfo] = createSignal<{
+    used: number;
+    quota: number;
+  } | null>(null);
+
+  const loadStorage = async () => {
+    const info = await estimateStorageUsage();
+    setStorageInfo(info);
+  };
+
+  const handleCleanOrphans = async () => {
+    const projects = await getAllProjects();
+    const allSheetIds = new Set<string>();
+    for (const pj of projects) {
+      const pd = openProjectDoc(pj.id);
+      await waitForSync(pd.provider);
+      for (const id of pd.sheets.keys()) allSheetIds.add(id);
+      closeProjectDoc(pd);
+    }
+    const count = await deleteOrphanSheetDatabases(allSheetIds);
+    await loadStorage();
+    toast.success(s('settings.storage_clean_done', { count }));
   };
 
   return (
@@ -157,7 +182,12 @@ const SettingsPage: Component = () => {
                           active={
                             ((settings[key] as string) ?? 'default') === variant
                           }
-                          onClick={() => setSettings(key as any, variant)}
+                          onClick={() =>
+                            setSettings(
+                              key as 'themeLight' | 'themeDark',
+                              variant,
+                            )
+                          }
                         />
                       )}
                     </For>
@@ -302,9 +332,42 @@ const SettingsPage: Component = () => {
           <hr class="separator-line" />
           <div class="danger-zone">
             <p class="danger-zone-title">Danger Zone</p>
-            <p class="danger-zone-desc">{s('settings.reset_description')}</p>
-            <div>
-              <button class="btn-danger-solid" onClick={handleFullReset}>
+
+            <div class="flex justify-between items-center">
+              <Show
+                when={storageInfo()}
+                fallback={
+                  <span class="danger-zone-desc">
+                    {s('settings.storage_title')}
+                  </span>
+                }
+              >
+                {(info) => (
+                  <span class="danger-zone-desc">
+                    {s('settings.storage_usage', {
+                      used: formatBytes(info().used),
+                      quota: formatBytes(info().quota),
+                    })}
+                  </span>
+                )}
+              </Show>
+              <div class="flex gap-4">
+                <Show when={!storageInfo()}>
+                  <button class="btn-border btn-sm" onClick={loadStorage}>
+                    {s('settings.storage_check')}
+                  </button>
+                </Show>
+                <button class="btn-border btn-sm" onClick={handleCleanOrphans}>
+                  {s('settings.storage_clean_orphans')}
+                </button>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center">
+              <span class="danger-zone-desc">
+                {s('settings.reset_description')}
+              </span>
+              <button class="btn-danger-solid btn-sm" onClick={handleFullReset}>
                 {s('settings.reset_button')}
               </button>
             </div>
