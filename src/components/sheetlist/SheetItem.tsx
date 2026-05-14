@@ -20,6 +20,7 @@ import {
   activeProjectDoc,
   activeSheetDoc,
 } from '../../state/workspace_v1';
+import { setSidebarOpen, showUpdatedAt } from '../../state/workspace';
 import {
   softDeleteSheet,
   restoreSheet,
@@ -40,9 +41,6 @@ import { showConfirm, showTagEdit } from '../../state/modal';
 import Dropdown from '../Dropdown';
 import { s } from '../../lib/i18n';
 
-const LONG_PRESS_MS = 500;
-const DRAG_THRESHOLD_PX = 8;
-
 function stripMarkdown(line: string): string {
   return line
     .replace(/^#{1,6}\s+/, '')
@@ -53,7 +51,6 @@ function stripMarkdown(line: string): string {
 interface Props {
   sheet: SheetMeta;
   isTrash?: boolean;
-  onDragStart?: (e: PointerEvent) => void;
   onOpenSelectionMenu?: () => void;
 }
 
@@ -62,6 +59,7 @@ const SheetItem: Component<Props> = (props) => {
   const [preview, setPreview] = createSignal<string | null>(null);
   const [menuOpen, setMenuOpen] = createSignal(false);
   const isActive = () => activeSheetId() === props.sheet.id;
+
   const isLast = () => {
     const sheets = liveSheets();
     return sheets[sheets.length - 1]?.id === props.sheet.id;
@@ -98,8 +96,6 @@ const SheetItem: Component<Props> = (props) => {
     return () => sd.content.unobserve(onUpdate);
   });
 
-  // ─── Gesture handling ─────────────────────────────────────────
-
   const openMenu = () => {
     if (isSelectMode()) {
       props.onOpenSelectionMenu?.();
@@ -108,65 +104,37 @@ const SheetItem: Component<Props> = (props) => {
     }
   };
 
-  const handlePointerDown = (e: PointerEvent) => {
-    if (props.isTrash) return;
-    if (e.button !== 0) return;
+  const handleClick = (e: MouseEvent) => {
+    if (
+      (e.target as HTMLElement).closest('.sl-item-actions, .sl-item-checkbox')
+    )
+      return;
 
-    const startX = e.clientX;
-    const startY = e.clientY;
-    let ended = false;
+    if (props.isTrash) {
+      navigate(`/sheets/${props.sheet.id}`);
+      return;
+    }
 
-    const longPressTimer = setTimeout(() => {
-      ended = true;
-      cleanup();
-      openMenu();
-    }, LONG_PRESS_MS);
-
-    const onMove = (me: PointerEvent) => {
-      if (
-        Math.hypot(me.clientX - startX, me.clientY - startY) > DRAG_THRESHOLD_PX
-      ) {
-        clearTimeout(longPressTimer);
-        ended = true;
-        cleanup();
-        props.onDragStart?.(me);
-      }
-    };
-
-    const onUp = (ue: PointerEvent) => {
-      clearTimeout(longPressTimer);
-      cleanup();
-      if (ended) return;
-
-      if (ue.shiftKey && isSelectMode()) {
-        rangeSelect(props.sheet.id, filteredSheets());
-      } else if (ue.ctrlKey || ue.metaKey) {
-        if (!isSelectMode()) enterSelectMode();
-        toggleSelect(props.sheet.id);
-      } else if (isSelectMode()) {
-        toggleSelect(props.sheet.id);
-      } else {
-        navigate(`/sheets/${props.sheet.id}`);
-      }
-    };
-
-    const cleanup = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    if (e.shiftKey && isSelectMode()) {
+      rangeSelect(props.sheet.id, filteredSheets());
+    } else if (e.ctrlKey || e.metaKey) {
+      if (!isSelectMode()) enterSelectMode();
+      toggleSelect(props.sheet.id);
+    } else if (isSelectMode()) {
+      toggleSelect(props.sheet.id);
+    } else if (isActive() && window.matchMedia('(max-width: 768px)').matches) {
+      setSidebarOpen(false);
+    } else {
+      navigate(`/sheets/${props.sheet.id}`);
+    }
   };
 
-  // Keep for desktop right-click and iOS Safari contextmenu fallback.
-  // Long-press timer above covers cases where contextmenu doesn't fire.
   const handleContextMenu = (e: MouseEvent) => {
     e.preventDefault();
-    openMenu();
+    // Allow right-click only on desktop; mobile long-press fires contextmenu and
+    // leaves the dropdown open, consuming the next touch as an outside-click.
+    if (window.matchMedia('(pointer: fine)').matches) openMenu();
   };
-
-  // ─── Dropdown items ───────────────────────────────────────────
 
   const handleEditTags = async () => {
     const nextTags = await showTagEdit(s('sheet.edit_tags'), props.sheet.tags);
@@ -200,7 +168,7 @@ const SheetItem: Component<Props> = (props) => {
       },
       {
         icon: TbOutlineFileExport,
-        label: s('common.export'),
+        label: s('common.preview_export'),
         onSelect: () => {
           const id = activeProjectDoc()?.id;
           if (id) navigate(`/project/${id}/export?sheetId=${props.sheet.id}`);
@@ -245,12 +213,11 @@ const SheetItem: Component<Props> = (props) => {
     return items;
   };
 
-  // ─── Render ───────────────────────────────────────────────────
-
   return (
     <div
+      id={`sheet-item-${props.sheet.id}`}
       class={`sl-item${isActive() ? ' sl-item--active' : ''}${props.isTrash ? ' sl-item--trash' : ''}${isSelected(props.sheet.id) ? ' sl-item--selected' : ''}${menuOpen() ? ' sl-item--open' : ''}`}
-      onPointerDown={handlePointerDown}
+      onClick={handleClick}
       onContextMenu={handleContextMenu}
     >
       <Show when={isSelectMode() && !props.isTrash}>
@@ -287,9 +254,14 @@ const SheetItem: Component<Props> = (props) => {
         >
           {preview() === null ? '…' : preview() || s('sheet.empty_content')}
         </div>
+        <Show when={showUpdatedAt()}>
+          <div class="sl-item-date">
+            {new Date(props.sheet.updatedAt).toLocaleString()}
+          </div>
+        </Show>
       </div>
 
-      <div class="sl-item-actions" onPointerDown={(e) => e.stopPropagation()}>
+      <div class="sl-item-actions">
         <Show
           when={!props.isTrash}
           fallback={

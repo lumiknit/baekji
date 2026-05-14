@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { onMount, onCleanup } from 'solid-js';
+import { onMount, onCleanup, createEffect } from 'solid-js';
 import * as Y from 'yjs';
 import { EditorView } from '@codemirror/view';
 import { EditorState, type Extension } from '@codemirror/state';
@@ -15,6 +15,10 @@ import {
 import { touchSheetUpdatedAt } from '../../state/sheet_list';
 
 const TOUCH_INTERVAL = 5_000;
+
+// Global map intentionally kept outside component lifecycle.
+// When the user edits a sheet and immediately navigates away, the timer must
+// still fire so updatedAt is written even after the editor unmounts.
 const pendingTouch = new Map<string, ReturnType<typeof setTimeout>>();
 
 function scheduleTouchUpdatedAt(sheetId: string) {
@@ -27,8 +31,14 @@ function scheduleTouchUpdatedAt(sheetId: string) {
     }, TOUCH_INTERVAL),
   );
 }
-import { buildExtensions } from './cm_setup';
+import {
+  buildExtensions,
+  openSearchPanel,
+  createActiveLineCompartment,
+  activeLineExtension,
+} from './cm_setup';
 import { s } from '../../lib/i18n';
+import { settings } from '../../state/settings';
 
 export type EditorCoreHandle = {
   undo: () => void;
@@ -36,6 +46,7 @@ export type EditorCoreHandle = {
   copy: () => Promise<void>;
   scrollToEdge: (edge: 'start' | 'end') => void;
   getSplitContent: () => { head: string; tail: string } | null;
+  openSearch: () => void;
 };
 
 interface Props {
@@ -49,6 +60,7 @@ const EditorCore: Component<Props> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let view: EditorView | undefined;
   let undoManager: Y.UndoManager | undefined;
+  const activeLineCompartment = createActiveLineCompartment();
 
   onMount(async () => {
     if (!activeProjectDoc()) {
@@ -69,7 +81,9 @@ const EditorCore: Component<Props> = (props) => {
             scheduleTouchUpdatedAt(props.sheetId);
           },
           onSave: () => {},
-          getTypewriterMode: () => false,
+          getTypewriterMode: () => settings.typewriterMode ?? false,
+          activeLineCompartment,
+          initialHighlightActiveLine: settings.focusMode ?? false,
         }),
         keymap.of([...yUndoManagerKeymap]),
         yCollab(doc.content, null as never, { undoManager }),
@@ -78,7 +92,11 @@ const EditorCore: Component<Props> = (props) => {
       const initialDoc = doc.content.toString();
       const state = EditorState.create({ doc: initialDoc, extensions });
 
-      if (!editorRef) return;
+      if (!editorRef) {
+        undoManager.destroy();
+        undoManager = undefined;
+        return;
+      }
       view = new EditorView({ state, parent: editorRef });
       props.onCharCount(initialDoc.length);
       view.focus();
@@ -112,11 +130,22 @@ const EditorCore: Component<Props> = (props) => {
             tail: text.slice(pos),
           };
         },
+        openSearch: () => {
+          if (view) openSearchPanel(view);
+        },
       });
     } catch (err) {
       console.error('EditorCore: failed to open sheet', err);
       props.onLoadError();
     }
+  });
+
+  createEffect(() => {
+    const enabled = settings.focusMode ?? false;
+    if (!view) return;
+    view.dispatch({
+      effects: activeLineCompartment.reconfigure(activeLineExtension(enabled)),
+    });
   });
 
   onCleanup(() => {

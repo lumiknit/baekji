@@ -419,7 +419,7 @@ export const livePreviewTheme = EditorView.theme({
     background: 'var(--cm-selection) !important',
   },
   '&.cm-focused .cm-selectionBackground': {
-    background: 'var(--cm-selection-focus) !important',
+    background: 'var(--cm-sel-focus) !important',
   },
 
   // Paragraph
@@ -429,32 +429,32 @@ export const livePreviewTheme = EditorView.theme({
   '.cm-line.cm-md-h1': {
     fontSize: '2em',
     fontWeight: '900',
-    color: 'var(--text-bold, inherit)',
+    color: 'var(--cm-text-bold, inherit)',
   },
   '.cm-line.cm-md-h2': {
     fontSize: '1.75em',
     fontWeight: '900',
-    color: 'var(--text-bold, inherit)',
+    color: 'var(--cm-text-bold, inherit)',
   },
   '.cm-line.cm-md-h3': {
     fontSize: '1.5em',
     fontWeight: '800',
-    color: 'var(--text-bold, inherit)',
+    color: 'var(--cm-text-bold, inherit)',
   },
   '.cm-line.cm-md-h4': {
     fontSize: '1.4em',
     fontWeight: 'bold',
-    color: 'var(--text-bold, inherit)',
+    color: 'var(--cm-text-bold, inherit)',
   },
   '.cm-line.cm-md-h5': {
     fontSize: '1.25em',
     fontWeight: 'bold',
-    color: 'var(--text-bold, inherit)',
+    color: 'var(--cm-text-bold, inherit)',
   },
   '.cm-line.cm-md-h6': {
     fontSize: '1.125em',
     fontWeight: 'bold',
-    color: 'var(--md-mark, #888)',
+    color: 'var(--cm-md-mark, #888)',
   },
 
   // Inline styles
@@ -462,7 +462,7 @@ export const livePreviewTheme = EditorView.theme({
   '.cm-md-em': { fontStyle: 'italic' },
   '.cm-md-strike': {
     textDecoration: 'line-through',
-    color: 'var(--md-mark, #888)',
+    color: 'var(--cm-md-mark, #888)',
   },
   '.cm-md-code': {
     fontFamily: 'var(--font-mono)',
@@ -474,18 +474,18 @@ export const livePreviewTheme = EditorView.theme({
 
   // Links and images
   '.cm-md-link': {
-    color: 'var(--hl, #06c)',
+    color: 'var(--cm-hl, #06c)',
     textDecoration: 'underline',
     cursor: 'pointer',
   },
-  '.cm-md-image-alt': { color: 'var(--md-mark, #888)', fontStyle: 'italic' },
+  '.cm-md-image-alt': { color: 'var(--cm-md-mark, #888)', fontStyle: 'italic' },
 
   // Blockquote
   '.cm-line.cm-md-blockquote': {
-    borderLeft: '4px solid var(--md-mark, #888)',
+    borderLeft: '4px solid var(--cm-md-mark, #888)',
     paddingLeft: '0.75em',
     fontStyle: 'italic',
-    color: 'var(--md-mark, #888)',
+    color: 'var(--cm-md-mark, #888)',
   },
 
   // Code block lines (fenced code)
@@ -504,7 +504,7 @@ export const livePreviewTheme = EditorView.theme({
     top: '50%',
     left: '0',
     right: '0',
-    borderTop: '1px solid var(--md-mark, #888)',
+    borderTop: '1px solid var(--cm-md-mark, #888)',
     transform: 'translateY(-50%)',
   },
 
@@ -513,9 +513,9 @@ export const livePreviewTheme = EditorView.theme({
   '.cm-md-bullet-mark::before': {
     content: '"•"',
     fontSize: '1rem',
-    color: 'var(--md-mark, #888)',
+    color: 'var(--cm-md-mark, #888)',
   },
 
   // Visible markdown markers (when cursor is nearby): *, **, ~~, `, #, >
-  '.cm-md-marker': { color: 'var(--md-mark, #888)' },
+  '.cm-md-marker': { color: 'var(--cm-md-mark, #888)' },
 });

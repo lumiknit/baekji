@@ -1,12 +1,13 @@
 import { createSignal } from 'solid-js';
 
-export type ModalType = 'confirm' | 'prompt' | null;
+export type ModalType = 'confirm' | 'prompt' | 'tagEdit' | null;
 
 interface ModalState {
   type: ModalType;
   title: string;
   message: string;
   defaultValue?: string;
+  tags?: string[];
   resolve: (value: unknown) => void;
 }
 

@@ -5,7 +5,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 9999;
+  z-index: var(--z-toast);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -163,6 +163,22 @@
   }
 }
 
+/* Small variant: 36×36 hit-box, 26×26 visual pill */
+.sb-icon-btn--sm {
+  min-width: 0;
+  min-height: 0;
+  padding: 5px;
+
+  & > .btn-pad {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+.sb-icon-btn--active > .btn-pad {
+  background: var(--border);
+}
+
 /* Text + icon nav button: stretches to fill 44px row height */
 .sb-nav-btn {
   display: flex;
@@ -256,9 +272,17 @@
 /* ─── Sidebar Project Header (V1) ─────────────────── */
 
 .sidebar-project-header {
+  flex-direction: column;
   align-items: stretch;
   padding: 0;
   gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-project-header-row {
+  display: flex;
+  align-items: stretch;
+  min-height: 44px;
 }
 
 /* Project title link — fills remaining width, own hover via btn-pad */
@@ -283,6 +307,7 @@
     min-width: 0;
     margin: 2px 2px 2px 4px;
     padding: 0 var(--sp-2);
+    font-size: var(--fs-sm);
     font-weight: bold;
     overflow: hidden;
 
@@ -293,7 +318,8 @@
     }
   }
 
-  &:hover > .btn-pad {
+  &:hover > .btn-pad,
+  &.active > .btn-pad {
     background: var(--border);
   }
 }
@@ -509,18 +535,12 @@
 
 /* ─── Sheet List (V1 Sidebar) ─────────────────────── */
 
-.sl-toolbar {
-  display: flex;
-  align-items: center;
-  padding: var(--sp-1) var(--sp-2);
-  gap: var(--sp-1);
-}
-
 .sl-filter-container {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  padding: var(--sp-1) var(--sp-2);
 }
 
 .sl-filter-wrap {
@@ -528,7 +548,6 @@
   align-items: center;
   gap: var(--sp-1);
   min-width: 0;
-  border-bottom: 1px solid var(--border);
   padding: 2px 4px;
 }
 
@@ -563,7 +582,6 @@
 
 .sl-selection-bar {
   position: relative;
-  z-index: var(--z-dropdown);
   font-size: var(--fs-sm);
   padding: 2px var(--sp-2);
   background: var(--border);
@@ -577,7 +595,9 @@
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0;
+  padding: 0 0 10rem;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .sl-item {
@@ -585,16 +605,29 @@
   display: flex;
   align-items: stretch;
   cursor: pointer;
+  -webkit-user-drag: none;
   min-height: 52px;
   padding: var(--sp-2);
   margin: 0 4px;
   gap: var(--sp-1);
   border-radius: var(--r);
   border-bottom: 1px solid var(--ultra-dim);
+  transition:
+    transform 0.15s ease-out,
+    opacity 0.15s ease-out;
 
-  &:hover {
-    background: var(--border);
+  /* hover 가능한 기기에서만 hover 스타일 적용 (iOS의 "두 번 탭" 문제 회피) */
+  @media (hover: hover) {
+    &:hover {
+      background: var(--border);
+    }
   }
+}
+
+.sl-item:active {
+  transform: scale(0.96);
+  opacity: 0.75;
+  transition-delay: 0.06s;
 }
 
 .sl-item--active {
@@ -614,14 +647,29 @@
   opacity: 0.4;
 }
 
+.sl-item--ghost {
+  opacity: 0.4;
+}
+
+.sl-item--chosen {
+  background: var(--color-hover);
+  outline: 1px solid var(--hl);
+  outline-offset: -1px;
+}
+
 .sl-item--open {
   z-index: var(--z-dropdown);
 }
 
-.sl-item:hover .sl-item-actions,
 .sl-item--active .sl-item-actions,
 .sl-item--open .sl-item-actions {
   visibility: visible;
+}
+
+@media (hover: hover) {
+  .sl-item:hover .sl-item-actions {
+    visibility: visible;
+  }
 }
 
 .sl-item-body {
@@ -658,12 +706,17 @@
   color: var(--hr);
 }
 
+.sl-item-date {
+  font-size: var(--fs-xs);
+  color: var(--hr);
+  margin-top: var(--sp-1);
+}
+
 .sl-item-actions {
   position: absolute;
   right: var(--sp-1);
   top: 50%;
   transform: translateY(-50%);
-  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
   visibility: hidden;
@@ -772,32 +825,75 @@
   }
 }
 
-.tag-editor-form {
+.tag-editor-row {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 8px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 0;
+
+  & + & {
+    border-top: 1px solid var(--border);
+  }
 }
 
-.tag-textarea {
-  width: 100%;
-  min-height: 80px;
+.tag-editor-current {
+  flex-wrap: wrap;
+  min-height: 32px;
+}
+
+.tag-editor-empty {
+  font-size: var(--fs-sm);
+  opacity: 0.45;
+}
+
+.tag-editor-suggestions {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.tag-editor-label {
+  font-size: var(--fs-sm);
+  opacity: 0.55;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tag-editor-suggestions-list {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tag-editor-input-row {
+  flex-wrap: nowrap;
+}
+
+.tag-input {
+  flex: 1;
+  min-width: 0;
   background: transparent;
   color: inherit;
-  border: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
   font: inherit;
   font-size: var(--fs-sm);
-  resize: vertical;
+  padding: 3px 8px;
   outline: none;
+
+  &:focus {
+    border-color: var(--accent);
+  }
 }
 
-.tag-editor-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
+.tag-input--invalid {
+  border-color: var(--danger, #e55) !important;
 }
 
 /* ─── Project Page ──────────────────────────────────── */
@@ -1014,9 +1110,12 @@
   padding: var(--sp-6) 0;
   border-top: 1px solid var(--border);
   font-size: var(--fs-base);
-  white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.6;
+
+  &.export-preview--plain {
+    white-space: pre-wrap;
+  }
 }
 
 .scroll-to-top-btn {

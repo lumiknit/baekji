@@ -63,7 +63,7 @@
   height: 100dvh;
   background: transparent;
   margin-left: -2px;
-  z-index: 101;
+  z-index: 21;
   touch-action: none;
 }
 

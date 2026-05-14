@@ -1,5 +1,15 @@
-import { ChangeSet, EditorState, type Extension } from '@codemirror/state';
-import { EditorView, keymap, placeholder } from '@codemirror/view';
+import {
+  Compartment,
+  ChangeSet,
+  EditorState,
+  type Extension,
+} from '@codemirror/state';
+import {
+  EditorView,
+  keymap,
+  placeholder,
+  highlightActiveLine,
+} from '@codemirror/view';
 import {
   defaultKeymap,
   history,
@@ -8,21 +18,42 @@ import {
 } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
+import { search, openSearchPanel, searchKeymap } from '@codemirror/search';
 import { livePreviewPlugin, livePreviewTheme } from './live_preview';
+
+export { openSearchPanel };
+
+export function createActiveLineCompartment() {
+  return new Compartment();
+}
+
+export function activeLineExtension(enabled: boolean): Extension {
+  return enabled ? highlightActiveLine() : [];
+}
 
 export function buildExtensions(opts: {
   placeholderText: string;
   onChange: (changes: ChangeSet) => void;
   onSave: () => void;
   getTypewriterMode: () => boolean;
+  activeLineCompartment: Compartment;
+  initialHighlightActiveLine: boolean;
 }): Extension[] {
-  const { placeholderText, onChange, onSave, getTypewriterMode } = opts;
+  const {
+    placeholderText,
+    onChange,
+    onSave,
+    getTypewriterMode,
+    activeLineCompartment,
+    initialHighlightActiveLine,
+  } = opts;
 
   return [
     history(),
     keymap.of([
       ...defaultKeymap,
       ...historyKeymap,
+      ...searchKeymap,
       indentWithTab,
       {
         key: 'Mod-s',
@@ -32,6 +63,8 @@ export function buildExtensions(opts: {
         },
       },
     ]),
+    search({ top: true }),
+    activeLineCompartment.of(activeLineExtension(initialHighlightActiveLine)),
     markdown({ extensions: [GFM] }),
     livePreviewPlugin,
     livePreviewTheme,

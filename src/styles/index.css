@@ -8,3 +8,9 @@
 @import './modal.css';
 @import './helper.css';
 @import './page_analysis.css';
+@import './cm-search.css';
+
+/* solid-toast z-index override */
+.sldt-active {
+  z-index: var(--z-toast) !important;
+}

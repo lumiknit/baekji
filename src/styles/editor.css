@@ -55,8 +55,9 @@
   display: flex;
   align-items: center;
   gap: var(--sp-1);
+  border-radius: var(--r);
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--border);
 }
 
 .editor-tool-status {
@@ -166,4 +167,17 @@
   opacity: 0.35;
   font-style: italic;
   pointer-events: none;
+}
+
+.cm-editor-wrap .cm-content {
+  color: var(--cm-fg);
+}
+
+/* focus mode: restore active line to full color */
+.cm-editor-wrap .cm-activeLine {
+  background: none !important;
+  color: var(--text);
+  --cm-hl: var(--hl);
+  --cm-text-bold: var(--text-bold);
+  --cm-md-mark: var(--md-mark);
 }

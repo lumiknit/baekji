@@ -5,6 +5,8 @@ import { TbOutlineSearch, TbOutlineFileText } from 'solid-icons/tb';
 import { liveSheets } from '../state/sheet_list';
 import { openSheetDoc, closeSheetDoc, waitForSync } from '../lib/doc/ydoc';
 import { s } from '../lib/i18n';
+import toast from 'solid-toast';
+import { logError } from '../state/log';
 
 type SearchResult = {
   id: string;
@@ -27,35 +29,48 @@ const SearchPage: Component = () => {
     }
 
     setSearching(true);
-    const sheets = liveSheets();
-    const newResults: SearchResult[] = [];
-
-    for (const sheet of sheets) {
-      const sd = openSheetDoc(sheet.id);
-      await waitForSync(sd.provider);
-      const text = sd.content.toString();
-      const lowerText = text.toLowerCase();
-
-      const matches: { start: number; end: number }[] = [];
-      let pos = lowerText.indexOf(q);
-      while (pos !== -1) {
-        matches.push({ start: pos, end: pos + q.length });
-        pos = lowerText.indexOf(q, pos + q.length);
+    const doSearch = async () => {
+      const sheets = liveSheets();
+      const newResults: SearchResult[] = [];
+      for (const sheet of sheets) {
+        const sd = openSheetDoc(sheet.id);
+        try {
+          await waitForSync(sd.provider);
+          const text = sd.content.toString();
+          const lowerText = text.toLowerCase();
+          const matches: { start: number; end: number }[] = [];
+          let pos = lowerText.indexOf(q);
+          while (pos !== -1) {
+            matches.push({ start: pos, end: pos + q.length });
+            pos = lowerText.indexOf(q, pos + q.length);
+          }
+          if (matches.length > 0) {
+            newResults.push({
+              id: sheet.id,
+              tags: sheet.tags,
+              content: text,
+              matches,
+            });
+          }
+        } finally {
+          closeSheetDoc(sd);
+        }
       }
+      return newResults;
+    };
 
-      if (matches.length > 0) {
-        newResults.push({
-          id: sheet.id,
-          tags: sheet.tags,
-          content: text,
-          matches,
-        });
-      }
-      closeSheetDoc(sd);
+    try {
+      const newResults = await toast.promise(doSearch(), {
+        loading: s('common.searching'),
+        success: s('common.search_done'),
+        error: s('common.search_error'),
+      });
+      setResults(newResults);
+    } catch (err) {
+      logError('SearchPage:handleSearch', err);
+    } finally {
+      setSearching(false);
     }
-
-    setResults(newResults);
-    setSearching(false);
   };
 
   onMount(() => {

@@ -21,8 +21,8 @@ export interface Settings {
   indentFirstLine: number; // In em
   lineHeight: number;
   paragraphSpacing: number; // In em
-  autosaveInterval: number; // In seconds
   typewriterMode: boolean;
+  focusMode: boolean;
   previewFontSize: number;
 }
 
@@ -37,8 +37,8 @@ const defaultSettings: Settings = {
   indentFirstLine: 1,
   lineHeight: 1.5,
   paragraphSpacing: 0.5,
-  autosaveInterval: 1.5,
   typewriterMode: false,
+  focusMode: false,
   previewFontSize: 13,
 };
 
@@ -64,6 +64,7 @@ export function updateRootStyle() {
     .forEach((c) => el.classList.remove(c));
   el.classList.add(`theme-light-${settings.themeLight ?? 'default'}`);
   el.classList.add(`theme-dark-${settings.themeDark ?? 'default'}`);
+  el.classList.toggle('focus-mode', settings.focusMode ?? false);
 
   const root = el.style;
 

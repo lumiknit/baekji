@@ -3,6 +3,9 @@ import { makePersisted } from '@solid-primitives/storage';
 import { openProjectDoc, closeProjectDoc, waitForSync } from '../lib/doc/ydoc';
 import { acquireSheetDoc, releaseSheetDoc } from '../lib/doc/docCache';
 import type { ProjectDoc, SheetDoc } from '../lib/doc/ydoc';
+import toast from 'solid-toast';
+import { s } from '../lib/i18n';
+import { logError } from './log';
 
 // ─── Persistent last-location signals ────────────────────────────
 
@@ -45,7 +48,14 @@ export async function openProject(id: string, force = false): Promise<void> {
       _projectDoc = null;
     }
     const pd = openProjectDoc(id);
-    await waitForSync(pd.provider);
+    try {
+      await waitForSync(pd.provider);
+    } catch (err) {
+      closeProjectDoc(pd);
+      logError('openProject:waitForSync', err);
+      toast.error(s('common.open_project_error'));
+      throw err;
+    }
     if (_openingProjectId !== id) {
       closeProjectDoc(pd);
       return;
@@ -94,7 +104,12 @@ export async function openSheet(id: string): Promise<SheetDoc> {
     _sheetDoc = null;
   }
   const sd = acquireSheetDoc(id);
-  await waitForSync(sd.provider);
+  try {
+    await waitForSync(sd.provider);
+  } catch (err) {
+    releaseSheetDoc(id);
+    throw err;
+  }
   _sheetDoc = sd;
   setActiveSheetDoc(sd);
   setLastSheetId(id);

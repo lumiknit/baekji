@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { For, Show, createSignal } from 'solid-js';
+import { For, Show, createSignal, onMount, onCleanup } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 import {
   TbOutlineFilePlus,
@@ -10,8 +10,11 @@ import {
   TbOutlineSearch,
   TbOutlineFileImport,
   TbOutlineListCheck,
+  TbOutlinePlus,
+  TbOutlineFilter,
+  TbOutlineTag,
 } from 'solid-icons/tb';
-import BackupIcon from '../BackupIcon';
+import Sortable from 'sortablejs';
 import {
   filteredSheets,
   liveSheets,
@@ -30,6 +33,7 @@ import {
   isSelectMode,
   enterSelectMode,
   exitSelectMode,
+  updateSelectedSheetTags,
 } from '../../state/sheet_list';
 import {
   activeProjectDoc,
@@ -37,117 +41,109 @@ import {
   activeProjectLabel,
   activeSheetId,
 } from '../../state/workspace_v1';
-import { setSidebarView } from '../../state/workspace';
 import {
-  openBackupModal,
+  setSidebarView,
+  showUpdatedAt,
+  setShowUpdatedAt,
+} from '../../state/workspace';
+import {
   openProjectSearchModal,
   showConfirm,
+  showTagEdit,
 } from '../../state/modal';
 import TagFilterInput from './TagFilterInput';
 import SheetItem from './SheetItem';
 import Dropdown from '../Dropdown';
-import type { SheetMeta } from '../../lib/doc/v1';
 import { s } from '../../lib/i18n';
 
-// ─── Drag-and-drop ────────────────────────────────────────────────
+const SheetList: Component = () => {
+  const navigate = useNavigate();
+  const [trashOpen, setTrashOpen] = createSignal(false);
+  const [addMenuOpen, setAddMenuOpen] = createSignal(false);
+  const [filterOpen, setFilterOpen] = createSignal(false);
+  const [projectMenuOpen, setProjectMenuOpen] = createSignal(false);
+  const [selectionMenuOpen, setSelectionMenuOpen] = createSignal(false);
 
-function useDrag(getSheets: () => SheetMeta[]) {
-  const [draggingId, setDraggingId] = createSignal<string | null>(null);
-  const [dropIndex, setDropIndex] = createSignal<number | null>(null);
-
-  const computeDropIndex = (clientY: number) => {
-    const sheets = getSheets();
-    const els = document.querySelectorAll<HTMLElement>('[data-sheet-id]');
-    let idx = sheets.length;
-    for (const el of els) {
-      const rect = el.getBoundingClientRect();
-      const elId = el.dataset.sheetId!;
-      const elIdx = sheets.findIndex((s) => s.id === elId);
-      if (clientY < rect.top + rect.height / 2) {
-        idx = elIdx;
-        break;
-      }
-    }
-    setDropIndex(idx);
+  const handleToggleFilter = () => {
+    setFilterOpen((v) => !v);
   };
 
-  const startDrag = (e: PointerEvent, id: string) => {
-    setDraggingId(id);
-    computeDropIndex(e.clientY);
+  const projectLabel = activeProjectLabel;
 
-    const onMove = (me: PointerEvent) => {
-      me.preventDefault();
-      computeDropIndex(me.clientY);
-    };
+  let listEl: HTMLDivElement | undefined;
+  let sortable: Sortable | undefined;
 
-    const onUp = () => {
-      const dragId = draggingId();
-      const target = dropIndex();
-      if (dragId !== null && target !== null) {
-        const sheets = getSheets();
-        const selected =
-          isSelectMode() && selectedIds().has(dragId)
-            ? sheets.filter((s) => selectedIds().has(s.id)).map((s) => s.id)
-            : [dragId];
+  onMount(() => {
+    if (!listEl) return;
 
-        if (selected.length === 1) {
-          const fromIdx = sheets.findIndex((s) => s.id === dragId);
-          if (fromIdx !== -1 && target !== fromIdx && target !== fromIdx + 1) {
-            const newKey = orderKeyBetween(
-              fromIdx < target
-                ? (sheets[target]?.orderKey ?? null)
-                : (sheets[target - 1]?.orderKey ?? null),
-              fromIdx < target
-                ? (sheets[target + 1]?.orderKey ?? null)
-                : (sheets[target]?.orderKey ?? null),
-            );
-            reorderSheet(dragId, newKey);
-          }
-        } else {
-          // target is an index into filteredSheets; convert to orderKey bounds
-          const filtered = getSheets(); // filteredSheets
-          const beforeKey = filtered[target - 1]?.orderKey ?? null;
-          const afterKey = filtered[target]?.orderKey ?? null;
+    // Store the original DOM position before drag so we can revert it
+    // before SolidJS re-renders (node ref is safer than index with mixed children).
+    let originalNextSibling: Node | null = null;
+    let originalParent: Node | null = null;
 
-          // Build the ordered list of selected IDs from liveSheets (preserving original order)
-          const selectedSet = new Set(selected);
-          const allOrdered = liveSheets();
-          const orderedSelected = allOrdered
+    sortable = Sortable.create(listEl, {
+      animation: 150,
+      delay: 200,
+      delayOnTouchOnly: true,
+      touchStartThreshold: 6,
+      filter: '.tree-trash-section, .sl-item-actions, .sl-item-checkbox',
+      draggable: '.sl-item-wrap',
+      ghostClass: 'sl-item--ghost',
+      chosenClass: 'sl-item--chosen',
+      onStart(evt) {
+        originalNextSibling = evt.item.nextSibling;
+        originalParent = evt.item.parentNode;
+      },
+      onEnd(evt) {
+        const draggedId = evt.item.dataset.sheetId;
+        const oldIdx = evt.oldDraggableIndex;
+        const newIdx = evt.newDraggableIndex;
+
+        // Revert the DOM move so SolidJS <For> re-renders from a clean state.
+        if (originalParent && evt.item.parentNode === originalParent) {
+          originalParent.insertBefore(evt.item, originalNextSibling);
+        }
+        originalNextSibling = null;
+        originalParent = null;
+
+        if (
+          !draggedId ||
+          oldIdx === undefined ||
+          newIdx === undefined ||
+          oldIdx === newIdx
+        )
+          return;
+
+        const sheets = filteredSheets();
+
+        if (isSelectMode() && selectedIds().has(draggedId)) {
+          const selectedSet = selectedIds();
+          const orderedSelected = liveSheets()
             .filter((s) => selectedSet.has(s.id))
             .map((s) => s.id);
-
+          const beforeKey = sheets[newIdx - 1]?.orderKey ?? null;
+          const afterKey = sheets[newIdx]?.orderKey ?? null;
           const keys = orderKeysBetween(
             orderedSelected.length,
             beforeKey,
             afterKey,
           );
           orderedSelected.forEach((id, i) => reorderSheet(id, keys[i]));
+        } else {
+          const newKey = orderKeyBetween(
+            oldIdx < newIdx
+              ? (sheets[newIdx]?.orderKey ?? null)
+              : (sheets[newIdx - 1]?.orderKey ?? null),
+            oldIdx < newIdx
+              ? (sheets[newIdx + 1]?.orderKey ?? null)
+              : (sheets[newIdx]?.orderKey ?? null),
+          );
+          reorderSheet(draggedId, newKey);
         }
-      }
-      setDraggingId(null);
-      setDropIndex(null);
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-
-    window.addEventListener('pointermove', onMove, { passive: false });
-    window.addEventListener('pointerup', onUp);
-  };
-
-  return { draggingId, dropIndex, startDrag };
-}
-
-// ─── SheetList ────────────────────────────────────────────────────
-
-const SheetList: Component = () => {
-  const navigate = useNavigate();
-  const [trashOpen, setTrashOpen] = createSignal(false);
-  const [projectMenuOpen, setProjectMenuOpen] = createSignal(false);
-  const [selectionMenuOpen, setSelectionMenuOpen] = createSignal(false);
-
-  const projectLabel = activeProjectLabel;
-
-  const { draggingId, dropIndex, startDrag } = useDrag(filteredSheets);
+      },
+    });
+  });
+  onCleanup(() => sortable?.destroy());
 
   const activeSheetOption = () => {
     const id = activeSheetId();
@@ -190,135 +186,175 @@ const SheetList: Component = () => {
         }
       >
         <div class="sb-header sidebar-project-header">
-          <A href={`/project/${activeProjectId()}`} class="tree-project-link">
-            <div class="btn-pad">
-              <span class="tree-project-name">{projectLabel()}</span>
-            </div>
-          </A>
-
-          <div class="tree-project-header-btns">
-            <button
-              class="sb-icon-btn"
-              title={s('backup.title')}
-              onClick={openBackupModal}
-            >
+          <div class="sidebar-project-header-row">
+            <A href={`/project/${activeProjectId()}`} class="tree-project-link">
               <div class="btn-pad">
-                <BackupIcon />
+                <span class="tree-project-name">{projectLabel()}</span>
               </div>
-            </button>
-            <Dropdown
-              triggerClass="sb-icon-btn"
-              triggerAriaLabel={s('sidebar.more_actions')}
-              align="right"
-              open={projectMenuOpen}
-              onOpenChange={setProjectMenuOpen}
-              trigger={
-                <div class="btn-pad">
-                  <TbOutlineDotsVertical />
-                </div>
-              }
-              items={[
-                {
-                  icon: TbOutlineSearch,
-                  label: s('common.search'),
-                  onSelect: openProjectSearchModal,
-                },
-                {
-                  icon: TbOutlineFilePlus,
-                  label: s('sidebar.new_sheet'),
-                  onSelect: handleNewSheet,
-                },
-                {
-                  icon: TbOutlineFileImport,
-                  label: s('common.import_sheet_from_file'),
-                  onSelect: handleImportFile,
-                },
-                { separator: true },
-                {
-                  icon: TbOutlineListCheck,
-                  label: s('tree.select_mode'),
-                  onSelect: enterSelectMode,
-                },
-              ]}
-            />
-          </div>
-        </div>
+            </A>
 
-        <div class="sl-toolbar">
-          <TagFilterInput />
-        </div>
-
-        <Show when={isSelectMode()}>
-          <div class="sl-selection-bar">
-            <Dropdown
-              triggerClass="sl-selection-bar-trigger"
-              triggerAriaLabel={s('sidebar.more_actions')}
-              align="left"
-              direction="up"
-              open={selectionMenuOpen}
-              onOpenChange={setSelectionMenuOpen}
-              trigger={
-                <span>
-                  {s('tree.selected_count_label', {
-                    count: selectedIds().size,
-                  })}
-                  {' ▾'}
-                </span>
-              }
-              items={[
-                { label: s('tree.select_all'), onSelect: selectAll },
-                { label: s('tree.deselect_all'), onSelect: clearSelection },
-                { separator: true },
-                ...(selectedIds().size === 2
-                  ? [
-                      {
-                        label: s('tree.compare_merge'),
-                        onSelect: () => {
-                          const [idA, idB] = [...selectedIds()];
-                          exitSelectMode();
-                          navigate(`/compare/${idA}/${idB}`);
-                        },
-                      },
-                    ]
-                  : []),
-                {
-                  icon: TbFillTrash,
-                  label: s('tree.delete_selected'),
-                  danger: true,
-                  onSelect: async () => {
-                    const ids = [...selectedIds()];
-                    if (ids.length === 0) return;
-                    const ok = await showConfirm(
-                      s('tree.delete_selected'),
-                      s('tree.delete_selected_confirm', { count: ids.length }),
-                    );
-                    if (!ok) return;
-                    for (const id of ids) softDeleteSheet(id);
-                    exitSelectMode();
+            <div class="tree-project-header-btns">
+              <Dropdown
+                triggerClass="sb-icon-btn sb-icon-btn--sm"
+                triggerAriaLabel={s('sidebar.new_sheet')}
+                align="right"
+                open={addMenuOpen}
+                onOpenChange={setAddMenuOpen}
+                trigger={
+                  <div class="btn-pad">
+                    <TbOutlinePlus />
+                  </div>
+                }
+                items={[
+                  {
+                    icon: TbOutlineFilePlus,
+                    label: s('sidebar.new_sheet'),
+                    onSelect: handleNewSheet,
                   },
-                },
-              ]}
-            />
-            <button class="btn-border btn-sm" onClick={exitSelectMode}>
-              {s('tree.select_mode_exit')}
-            </button>
-          </div>
-        </Show>
-
-        <div class="sl-list">
-          <For each={filteredSheets()}>
-            {(sheet, idx) => (
-              <div
-                data-sheet-id={sheet.id}
-                class="sl-item-wrap"
-                classList={{ 'sl-item--dragging': draggingId() === sheet.id }}
+                  {
+                    icon: TbOutlineFileImport,
+                    label: s('common.import_sheet_from_file'),
+                    onSelect: handleImportFile,
+                  },
+                ]}
+              />
+              <button
+                class={`sb-icon-btn sb-icon-btn--sm${filterOpen() ? ' sb-icon-btn--active' : ''}`}
+                style={filterQuery() ? 'color: var(--hl)' : undefined}
+                title={s('sidebar.filter_toggle')}
+                onClick={handleToggleFilter}
               >
-                <Show when={dropIndex() === idx() && draggingId() !== sheet.id}>
-                  <div class="sl-drop-line sl-drop-line--top" />
-                </Show>
+                <div class="btn-pad">
+                  <TbOutlineFilter />
+                </div>
+              </button>
+              <Dropdown
+                triggerClass="sb-icon-btn sb-icon-btn--sm"
+                triggerAriaLabel={s('sidebar.more_actions')}
+                align="right"
+                open={projectMenuOpen}
+                onOpenChange={setProjectMenuOpen}
+                trigger={
+                  <div class="btn-pad">
+                    <TbOutlineDotsVertical />
+                  </div>
+                }
+                items={[
+                  {
+                    icon: TbOutlineSearch,
+                    label: s('common.search'),
+                    onSelect: openProjectSearchModal,
+                  },
+                  { separator: true },
+                  {
+                    icon: TbOutlineListCheck,
+                    label: s('tree.select_mode'),
+                    onSelect: enterSelectMode,
+                  },
+                  { separator: true },
+                  {
+                    label: s('tree.show_updated_at'),
+                    checked: showUpdatedAt(),
+                    onSelect: () => setShowUpdatedAt((v) => !v),
+                  },
+                ]}
+              />
+            </div>
+          </div>
+
+          <Show when={filterOpen()}>
+            <TagFilterInput />
+          </Show>
+
+          <Show when={isSelectMode()}>
+            <div class="sl-selection-bar">
+              <Dropdown
+                triggerClass="sl-selection-bar-trigger"
+                triggerAriaLabel={s('sidebar.more_actions')}
+                align="left"
+                direction="down"
+                open={selectionMenuOpen}
+                onOpenChange={setSelectionMenuOpen}
+                trigger={
+                  <span>
+                    {s('tree.selected_count_label', {
+                      count: selectedIds().size,
+                    })}
+                    {' ▾'}
+                  </span>
+                }
+                items={[
+                  { label: s('tree.select_all'), onSelect: selectAll },
+                  { label: s('tree.deselect_all'), onSelect: clearSelection },
+                  { separator: true },
+                  {
+                    icon: TbOutlineTag,
+                    label: s('sheet.edit_tags'),
+                    onSelect: async () => {
+                      const ids = [...selectedIds()];
+                      if (ids.length === 0) return;
+                      const sheets = liveSheets();
+                      const merged = Array.from(
+                        new Set(
+                          ids.flatMap(
+                            (id) => sheets.find((s) => s.id === id)?.tags ?? [],
+                          ),
+                        ),
+                      );
+                      const nextTags = await showTagEdit(
+                        s('sheet.edit_tags'),
+                        merged,
+                      );
+                      if (nextTags === null) return;
+                      updateSelectedSheetTags(ids, nextTags);
+                    },
+                  },
+                  { separator: true },
+                  ...(selectedIds().size === 2
+                    ? [
+                        {
+                          label: s('tree.compare_merge'),
+                          onSelect: () => {
+                            const [idA, idB] = [...selectedIds()];
+                            exitSelectMode();
+                            navigate(`/compare/${idA}/${idB}`);
+                          },
+                        },
+                      ]
+                    : []),
+                  {
+                    icon: TbFillTrash,
+                    label: s('tree.delete_selected'),
+                    danger: true,
+                    onSelect: async () => {
+                      const ids = [...selectedIds()];
+                      if (ids.length === 0) return;
+                      const ok = await showConfirm(
+                        s('tree.delete_selected'),
+                        s('tree.delete_selected_confirm', {
+                          count: ids.length,
+                        }),
+                      );
+                      if (!ok) return;
+                      for (const id of ids) softDeleteSheet(id);
+                      exitSelectMode();
+                    },
+                  },
+                ]}
+              />
+              <button class="btn-border btn-sm" onClick={exitSelectMode}>
+                {s('tree.select_mode_exit')}
+              </button>
+            </div>
+          </Show>
+        </div>
+
+        <div class="sl-list" ref={(el) => (listEl = el)}>
+          <For each={filteredSheets()}>
+            {(sheet) => (
+              <div data-sheet-id={sheet.id} class="sl-item-wrap">
                 <SheetItem
                   sheet={sheet}
-                  onDragStart={(e) => startDrag(e, sheet.id)}
                   onOpenSelectionMenu={() => {
                     setSelectionMenuOpen(true);
                   }}
@@ -326,9 +362,6 @@ const SheetList: Component = () => {
               </div>
             )}
           </For>
-          <Show when={dropIndex() === filteredSheets().length}>
-            <div class="sl-drop-line" />
-          </Show>
 
           <Show when={filteredSheets().length === 0}>
             <div class="tree-trash-empty-msg">

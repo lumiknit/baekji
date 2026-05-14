@@ -1,6 +1,9 @@
 /* ─── Buttons ─────────────────────────────────────── */
 
-:is(button, a.btn-skeleton, a.btn-border, a.btn-primary) {
+button,
+a.btn-skeleton,
+a.btn-border,
+a.btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -182,6 +185,11 @@ input[type='checkbox']:checked::before {
   &.dropdown-menu--up {
     top: auto;
     bottom: 100%;
+  }
+
+  & .dropdown-item-check {
+    margin-left: auto;
+    color: var(--hl);
   }
 
   & .dropdown-item {

@@ -15,6 +15,7 @@ import SettingsPage from './pages/SettingsPage';
 import SearchPage from './pages/SearchPage';
 import LoadingBackupPage from './pages/LoadingBackupPage';
 import ComparePage from './pages/ComparePage';
+import LogsPage from './pages/LogsPage';
 import { updateRootStyle } from './state/settings';
 import { handleCallback } from './lib/sync/dropbox_auth';
 import { s } from './lib/i18n';
@@ -67,6 +68,7 @@ const App: Component = () => {
         <Route path="/about" component={AboutPage} />
         <Route path="/loading-backup" component={LoadingBackupPage} />
         <Route path="/compare/:idA/:idB" component={ComparePage} />
+        <Route path="/logs" component={LogsPage} />
       </HashRouter>
     </>
   );

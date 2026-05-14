@@ -22,6 +22,8 @@ import { matchQuery } from '../lib/tag/query';
 import { showConfirm, openBackupModal } from '../state/modal';
 import { setSidebarView } from '../state/workspace';
 import { s } from '../lib/i18n';
+import toast from 'solid-toast';
+import { logError } from '../state/log';
 import ProjectDebug from '../components/debug/ProjectDebug';
 import { z } from 'zod/v4';
 
@@ -59,6 +61,12 @@ const ProjectPage: Component = () => {
     setLabelDraft(projectLabel());
     setEditingLabel(true);
   };
+
+  createEffect(() => {
+    if (searchParams.new === '1' && pd()) {
+      startRename();
+    }
+  });
 
   const commitRename = () => {
     const label = labelDraft().trim();
@@ -134,12 +142,20 @@ const ProjectPage: Component = () => {
   const [cleaning, setCleaning] = createSignal(false);
   const handleCleanup = async () => {
     setCleaning(true);
-    try {
+    const doCleanup = async () => {
       reindexOrderKeys();
-      const sheets = liveSheets();
-      for (const sheet of sheets) {
+      for (const sheet of liveSheets()) {
         await compactSheetDoc(sheet.id);
       }
+    };
+    try {
+      await toast.promise(doCleanup(), {
+        loading: s('common.compact_loading'),
+        success: s('common.compact_done'),
+        error: s('common.compact_error'),
+      });
+    } catch (err) {
+      logError('ProjectPage:handleCleanup', err);
     } finally {
       setCleaning(false);
     }
@@ -236,7 +252,7 @@ const ProjectPage: Component = () => {
             <span class="icon">
               <TbOutlineFileExport />
             </span>
-            {s('common.export')}
+            {s('common.preview_export')}
           </button>
           <button class="btn-border" onClick={openBackupModal}>
             <span class="icon">
@@ -319,8 +335,11 @@ const ProjectPage: Component = () => {
         </Show>
 
         {/* ── Debug ── */}
-        <div style={{ 'margin-top': '16px' }}>
-          <button class="btn-border" onClick={() => setShowDebug((v) => !v)}>
+        <div style={{ 'margin-top': '12rem' }}>
+          <button
+            class="btn-border btn-sm"
+            onClick={() => setShowDebug((v) => !v)}
+          >
             {showDebug() ? 'Hide debug' : 'Show debug'}
           </button>
           <Show when={showDebug()}>

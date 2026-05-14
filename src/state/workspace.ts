@@ -38,6 +38,16 @@ export const [sidebarView, setSidebarView] = makePersisted(
   },
 );
 
+// Sheet list view options
+export const [showUpdatedAt, setShowUpdatedAt] = makePersisted(
+  createSignal(false),
+  {
+    name: 'baekji-show-updated-at',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    storage: localforage as any,
+  },
+);
+
 // Bumped whenever the project list should be refreshed (e.g. after backup import)
 export const [projectListVersion, setProjectListVersion] = createSignal(0);
 export const invalidateProjectList = () => setProjectListVersion((v) => v + 1);

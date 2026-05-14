@@ -14,6 +14,10 @@ import { withSheetDoc } from '../lib/doc/docCache';
 import { matchQuery } from '../lib/tag/query';
 import { s } from '../lib/i18n';
 import toast from 'solid-toast';
+import MarkdownIt from 'markdown-it';
+import DOMPurify from 'dompurify';
+
+const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
 
 type ExportFormat = 'markdown' | 'text' | 'html';
 type SheetData = { label: string; text: string };
@@ -71,6 +75,7 @@ const ExportPage: Component = () => {
   const [loading, setLoading] = createSignal(false);
   const [data, setData] = createSignal<SheetData[] | null>(null);
   const [preview, setPreview] = createSignal<string | null>(null);
+  const [previewHtml, setPreviewHtml] = createSignal<string | null>(null);
 
   const buildPreview = (d: SheetData[], fmt: ExportFormat, j: string) => {
     const text =
@@ -80,36 +85,54 @@ const ExportPage: Component = () => {
           ? sheetsToText(d)
           : sheetsToHtml(d, activeProjectLabel());
     setPreview(text);
+    if (fmt === 'markdown') {
+      setPreviewHtml(DOMPurify.sanitize(md.render(text)));
+    } else {
+      setPreviewHtml(null);
+    }
   };
 
   const load = async () => {
     setLoading(true);
-    await openProject(params.pjId!);
 
-    const ids = sheetIds();
-    let sheets = liveSheets();
-    if (ids.length > 0) {
-      sheets = sheets.filter((sh) => ids.includes(sh.id));
-    } else {
-      const q = query().trim();
-      if (q) {
-        sheets = sheets.filter((sh) => matchQuery(q, new Set(sh.tags)));
+    const doLoad = async () => {
+      await openProject(params.pjId!);
+
+      const ids = sheetIds();
+      let sheets = liveSheets();
+      if (ids.length > 0) {
+        sheets = sheets.filter((sh) => ids.includes(sh.id));
+      } else {
+        const q = query().trim();
+        if (q) {
+          sheets = sheets.filter((sh) => matchQuery(q, new Set(sh.tags)));
+        }
       }
-    }
 
-    const result: SheetData[] = [];
-    for (const sheet of sheets) {
-      const text = await withSheetDoc(sheet.id, async (sd) =>
-        sd.content.toString(),
-      );
-      result.push({
-        label: sheet.tags[0] ?? sheet.id.slice(0, 8),
-        text,
+      const result: SheetData[] = [];
+      for (const sheet of sheets) {
+        const text = await withSheetDoc(sheet.id, async (sd) =>
+          sd.content.toString(),
+        );
+        result.push({
+          label: sheet.tags[0] ?? sheet.id.slice(0, 8),
+          text,
+        });
+      }
+      return result;
+    };
+
+    try {
+      const result = await toast.promise(doLoad(), {
+        loading: s('common.export_loading'),
+        success: s('common.export_done'),
+        error: s('common.export_error'),
       });
+      setData(result);
+      buildPreview(result, format(), joiner());
+    } finally {
+      setLoading(false);
     }
-    setData(result);
-    buildPreview(result, format(), joiner());
-    setLoading(false);
   };
 
   createEffect(() => {
@@ -153,7 +176,17 @@ const ExportPage: Component = () => {
     const content = getExportContent();
     if (!content) return;
     try {
-      await navigator.clipboard.writeText(content);
+      const html = previewHtml();
+      if (html && navigator.clipboard.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([html], { type: 'text/html' }),
+            'text/plain': new Blob([content], { type: 'text/plain' }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(content);
+      }
       toast.success(s('common.copied'));
     } catch {
       toast.error(s('common.copy_error'));
@@ -303,19 +336,17 @@ const ExportPage: Component = () => {
           {s('common.copy')}
         </button>
 
-        <Show when={navigator.share}>
-          <button
-            class="btn-border"
-            disabled={!data() || loading()}
-            onClick={handleShare}
-            title={s('common.share')}
-          >
-            <span class="icon">
-              <TbOutlineShare />
-            </span>
-            {s('common.share')}
-          </button>
-        </Show>
+        <button
+          class="btn-border"
+          disabled={!data() || loading() || !navigator.share}
+          onClick={handleShare}
+          title={s('common.share')}
+        >
+          <span class="icon">
+            <TbOutlineShare />
+          </span>
+          {s('common.share')}
+        </button>
       </div>
 
       <Show when={loading()}>
@@ -324,7 +355,16 @@ const ExportPage: Component = () => {
 
       <Show when={preview()}>
         <div class="export-preview-container">
-          <pre class="export-preview typo">{preview()}</pre>
+          <Show
+            when={previewHtml()}
+            fallback={
+              <pre class="export-preview export-preview--plain typo">
+                {preview()}
+              </pre>
+            }
+          >
+            {(html) => <div class="export-preview typo" innerHTML={html()} />}
+          </Show>
           <button
             class="scroll-to-top-btn sb-icon-btn"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

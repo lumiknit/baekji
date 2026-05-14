@@ -44,8 +44,8 @@ export function openProjectDoc(projectId: string): ProjectDoc {
 }
 
 export function closeProjectDoc(pd: ProjectDoc): void {
-  pd.provider.destroy();
   pd.doc.destroy();
+  pd.provider.destroy();
 }
 
 /** Read ProjectMeta from Y.Map. */
@@ -86,8 +86,8 @@ export function openSheetDoc(sheetId: string): SheetDoc {
 }
 
 export function closeSheetDoc(sd: SheetDoc): void {
-  sd.provider.destroy();
   sd.doc.destroy();
+  sd.provider.destroy();
 }
 
 // ─── Utility ──────────────────────────────────────────────────

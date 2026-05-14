@@ -3,13 +3,22 @@ import { onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { lastProjectId, lastSheetId, openProject } from '../state/workspace_v1';
 import { setSidebarView } from '../state/workspace';
+import { logError } from '../state/log';
 
 const BootstrapPage: Component = () => {
   const navigate = useNavigate();
 
   onMount(async () => {
     const projectId = lastProjectId();
-    if (projectId) await openProject(projectId);
+    if (projectId) {
+      try {
+        await openProject(projectId);
+      } catch (err) {
+        logError('BootstrapPage:openProject', err);
+        navigate('/', { replace: true });
+        return;
+      }
+    }
 
     const sheetId = lastSheetId();
     if (sheetId) {

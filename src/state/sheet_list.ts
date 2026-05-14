@@ -126,8 +126,10 @@ function getSheetsMap() {
 }
 
 function maxOrderKey(): number {
-  const sheets = liveSheets();
-  return sheets.length > 0 ? Math.max(...sheets.map((s) => s.orderKey)) : 0;
+  return liveSheets().reduce(
+    (m, s) => (s.orderKey > m ? s.orderKey : m),
+    -Infinity,
+  );
 }
 
 const ORDER_KEY_GAP = 1024;
@@ -244,6 +246,16 @@ export function updateSheetTags(id: string, tags: string[]): void {
   sheetsMap.set(id, { ...meta, tags, updatedAt: new Date().toISOString() });
 }
 
+export function updateSelectedSheetTags(ids: string[], tags: string[]): void {
+  const sheetsMap = getSheetsMap();
+  if (!sheetsMap) return;
+  for (const id of ids) {
+    const meta = sheetsMap.get(id);
+    if (meta)
+      sheetsMap.set(id, { ...meta, tags, updatedAt: new Date().toISOString() });
+  }
+}
+
 export function reorderSheet(id: string, newOrderKey: number): void {
   const sheetsMap = getSheetsMap();
   if (!sheetsMap) return;
@@ -334,20 +346,19 @@ export async function splitSheet(
   const nextId = createSheet(meta.tags, { after: id });
   if (!nextId) return null;
 
-  await Promise.all([
-    withSheetDoc(id, async (sd) => {
-      sd.doc.transact(() => {
-        sd.content.delete(0, sd.content.length);
-        sd.content.insert(0, head);
-      });
-    }),
-    withSheetDoc(nextId, async (sd) => {
-      sd.doc.transact(() => {
-        sd.content.delete(0, sd.content.length);
-        sd.content.insert(0, tail);
-      });
-    }),
-  ]);
+  // Write tail to new sheet first; if this fails, the original is untouched.
+  await withSheetDoc(nextId, async (sd) => {
+    sd.doc.transact(() => {
+      sd.content.delete(0, sd.content.length);
+      sd.content.insert(0, tail);
+    });
+  });
+  await withSheetDoc(id, async (sd) => {
+    sd.doc.transact(() => {
+      sd.content.delete(0, sd.content.length);
+      sd.content.insert(0, head);
+    });
+  });
 
   const now = new Date().toISOString();
   sheetsMap.set(id, { ...meta, updatedAt: now });

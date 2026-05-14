@@ -33,14 +33,15 @@
   /* Shape */
   --r: 6px;
 
-  /* Z-index */
-  --z-sticky: 10;
-  --z-toolbar: 50;
-  --z-sidebar: 100;
-  --z-dropdown: 500;
-  --z-sidebar-mobile: 1000;
-  --z-toggle: 1100;
-  --z-modal: 9999;
+  /* Z-index (all values in 0–99) */
+  --z-sticky: 5;
+  --z-toolbar: 10;
+  --z-sidebar: 20;
+  --z-dropdown: 30;
+  --z-sidebar-mobile: 40;
+  --z-toggle: 50;
+  --z-modal: 70;
+  --z-toast: 90;
 
   /* Component sizes */
   --btn-min: 28px;
@@ -111,6 +112,12 @@ a:hover {
   padding: var(--sp-4);
   max-width: 720px;
   margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .page-body {
+    padding-top: 64px;
+  }
 }
 
 .separator-line {

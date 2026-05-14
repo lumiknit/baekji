@@ -1,5 +1,13 @@
 import type { Component } from 'solid-js';
-import { createSignal, createEffect, onMount, onCleanup, Show } from 'solid-js';
+import {
+  createSignal,
+  createEffect,
+  on,
+  onMount,
+  onCleanup,
+  Show,
+  For,
+} from 'solid-js';
 import { useParams, useNavigate } from '@solidjs/router';
 import { activeProjectDoc } from '../state/workspace_v1';
 import { updateSheetTags, splitSheet } from '../state/sheet_list';
@@ -11,6 +19,8 @@ import EditorCore, {
 import EditorToolOverlay from '../components/editor/EditorToolOverlay';
 import TagEditor from '../components/editor/TagEditor';
 import type { SheetMeta } from '../lib/doc/v1';
+import { tagToHsl } from '../lib/tag/color';
+import { TbOutlineEdit } from 'solid-icons/tb';
 
 const SheetPage: Component = () => {
   const params = useParams<{ id: string }>();
@@ -18,6 +28,7 @@ const SheetPage: Component = () => {
 
   const [charCount, setCharCount] = createSignal(0);
   const [sheetMeta, setSheetMeta] = createSignal<SheetMeta | null>(null);
+  const [tagEditing, setTagEditing] = createSignal(false);
   let handle: EditorCoreHandle | undefined;
 
   const currentTags = () => sheetMeta()?.tags ?? [];
@@ -33,6 +44,18 @@ const SheetPage: Component = () => {
     void params.id;
     syncMeta();
   });
+
+  createEffect(
+    on(
+      () => params.id,
+      (id) => {
+        document
+          .getElementById(`sheet-item-${id}`)
+          ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      },
+      { defer: true },
+    ),
+  );
 
   onMount(() => {
     const pd = activeProjectDoc();
@@ -87,6 +110,7 @@ const SheetPage: Component = () => {
           onExport={handleExport}
           onSplit={handleSplit}
           onAnalysis={handleAnalysis}
+          onSearch={() => handle?.openSearch()}
         />
       </div>
 
@@ -94,7 +118,49 @@ const SheetPage: Component = () => {
         class="editor-section-marker editor-section-marker--start"
         onClick={() => handle?.scrollToEdge('start')}
       >
-        <TagEditor tags={currentTags} onUpdate={handleUpdateTags} />
+        <Show
+          when={tagEditing()}
+          fallback={
+            <div
+              class="tag-editor-v2 tag-list"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <For each={currentTags()}>
+                {(tag) => {
+                  const { h, s: sat } = tagToHsl(tag);
+                  return (
+                    <span
+                      class="tag"
+                      style={{
+                        background: `hsl(${h}deg ${sat}% 60% / 0.25)`,
+                        color: `hsl(${h}deg ${sat}% var(--color-l))`,
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  );
+                }}
+              </For>
+              <button
+                class="tag tag--edit"
+                onClick={() => setTagEditing(true)}
+                title={s('common.edit')}
+              >
+                <TbOutlineEdit />
+              </button>
+            </div>
+          }
+        >
+          <TagEditor
+            tags={currentTags}
+            onUpdate={handleUpdateTags}
+            onSave={(tags) => {
+              handleUpdateTags(tags);
+              setTagEditing(false);
+            }}
+            onCancel={() => setTagEditing(false)}
+          />
+        </Show>
         <div class="editor-sod-line">
           <span class="editor-section-label">SOD</span>
         </div>

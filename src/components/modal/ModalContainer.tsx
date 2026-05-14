@@ -12,6 +12,7 @@ import ConfirmModal from './ConfirmModal';
 import NameInputModal from './NameInputModal';
 import BackupModal from './BackupModal';
 import ProjectSearchModal from './ProjectSearchModal';
+import TagEditModal from './TagEditModal';
 
 const ModalContainer: Component = () => {
   onMount(() => {
@@ -58,6 +59,12 @@ const ModalContainer: Component = () => {
                   title={state().title}
                   message={state().message}
                   defaultValue={state().defaultValue}
+                />
+              </Show>
+              <Show when={state().type === 'tagEdit'}>
+                <TagEditModal
+                  title={state().title}
+                  initialTags={state().tags ?? []}
                 />
               </Show>
             </div>

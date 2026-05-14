@@ -134,17 +134,27 @@ const SettingsPage: Component = () => {
   };
 
   const handleCleanOrphans = async () => {
-    const projects = await getAllProjects();
-    const allSheetIds = new Set<string>();
-    for (const pj of projects) {
-      const pd = openProjectDoc(pj.id);
-      await waitForSync(pd.provider);
-      for (const id of pd.sheets.keys()) allSheetIds.add(id);
-      closeProjectDoc(pd);
-    }
-    const count = await deleteOrphanSheetDatabases(allSheetIds);
-    await loadStorage();
-    toast.success(s('settings.storage_clean_done', { count }));
+    const doClean = async () => {
+      const projects = await getAllProjects();
+      const allSheetIds = new Set<string>();
+      for (const pj of projects) {
+        const pd = openProjectDoc(pj.id);
+        try {
+          await waitForSync(pd.provider);
+          for (const id of pd.sheets.keys()) allSheetIds.add(id);
+        } finally {
+          closeProjectDoc(pd);
+        }
+      }
+      const count = await deleteOrphanSheetDatabases(allSheetIds);
+      await loadStorage();
+      return count;
+    };
+    await toast.promise(doClean(), {
+      loading: s('common.clean_loading'),
+      success: (count) => s('settings.storage_clean_done', { count }),
+      error: s('common.clean_error'),
+    });
   };
 
   return (
@@ -178,7 +188,7 @@ const SettingsPage: Component = () => {
                       {(variant) => (
                         <ThemePreview
                           label={s(`settings.theme_${variant}`)}
-                          themeClass={`theme-${side}-${variant}`}
+                          themePrefix={`${side}-${variant}`}
                           active={
                             ((settings[key] as string) ?? 'default') === variant
                           }
@@ -308,20 +318,21 @@ const SettingsPage: Component = () => {
         <section>
           <h3>{s('settings.editor_settings')}</h3>
           <div class="mt-32 flex flex-column gap-8">
-            <NumberInputWithSlider
-              label={s('settings.autosave_interval')}
-              value={settings.autosaveInterval}
-              min={0.5}
-              max={10}
-              step={0.25}
-              onChange={(v) => setSettings('autosaveInterval', v)}
-            />
             <SettingRow label={s('settings.typewriter_mode')}>
               <input
                 type="checkbox"
                 checked={settings.typewriterMode}
                 onChange={(e) =>
                   setSettings('typewriterMode', e.currentTarget.checked)
+                }
+              />
+            </SettingRow>
+            <SettingRow label={s('settings.focus_mode')}>
+              <input
+                type="checkbox"
+                checked={settings.focusMode ?? false}
+                onChange={(e) =>
+                  setSettings('focusMode', e.currentTarget.checked)
                 }
               />
             </SettingRow>

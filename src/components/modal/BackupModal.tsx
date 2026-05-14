@@ -1,6 +1,10 @@
 import type { Component } from 'solid-js';
-import { createSignal } from 'solid-js';
-import { activeProjectDoc, activeProjectId } from '../../state/workspace_v1';
+import { createSignal, Show } from 'solid-js';
+import {
+  activeProjectDoc,
+  activeProjectId,
+  activeProjectLabel,
+} from '../../state/workspace_v1';
 import { readProjectMeta } from '../../lib/doc/ydoc';
 import { closeBackupModal, showConfirm } from '../../state/modal';
 import { s } from '../../lib/i18n';
@@ -36,6 +40,9 @@ const BackupModal: Component = () => {
   return (
     <div class="flex flex-column gap-4" style={{ 'min-width': '340px' }}>
       <h3 class="m-0">{s('backup.title')}</h3>
+      <Show when={activeProjectLabel()}>
+        <p class="m-0 text-sm opacity-60">{activeProjectLabel()}</p>
+      </Show>
 
       <div class="flex flex-column gap-1">
         <label class="text-sm opacity-60">{s('backup.import_strategy')}</label>

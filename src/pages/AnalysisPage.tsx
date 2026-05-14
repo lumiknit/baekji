@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { createSignal, For, Show, createEffect } from 'solid-js';
+import { createSignal, For, Show, createEffect, createMemo } from 'solid-js';
 import { useParams, useNavigate, useSearchParams } from '@solidjs/router';
 import { TbOutlineArrowLeft } from 'solid-icons/tb';
 import { activeProjectLabel, openProject } from '../state/workspace_v1';
@@ -7,6 +7,17 @@ import { liveSheets } from '../state/sheet_list';
 import { openSheetDoc, closeSheetDoc, waitForSync } from '../lib/doc/ydoc';
 import { matchQuery } from '../lib/tag/query';
 import { s } from '../lib/i18n';
+import toast from 'solid-toast';
+
+const WORDS_PER_MINUTE = 200;
+
+function formatReadingTime(minutes: number): string {
+  if (minutes < 1) return '< 1 min';
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h === 0) return `${m} min`;
+  return `${h}h ${m}m`;
+}
 
 function computeStats(text: string) {
   const bytes = new TextEncoder().encode(text).length;
@@ -14,7 +25,8 @@ function computeStats(text: string) {
   const charsNoSpace = text.replace(/\s/g, '').length;
   const charsNoSpecial = text.replace(/[^\p{L}\p{N}]/gu, '').length;
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  return { bytes, chars, charsNoSpace, charsNoSpecial, words };
+  const readingMinutes = words / WORDS_PER_MINUTE;
+  return { bytes, chars, charsNoSpace, charsNoSpecial, words, readingMinutes };
 }
 
 type SheetStats = {
@@ -25,6 +37,7 @@ type SheetStats = {
   charsNoSpace: number;
   charsNoSpecial: number;
   words: number;
+  readingMinutes: number;
 };
 
 const AnalysisPage: Component = () => {
@@ -38,8 +51,28 @@ const AnalysisPage: Component = () => {
     return Array.isArray(val) ? val : [val];
   };
 
+  type CharMode = 'all' | 'no_space' | 'no_special';
   const [analyzing, setAnalyzing] = createSignal(false);
   const [stats, setStats] = createSignal<SheetStats[] | null>(null);
+  const [charMode, setCharMode] = createSignal<CharMode>('all');
+
+  const charLabel = createMemo(() => {
+    const mode = charMode();
+    if (mode === 'no_space') return s('project.stat_no_space');
+    if (mode === 'no_special') return s('project.stat_no_special');
+    return s('project.stat_chars');
+  });
+
+  const charCount = (r: {
+    chars: number;
+    charsNoSpace: number;
+    charsNoSpecial: number;
+  }) => {
+    const mode = charMode();
+    if (mode === 'no_space') return r.charsNoSpace;
+    if (mode === 'no_special') return r.charsNoSpecial;
+    return r.chars;
+  };
 
   const total = () => {
     const rows = stats();
@@ -51,44 +84,66 @@ const AnalysisPage: Component = () => {
         charsNoSpace: acc.charsNoSpace + cur.charsNoSpace,
         charsNoSpecial: acc.charsNoSpecial + cur.charsNoSpecial,
         words: acc.words + cur.words,
+        readingMinutes: acc.readingMinutes + cur.readingMinutes,
       }),
-      { bytes: 0, chars: 0, charsNoSpace: 0, charsNoSpecial: 0, words: 0 },
+      {
+        bytes: 0,
+        chars: 0,
+        charsNoSpace: 0,
+        charsNoSpecial: 0,
+        words: 0,
+        readingMinutes: 0,
+      },
     );
   };
 
   const run = async () => {
     setAnalyzing(true);
     setStats(null);
-    await openProject(params.pjId);
 
-    const ids = sheetIds();
-    let sheets = liveSheets();
-    if (ids.length > 0) {
-      sheets = sheets.filter((sh) => ids.includes(sh.id));
-    } else {
-      const q = query().trim();
-      if (q) {
-        sheets = sheets.filter((sh) => matchQuery(q, new Set(sh.tags)));
+    const doRun = async () => {
+      await openProject(params.pjId!);
+
+      const ids = sheetIds();
+      let sheets = liveSheets();
+      if (ids.length > 0) {
+        sheets = sheets.filter((sh) => ids.includes(sh.id));
+      } else {
+        const q = query().trim();
+        if (q) {
+          sheets = sheets.filter((sh) => matchQuery(q, new Set(sh.tags)));
+        }
       }
-    }
 
-    const results: SheetStats[] = [];
-    for (const sheet of sheets) {
-      const sd = openSheetDoc(sheet.id);
-      await waitForSync(sd.provider);
-      const text = sd.content.toString();
-      closeSheetDoc(sd);
+      const results: SheetStats[] = [];
+      for (const sheet of sheets) {
+        const sd = openSheetDoc(sheet.id);
+        try {
+          await waitForSync(sd.provider);
+          const text = sd.content.toString();
+          const preview = text.trim().slice(0, 16).replace(/\n/g, ' ');
+          results.push({
+            id: sheet.id,
+            label: preview || s('sheet.empty'),
+            ...computeStats(text),
+          });
+        } finally {
+          closeSheetDoc(sd);
+        }
+      }
+      return results;
+    };
 
-      const preview = text.trim().slice(0, 16).replace(/\n/g, ' ');
-
-      results.push({
-        id: sheet.id,
-        label: preview || s('sheet.empty'),
-        ...computeStats(text),
+    try {
+      const results = await toast.promise(doRun(), {
+        loading: s('common.analyzing'),
+        success: s('common.analyze_done'),
+        error: s('common.analyze_error'),
       });
+      setStats(results);
+    } finally {
+      setAnalyzing(false);
     }
-    setStats(results);
-    setAnalyzing(false);
   };
 
   createEffect(() => {
@@ -149,15 +204,30 @@ const AnalysisPage: Component = () => {
       <Show when={stats()}>
         {(rows) => (
           <div class="overflow-y-auto">
+            <div class="page-toolbar">
+              <select
+                value={charMode()}
+                onChange={(e) =>
+                  setCharMode(
+                    e.currentTarget.value as 'all' | 'no_space' | 'no_special',
+                  )
+                }
+              >
+                <option value="all">{s('project.stat_chars')}</option>
+                <option value="no_space">{s('project.stat_no_space')}</option>
+                <option value="no_special">
+                  {s('project.stat_no_special')}
+                </option>
+              </select>
+            </div>
             <table class="stats-table">
               <thead>
                 <tr>
                   <th>{s('project.stat_sheet')}</th>
                   <th>{s('project.stat_bytes')}</th>
-                  <th>{s('project.stat_chars')}</th>
-                  <th>{s('project.stat_no_space')}</th>
-                  <th>{s('project.stat_no_special')}</th>
+                  <th>{charLabel()}</th>
                   <th>{s('project.stat_words')}</th>
+                  <th>{s('stats.reading_time')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -166,10 +236,9 @@ const AnalysisPage: Component = () => {
                     <tr>
                       <td class="stats-table-label">{r.label}</td>
                       <td>{r.bytes.toLocaleString()}</td>
-                      <td>{r.chars.toLocaleString()}</td>
-                      <td>{r.charsNoSpace.toLocaleString()}</td>
-                      <td>{r.charsNoSpecial.toLocaleString()}</td>
+                      <td>{charCount(r).toLocaleString()}</td>
                       <td>{r.words.toLocaleString()}</td>
+                      <td>{formatReadingTime(r.readingMinutes)}</td>
                     </tr>
                   )}
                 </For>
@@ -177,10 +246,9 @@ const AnalysisPage: Component = () => {
                   <tr class="stats-table-total">
                     <td>{s('project.stat_total')}</td>
                     <td>{total()!.bytes.toLocaleString()}</td>
-                    <td>{total()!.chars.toLocaleString()}</td>
-                    <td>{total()!.charsNoSpace.toLocaleString()}</td>
-                    <td>{total()!.charsNoSpecial.toLocaleString()}</td>
+                    <td>{charCount(total()!).toLocaleString()}</td>
                     <td>{total()!.words.toLocaleString()}</td>
+                    <td>{formatReadingTime(total()!.readingMinutes)}</td>
                   </tr>
                 </Show>
               </tbody>

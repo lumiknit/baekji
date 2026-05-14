@@ -4,6 +4,7 @@
     "npm:@codemirror/commands@^6.10.3": "6.10.3",
     "npm:@codemirror/lang-markdown@^6.5.0": "6.5.0",
     "npm:@codemirror/language@^6.12.3": "6.12.3",
+    "npm:@codemirror/search@^6.7.0": "6.7.0",
     "npm:@codemirror/state@^6.6.0": "6.6.0",
     "npm:@codemirror/view@^6.42.1": "6.42.1",
     "npm:@eslint/js@^10.0.1": "10.0.1_eslint@10.3.0",
@@ -11,9 +12,12 @@
     "npm:@solid-primitives/media@^2.3.5": "2.3.5_solid-js@1.9.12",
     "npm:@solid-primitives/storage@^4.3.4": "4.3.4_solid-js@1.9.12",
     "npm:@solidjs/router@~0.16.1": "0.16.1_solid-js@1.9.12",
+    "npm:@types/dompurify@^3.2.0": "3.2.0",
+    "npm:@types/markdown-it@^14.1.2": "14.1.2",
     "npm:@types/node@^24.12.4": "24.12.4",
+    "npm:@types/sortablejs@^1.15.9": "1.15.9",
     "npm:diff@9": "9.0.0",
-    "npm:dompurify@^3.4.2": "3.4.2",
+    "npm:dompurify@^3.4.3": "3.4.3",
     "npm:eslint@^10.3.0": "10.3.0",
     "npm:globals@^17.6.0": "17.6.0",
     "npm:idb@^8.0.3": "8.0.3",
@@ -23,6 +27,7 @@
     "npm:solid-icons@^1.2.0": "1.2.0_solid-js@1.9.12",
     "npm:solid-js@^1.9.12": "1.9.12",
     "npm:solid-toast@0.5": "0.5.0_solid-js@1.9.12",
+    "npm:sortablejs@^1.15.7": "1.15.7",
     "npm:typescript-eslint@^8.59.3": "8.59.3_eslint@10.3.0_typescript@6.0.3",
     "npm:typescript@~6.0.3": "6.0.3",
     "npm:vite-bundle-visualizer@^1.2.1": "1.2.1",
@@ -250,6 +255,14 @@
     },
     "@codemirror/lint@6.9.5": {
       "integrity": "sha512-GElsbU9G7QT9xXhpUg1zWGmftA/7jamh+7+ydKRuT0ORpWS3wOSP0yT1FOlIZa7mIJjpVPipErsyvVqB9cfTFA==",
+      "dependencies": [
+        "@codemirror/state",
+        "@codemirror/view",
+        "crelt"
+      ]
+    },
+    "@codemirror/search@6.7.0": {
+      "integrity": "sha512-ZvGm99wc/s2cITtMT15LFdn8aH/aS+V+DqyGq/N5ZlV5vWtH+nILvC2nw0zX7ByNoHHDZ2IxxdW38O0tc5nVHg==",
       "dependencies": [
         "@codemirror/state",
         "@codemirror/view",
@@ -629,10 +642,10 @@
     "@types/deep-eql@4.0.2": {
       "integrity": "sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw=="
     },
-    "@types/diff@8.0.0": {
-      "integrity": "sha512-o7jqJM04gfaYrdCecCVMbZhNdG6T1MHg/oQoRFdERLV+4d+V7FijhiEAbFu0Usww84Yijk9yH58U4Jk4HbtzZw==",
+    "@types/dompurify@3.2.0": {
+      "integrity": "sha512-Fgg31wv9QbLDA0SpTOXO3MaxySc4DKGLi8sna4/Utjo4r3ZRPdCt4UQee8BWr+Q5z21yifghREPJGYaEOEIACg==",
       "dependencies": [
-        "diff"
+        "dompurify"
       ],
       "deprecated": true
     },
@@ -645,11 +658,27 @@
     "@types/json-schema@7.0.15": {
       "integrity": "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="
     },
+    "@types/linkify-it@5.0.0": {
+      "integrity": "sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q=="
+    },
+    "@types/markdown-it@14.1.2": {
+      "integrity": "sha512-promo4eFwuiW+TfGxhi+0x3czqTYJkG8qB17ZUJiVF10Xm7NLVRSLUsfRTU/6h1e24VvRnXCx+hG7li58lkzog==",
+      "dependencies": [
+        "@types/linkify-it",
+        "@types/mdurl"
+      ]
+    },
+    "@types/mdurl@2.0.0": {
+      "integrity": "sha512-RGdgjQUZba5p6QEFAVx2OGb8rQDL/cPRG7GiedRzMcJ1tYnUANBncjbSB1NRGwbvjcPeikRABz2nshyPk1bhWg=="
+    },
     "@types/node@24.12.4": {
       "integrity": "sha512-GUUEShf+PBCGW2KaXwcIt3Yk+e3pkKwWKb9GSyM9WQVE+ep2jzmHdGsHzu4wgcZy5fN9FBdVzjpBQsYlpfpgLA==",
       "dependencies": [
         "undici-types"
       ]
+    },
+    "@types/sortablejs@1.15.9": {
+      "integrity": "sha512-7HP+rZGE2p886PKV9c9OJzLBI6BBJu1O7lJGYnPyG3fS4/duUCcngkNCjsLwIMV+WMqANe3tt4irrXHSIe68OQ=="
     },
     "@types/trusted-types@2.0.7": {
       "integrity": "sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw=="
@@ -949,8 +978,8 @@
     "diff@9.0.0": {
       "integrity": "sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw=="
     },
-    "dompurify@3.4.2": {
-      "integrity": "sha512-lHeS9SA/IKeIFFyYciHBr2n0v1VMPlSj843HdLOwjb2OxNwdq9Xykxqhk+FE42MzAdHvInbAolSE4mhahPpjXA==",
+    "dompurify@3.4.3": {
+      "integrity": "sha512-VVwJidIJcp1hpg2OMXML3ZVRPYSZiq4aX7qBh83BSIpOaRDqI+qxhXjjIWnpzkOXhmp0L81lnoME1mnCc9H48A==",
       "optionalDependencies": [
         "@types/trusted-types"
       ]
@@ -1544,6 +1573,9 @@
         "solid-js"
       ]
     },
+    "sortablejs@1.15.7": {
+      "integrity": "sha512-Kk8wLQPlS+yi1ZEf48a4+fzHa4yxjC30M/Sr2AnQu+f/MPwvvX9XjZ6OWejiz8crBsLwSq8GHqaxaET7u6ux0A=="
+    },
     "source-map-js@1.2.1": {
       "integrity": "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="
     },
@@ -1808,6 +1840,7 @@
         "npm:@codemirror/commands@^6.10.3",
         "npm:@codemirror/lang-markdown@^6.5.0",
         "npm:@codemirror/language@^6.12.3",
+        "npm:@codemirror/search@^6.7.0",
         "npm:@codemirror/state@^6.6.0",
         "npm:@codemirror/view@^6.42.1",
         "npm:@eslint/js@^10.0.1",
@@ -1815,9 +1848,12 @@
         "npm:@solid-primitives/media@^2.3.5",
         "npm:@solid-primitives/storage@^4.3.4",
         "npm:@solidjs/router@~0.16.1",
+        "npm:@types/dompurify@^3.2.0",
+        "npm:@types/markdown-it@^14.1.2",
         "npm:@types/node@^24.12.4",
+        "npm:@types/sortablejs@^1.15.9",
         "npm:diff@9",
-        "npm:dompurify@^3.4.2",
+        "npm:dompurify@^3.4.3",
         "npm:eslint@^10.3.0",
         "npm:globals@^17.6.0",
         "npm:idb@^8.0.3",
@@ -1827,6 +1863,7 @@
         "npm:solid-icons@^1.2.0",
         "npm:solid-js@^1.9.12",
         "npm:solid-toast@0.5",
+        "npm:sortablejs@^1.15.7",
         "npm:typescript-eslint@^8.59.3",
         "npm:typescript@~6.0.3",
         "npm:vite-bundle-visualizer@^1.2.1",

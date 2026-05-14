@@ -31,10 +31,12 @@ import {
   TbOutlineCarouselVertical,
 } from 'solid-icons/tb';
 import { Dynamic } from 'solid-js/web';
+import BackupIcon from './BackupIcon';
+import { openBackupModal } from '../state/modal';
 
 const MainLayout: Component<RouteSectionProps> = (props) => {
   const isMobile = createMediaQuery('(max-width: 768px)');
-  const isNarrow = createMemo(() => isMobile() || sidebarWidth() < 300);
+  const isNarrow = createMemo(() => isMobile() || sidebarWidth() < 360);
   const location = useLocation();
 
   onMount(() => {
@@ -49,8 +51,8 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
   });
 
   createEffect(() => {
-    void location.pathname;
-    if (isMobile()) setSidebarOpen(false);
+    const path = location.pathname;
+    if (isMobile() && !path.startsWith('/sheets/')) setSidebarOpen(false);
   });
 
   const handleResizerPointerDown = (e: PointerEvent) => {
@@ -61,7 +63,7 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
     const startWidth = sidebarWidth();
     const onMove = (me: PointerEvent) => {
       const newWidth = startWidth + (me.clientX - startX);
-      if (newWidth > 150 && newWidth < 600) setSidebarWidth(newWidth);
+      if (newWidth > 150 && newWidth < 700) setSidebarWidth(newWidth);
     };
     const onUp = () => {
       el.removeEventListener('pointermove', onMove);
@@ -104,6 +106,18 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
                 <TbOutlineCarouselVertical />
               </span>
               <Show when={!isNarrow()}>{s('sidebar.project_list')}</Show>
+            </div>
+          </button>
+          <button
+            class="sb-nav-btn"
+            onClick={openBackupModal}
+            title={s('backup.title')}
+          >
+            <div class="btn-pad">
+              <span class="icon">
+                <BackupIcon />
+              </span>
+              <Show when={!isNarrow()}>{s('backup.title')}</Show>
             </div>
           </button>
         </div>

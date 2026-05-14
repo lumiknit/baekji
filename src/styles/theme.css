@@ -1,226 +1,246 @@
-/* ─── Themes ──────────────────────────────────────────
-   Light themes activate under prefers-color-scheme: light.
-   Dark  themes activate under prefers-color-scheme: dark.
-   The default theme (.theme-*-default) is equivalent to
-   having no theme class at all.
+/* ─── Theme palette ────────────────────────────────────
+   All color tokens live here as --thm-<mode>-<tone>-<name>.
+   Active theme vars (--bg, --text, …) are mapped in the
+   @media blocks below via the user's themeLight / themeDark
+   class on :root.
+──────────────────────────────────────────────────────── */
+
+:root {
+  /* light · default */
+  --thm-light-default-bg: #fff;
+  --thm-light-default-text: #222;
+  --thm-light-default-text-bold: #000;
+  --thm-light-default-border: #eee;
+  --thm-light-default-hr: #ccc;
+  --thm-light-default-ultra-dim: #f3f3f3;
+  --thm-light-default-color-l: 35%;
+  --thm-light-default-hl: #4a90d9;
+  --thm-light-default-md-mark: #87b5d9;
+  --thm-light-default-fg-blur: #b8b8b8;
+  --thm-light-default-hl-blur: #9ec4e2;
+  --thm-light-default-cm-selection: rgba(34, 34, 34, 0.15);
+  --thm-light-default-cm-sel-focus: rgba(34, 34, 34, 0.2);
+  --thm-light-default-cm-code-bg: rgba(34, 34, 34, 0.04);
+
+  /* light · warm */
+  --thm-light-warm-bg: #fdf6e3;
+  --thm-light-warm-text: #657b83;
+  --thm-light-warm-text-bold: #073642;
+  --thm-light-warm-border: #e8dfc8;
+  --thm-light-warm-hr: #c8bfa0;
+  --thm-light-warm-ultra-dim: #f0ead8;
+  --thm-light-warm-color-l: 40%;
+  --thm-light-warm-hl: #cb8a3e;
+  --thm-light-warm-md-mark: #c09a6f;
+  --thm-light-warm-fg-blur: #b4afa2;
+  --thm-light-warm-hl-blur: #d4bc98;
+  --thm-light-warm-cm-selection: rgba(101, 123, 131, 0.15);
+  --thm-light-warm-cm-sel-focus: rgba(101, 123, 131, 0.2);
+  --thm-light-warm-cm-code-bg: rgba(101, 123, 131, 0.04);
+
+  /* light · cool */
+  --thm-light-cool-bg: #eef4fb;
+  --thm-light-cool-text: #4a6278;
+  --thm-light-cool-text-bold: #1e3a50;
+  --thm-light-cool-border: #ccdae6;
+  --thm-light-cool-hr: #a8c0d4;
+  --thm-light-cool-ultra-dim: #dfe7ef;
+  --thm-light-cool-color-l: 38%;
+  --thm-light-cool-hl: #3a7abf;
+  --thm-light-cool-md-mark: #6e9fc8;
+  --thm-light-cool-fg-blur: #a4b6c8;
+  --thm-light-cool-hl-blur: #82b0d8;
+  --thm-light-cool-cm-selection: rgba(74, 98, 120, 0.15);
+  --thm-light-cool-cm-sel-focus: rgba(74, 98, 120, 0.2);
+  --thm-light-cool-cm-code-bg: rgba(74, 98, 120, 0.04);
+
+  /* dark · default */
+  --thm-dark-default-bg: #000;
+  --thm-dark-default-text: #ddd;
+  --thm-dark-default-text-bold: #fff;
+  --thm-dark-default-border: #222;
+  --thm-dark-default-hr: #444;
+  --thm-dark-default-ultra-dim: #111;
+  --thm-dark-default-color-l: 70%;
+  --thm-dark-default-hl: #5ba3e8;
+  --thm-dark-default-md-mark: #7ab5e0;
+  --thm-dark-default-fg-blur: #686868;
+  --thm-dark-default-hl-blur: #4d7eae;
+  --thm-dark-default-cm-selection: rgba(221, 221, 221, 0.15);
+  --thm-dark-default-cm-sel-focus: rgba(221, 221, 221, 0.2);
+  --thm-dark-default-cm-code-bg: rgba(221, 221, 221, 0.04);
+
+  /* dark · warm */
+  --thm-dark-warm-bg: #1a1410;
+  --thm-dark-warm-text: #baa892;
+  --thm-dark-warm-text-bold: #d5c5a8;
+  --thm-dark-warm-border: #302622;
+  --thm-dark-warm-hr: #504038;
+  --thm-dark-warm-ultra-dim: #261e1a;
+  --thm-dark-warm-color-l: 65%;
+  --thm-dark-warm-hl: #d4955a;
+  --thm-dark-warm-md-mark: #c4a078;
+  --thm-dark-warm-fg-blur: #7d6e60;
+  --thm-dark-warm-hl-blur: #9a7050;
+  --thm-dark-warm-cm-selection: rgba(186, 168, 146, 0.15);
+  --thm-dark-warm-cm-sel-focus: rgba(186, 168, 146, 0.2);
+  --thm-dark-warm-cm-code-bg: rgba(186, 168, 146, 0.04);
+
+  /* dark · cool */
+  --thm-dark-cool-bg: #1e2a3a;
+  --thm-dark-cool-text: #b8c9d9;
+  --thm-dark-cool-text-bold: #dce8f0;
+  --thm-dark-cool-border: #2d3f52;
+  --thm-dark-cool-hr: #3d5570;
+  --thm-dark-cool-ultra-dim: #243242;
+  --thm-dark-cool-color-l: 65%;
+  --thm-dark-cool-hl: #5b9fd4;
+  --thm-dark-cool-md-mark: #7ab2d8;
+  --thm-dark-cool-fg-blur: #6a8090;
+  --thm-dark-cool-hl-blur: #4d7ea4;
+  --thm-dark-cool-cm-selection: rgba(184, 201, 217, 0.15);
+  --thm-dark-cool-cm-sel-focus: rgba(184, 201, 217, 0.2);
+  --thm-dark-cool-cm-code-bg: rgba(184, 201, 217, 0.04);
+}
+
+/* ── Active theme mapping ────────────────────────────
+   Maps semantic vars to the chosen palette token.
+   Fallback: light-default / dark-default.
 ──────────────────────────────────────────────────── */
 
-/* ── Fallback (light default, no class) ─────────── */
+/* Fallback (no class, light OS) */
 :root {
-  --bg: #fff;
-  --text: #222;
-  --text-bold: #000;
-  --border: #eee;
-  --hr: #ccc;
-  --ultra-dim: #f3f3f3;
-  --color-l: 35%;
-  --hl: #4a90d9;
-  --md-mark: #87b5d9;
-  --cm-selection: rgba(34, 34, 34, 0.15);
-  --cm-selection-focus: rgba(34, 34, 34, 0.2);
-  --cm-code-bg: rgba(34, 34, 34, 0.04);
+  --bg: var(--thm-light-default-bg);
+  --text: var(--thm-light-default-text);
+  --text-bold: var(--thm-light-default-text-bold);
+  --border: var(--thm-light-default-border);
+  --hr: var(--thm-light-default-hr);
+  --ultra-dim: var(--thm-light-default-ultra-dim);
+  --color-l: var(--thm-light-default-color-l);
+  --hl: var(--thm-light-default-hl);
+  --md-mark: var(--thm-light-default-md-mark);
+  --fg-blur: var(--thm-light-default-fg-blur);
+  --hl-blur: var(--thm-light-default-hl-blur);
+  --cm-selection: var(--thm-light-default-cm-selection);
+  --cm-sel-focus: var(--thm-light-default-cm-sel-focus);
+  --cm-code-bg: var(--thm-light-default-cm-code-bg);
+  --cm-fg: var(--text);
+  --cm-hl: var(--hl);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #000;
-    --text: #ddd;
-    --text-bold: #fff;
-    --border: #222;
-    --hr: #444;
-    --ultra-dim: #111;
-    --color-l: 70%;
-    --hl: #5ba3e8;
-    --md-mark: #7ab5e0;
-    --cm-selection: rgba(221, 221, 221, 0.15);
-    --cm-selection-focus: rgba(221, 221, 221, 0.2);
-    --cm-code-bg: rgba(221, 221, 221, 0.04);
-  }
+/* cm variables — default (focus mode off) */
+:root {
+  --cm-text-bold: var(--text-bold);
+  --cm-md-mark: var(--md-mark);
 }
 
-/* ── Theme classes (media-independent, for any element) ── */
-.theme-light-default {
-  --bg: #fff;
-  --text: #222;
-  --text-bold: #000;
-  --border: #eee;
-  --hr: #ccc;
-  --ultra-dim: #f3f3f3;
-  --color-l: 35%;
-  --hl: #4a90d9;
-  --md-mark: #87b5d9;
-  --cm-selection: rgba(34, 34, 34, 0.15);
-  --cm-selection-focus: rgba(34, 34, 34, 0.2);
-  --cm-code-bg: rgba(34, 34, 34, 0.04);
+/* focus mode: dim non-active lines */
+:root.focus-mode {
+  --cm-fg: var(--fg-blur);
+  --cm-hl: var(--hl-blur);
+  --cm-text-bold: var(--fg-blur);
+  --cm-md-mark: var(--fg-blur);
 }
 
-.theme-light-warm {
-  --bg: #fdf6e3;
-  --text: #586e75;
-  --text-bold: #073642;
-  --border: #e8dfc8;
-  --hr: #c8bfa0;
-  --ultra-dim: #f0ead8;
-  --color-l: 40%;
-  --hl: #cb8a3e;
-  --md-mark: #c09a6f;
-  --cm-selection: rgba(88, 110, 117, 0.15);
-  --cm-selection-focus: rgba(88, 110, 117, 0.2);
-  --cm-code-bg: rgba(88, 110, 117, 0.04);
-}
-
-.theme-light-cool {
-  --bg: #eef4fb;
-  --text: #4a6278;
-  --text-bold: #1e3a50;
-  --border: #ccdae6;
-  --hr: #a8c0d4;
-  --ultra-dim: #dfe7ef;
-  --color-l: 38%;
-  --hl: #3a7abf;
-  --md-mark: #6e9fc8;
-  --cm-selection: rgba(74, 98, 120, 0.15);
-  --cm-selection-focus: rgba(74, 98, 120, 0.2);
-  --cm-code-bg: rgba(74, 98, 120, 0.04);
-}
-
-.theme-dark-default {
-  --bg: #000;
-  --text: #ddd;
-  --text-bold: #fff;
-  --border: #222;
-  --hr: #444;
-  --ultra-dim: #111;
-  --color-l: 70%;
-  --hl: #5ba3e8;
-  --md-mark: #7ab5e0;
-  --cm-selection: rgba(221, 221, 221, 0.15);
-  --cm-selection-focus: rgba(221, 221, 221, 0.2);
-  --cm-code-bg: rgba(221, 221, 221, 0.04);
-}
-
-.theme-dark-warm {
-  --bg: #1a1410;
-  --text: #baa892;
-  --text-bold: #d5c5a8;
-  --border: #302622;
-  --hr: #504038;
-  --ultra-dim: #261e1a;
-  --color-l: 65%;
-  --hl: #d4955a;
-  --md-mark: #c4a078;
-  --cm-selection: rgba(186, 168, 146, 0.15);
-  --cm-selection-focus: rgba(186, 168, 146, 0.2);
-  --cm-code-bg: rgba(186, 168, 146, 0.04);
-}
-
-.theme-dark-cool {
-  --bg: #1e2a3a;
-  --text: #b8c9d9;
-  --text-bold: #dce8f0;
-  --border: #2d3f52;
-  --hr: #3d5570;
-  --ultra-dim: #243242;
-  --color-l: 65%;
-  --hl: #5b9fd4;
-  --md-mark: #7ab2d8;
-  --cm-selection: rgba(184, 201, 217, 0.15);
-  --cm-selection-focus: rgba(184, 201, 217, 0.2);
-  --cm-code-bg: rgba(184, 201, 217, 0.04);
-}
-
-/* ── Light themes ────────────────────────────────── */
 @media (prefers-color-scheme: light) {
   :root.theme-light-default {
-    --bg: #fff;
-    --text: #222;
-    --text-bold: #000;
-    --border: #eee;
-    --hr: #ccc;
-    --ultra-dim: #f3f3f3;
-    --color-l: 35%;
-    --hl: #4a90d9;
-    --md-mark: #87b5d9;
-    --cm-selection: rgba(34, 34, 34, 0.15);
-    --cm-selection-focus: rgba(34, 34, 34, 0.2);
-    --cm-code-bg: rgba(34, 34, 34, 0.04);
+    --bg: var(--thm-light-default-bg);
+    --text: var(--thm-light-default-text);
+    --text-bold: var(--thm-light-default-text-bold);
+    --border: var(--thm-light-default-border);
+    --hr: var(--thm-light-default-hr);
+    --ultra-dim: var(--thm-light-default-ultra-dim);
+    --color-l: var(--thm-light-default-color-l);
+    --hl: var(--thm-light-default-hl);
+    --md-mark: var(--thm-light-default-md-mark);
+    --fg-blur: var(--thm-light-default-fg-blur);
+    --hl-blur: var(--thm-light-default-hl-blur);
+    --cm-selection: var(--thm-light-default-cm-selection);
+    --cm-sel-focus: var(--thm-light-default-cm-sel-focus);
+    --cm-code-bg: var(--thm-light-default-cm-code-bg);
   }
-
   :root.theme-light-warm {
-    --bg: #fdf6e3;
-    --text: #657b83;
-    --text-bold: #073642;
-    --border: #e8dfc8;
-    --hr: #c8bfa0;
-    --ultra-dim: #f0ead8;
-    --color-l: 40%;
-    --hl: #cb8a3e;
-    --md-mark: #c09a6f;
-    --cm-selection: rgba(101, 123, 131, 0.15);
-    --cm-selection-focus: rgba(101, 123, 131, 0.2);
-    --cm-code-bg: rgba(101, 123, 131, 0.04);
+    --bg: var(--thm-light-warm-bg);
+    --text: var(--thm-light-warm-text);
+    --text-bold: var(--thm-light-warm-text-bold);
+    --border: var(--thm-light-warm-border);
+    --hr: var(--thm-light-warm-hr);
+    --ultra-dim: var(--thm-light-warm-ultra-dim);
+    --color-l: var(--thm-light-warm-color-l);
+    --hl: var(--thm-light-warm-hl);
+    --md-mark: var(--thm-light-warm-md-mark);
+    --fg-blur: var(--thm-light-warm-fg-blur);
+    --hl-blur: var(--thm-light-warm-hl-blur);
+    --cm-selection: var(--thm-light-warm-cm-selection);
+    --cm-sel-focus: var(--thm-light-warm-cm-sel-focus);
+    --cm-code-bg: var(--thm-light-warm-cm-code-bg);
   }
-
   :root.theme-light-cool {
-    --bg: #eef4fb;
-    --text: #4a6278;
-    --text-bold: #1e3a50;
-    --border: #ccdae6;
-    --hr: #a8c0d4;
-    --ultra-dim: #dfe7ef;
-    --color-l: 38%;
-    --hl: #3a7abf;
-    --md-mark: #6e9fc8;
-    --cm-selection: rgba(74, 98, 120, 0.15);
-    --cm-selection-focus: rgba(74, 98, 120, 0.2);
-    --cm-code-bg: rgba(74, 98, 120, 0.04);
+    --bg: var(--thm-light-cool-bg);
+    --text: var(--thm-light-cool-text);
+    --text-bold: var(--thm-light-cool-text-bold);
+    --border: var(--thm-light-cool-border);
+    --hr: var(--thm-light-cool-hr);
+    --ultra-dim: var(--thm-light-cool-ultra-dim);
+    --color-l: var(--thm-light-cool-color-l);
+    --hl: var(--thm-light-cool-hl);
+    --md-mark: var(--thm-light-cool-md-mark);
+    --fg-blur: var(--thm-light-cool-fg-blur);
+    --hl-blur: var(--thm-light-cool-hl-blur);
+    --cm-selection: var(--thm-light-cool-cm-selection);
+    --cm-sel-focus: var(--thm-light-cool-cm-sel-focus);
+    --cm-code-bg: var(--thm-light-cool-cm-code-bg);
   }
 }
 
-/* ── Dark themes ─────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
+  :root,
   :root.theme-dark-default {
-    --bg: #000;
-    --text: #ddd;
-    --text-bold: #fff;
-    --border: #222;
-    --hr: #444;
-    --ultra-dim: #111;
-    --color-l: 70%;
-    --hl: #5ba3e8;
-    --md-mark: #7ab5e0;
-    --cm-selection: rgba(221, 221, 221, 0.15);
-    --cm-selection-focus: rgba(221, 221, 221, 0.2);
-    --cm-code-bg: rgba(221, 221, 221, 0.04);
+    --bg: var(--thm-dark-default-bg);
+    --text: var(--thm-dark-default-text);
+    --text-bold: var(--thm-dark-default-text-bold);
+    --border: var(--thm-dark-default-border);
+    --hr: var(--thm-dark-default-hr);
+    --ultra-dim: var(--thm-dark-default-ultra-dim);
+    --color-l: var(--thm-dark-default-color-l);
+    --hl: var(--thm-dark-default-hl);
+    --md-mark: var(--thm-dark-default-md-mark);
+    --fg-blur: var(--thm-dark-default-fg-blur);
+    --hl-blur: var(--thm-dark-default-hl-blur);
+    --cm-selection: var(--thm-dark-default-cm-selection);
+    --cm-sel-focus: var(--thm-dark-default-cm-sel-focus);
+    --cm-code-bg: var(--thm-dark-default-cm-code-bg);
   }
-
   :root.theme-dark-warm {
-    --bg: #1a1410;
-    --text: #baa892;
-    --text-bold: #d5c5a8;
-    --border: #302622;
-    --hr: #504038;
-    --ultra-dim: #261e1a;
-    --color-l: 65%;
-    --hl: #d4955a;
-    --md-mark: #c4a078;
-    --cm-selection: rgba(186, 168, 146, 0.15);
-    --cm-selection-focus: rgba(186, 168, 146, 0.2);
-    --cm-code-bg: rgba(186, 168, 146, 0.04);
+    --bg: var(--thm-dark-warm-bg);
+    --text: var(--thm-dark-warm-text);
+    --text-bold: var(--thm-dark-warm-text-bold);
+    --border: var(--thm-dark-warm-border);
+    --hr: var(--thm-dark-warm-hr);
+    --ultra-dim: var(--thm-dark-warm-ultra-dim);
+    --color-l: var(--thm-dark-warm-color-l);
+    --hl: var(--thm-dark-warm-hl);
+    --md-mark: var(--thm-dark-warm-md-mark);
+    --fg-blur: var(--thm-dark-warm-fg-blur);
+    --hl-blur: var(--thm-dark-warm-hl-blur);
+    --cm-selection: var(--thm-dark-warm-cm-selection);
+    --cm-sel-focus: var(--thm-dark-warm-cm-sel-focus);
+    --cm-code-bg: var(--thm-dark-warm-cm-code-bg);
   }
-
   :root.theme-dark-cool {
-    --bg: #1e2a3a;
-    --text: #b8c9d9;
-    --text-bold: #dce8f0;
-    --border: #2d3f52;
-    --hr: #3d5570;
-    --ultra-dim: #243242;
-    --color-l: 65%;
-    --hl: #5b9fd4;
-    --md-mark: #7ab2d8;
-    --cm-selection: rgba(184, 201, 217, 0.15);
-    --cm-selection-focus: rgba(184, 201, 217, 0.2);
-    --cm-code-bg: rgba(184, 201, 217, 0.04);
+    --bg: var(--thm-dark-cool-bg);
+    --text: var(--thm-dark-cool-text);
+    --text-bold: var(--thm-dark-cool-text-bold);
+    --border: var(--thm-dark-cool-border);
+    --hr: var(--thm-dark-cool-hr);
+    --ultra-dim: var(--thm-dark-cool-ultra-dim);
+    --color-l: var(--thm-dark-cool-color-l);
+    --hl: var(--thm-dark-cool-hl);
+    --md-mark: var(--thm-dark-cool-md-mark);
+    --fg-blur: var(--thm-dark-cool-fg-blur);
+    --hl-blur: var(--thm-dark-cool-hl-blur);
+    --cm-selection: var(--thm-dark-cool-cm-selection);
+    --cm-sel-focus: var(--thm-dark-cool-cm-sel-focus);
+    --cm-code-bg: var(--thm-dark-cool-cm-code-bg);
   }
 }

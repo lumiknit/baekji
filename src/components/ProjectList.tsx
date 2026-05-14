@@ -12,7 +12,6 @@ import { getAllVersionRoots } from '../lib/doc/db';
 import { getAllProjects, putProject } from '../lib/doc/db_v1';
 import { s } from '../lib/i18n';
 import { formatRelativeDate } from '../lib/format';
-import { showPrompt } from '../state/modal';
 import { setSidebarView, projectListVersion } from '../state/workspace';
 import { openProject, activeProjectDoc } from '../state/workspace_v1';
 import { genUnorderedId } from '../lib/uuid';
@@ -40,16 +39,11 @@ const ProjectList: Component = () => {
   const openV1Project = async (id: string) => {
     await openProject(id);
     setSidebarView('tree');
-    navigate('/');
+    navigate(`/project/${id}`);
   };
 
   const createV1Project = async () => {
-    const label = await showPrompt(
-      s('home.create_project'),
-      s('home.project_name_prompt'),
-      s('home.default_project_name'),
-    );
-    if (!label) return;
+    const label = s('home.default_project_name');
     const id = genUnorderedId();
     const now = new Date().toISOString();
     putProject({ id, label, updatedAt: now, committedAt: '', tagColors: {} });
@@ -62,7 +56,7 @@ const ProjectList: Component = () => {
     }
     refetchV1();
     setSidebarView('tree');
-    navigate('/');
+    navigate(`/project/${id}?new=1`);
   };
 
   const filteredV1 = () => {

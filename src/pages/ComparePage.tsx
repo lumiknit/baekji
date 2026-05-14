@@ -7,6 +7,8 @@ import { TbOutlineArrowLeft, TbOutlineCheck } from 'solid-icons/tb';
 import { withSheetDoc } from '../lib/doc/docCache';
 import { softDeleteSheet } from '../state/sheet_list';
 import { s } from '../lib/i18n';
+import toast from 'solid-toast';
+import { logError } from '../state/log';
 
 // null = unresolved, true = keep, false = discard
 type Decision = boolean | null;
@@ -80,9 +82,17 @@ const ComparePage: Component = () => {
 
   const handleMerge = async () => {
     if (!allResolved()) return;
-    await writeContent(params.idA, buildResult());
-    softDeleteSheet(params.idB);
-    navigate(-1);
+    try {
+      await toast.promise(writeContent(params.idA, buildResult()), {
+        loading: s('common.merge_loading'),
+        success: s('common.merge_done'),
+        error: s('common.merge_error'),
+      });
+      softDeleteSheet(params.idB);
+      navigate(-1);
+    } catch (err) {
+      logError('ComparePage:handleMerge', err);
+    }
   };
 
   const labelA = () => {
@@ -121,8 +131,7 @@ const ComparePage: Component = () => {
         <div class="compare-list">
           <Index each={chunks()}>
             {(chunk, i) => {
-              const ds = getDecisions();
-              const dec = () => ds[i] ?? null;
+              const dec = () => getDecisions()[i] ?? null;
               const isDiff = () => chunk().added || chunk().removed;
 
               return (

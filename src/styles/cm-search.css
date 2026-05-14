@@ -1,0 +1,108 @@
+/* ─── CodeMirror Search Panel ────────────────────────
+   Overrides the default cm-panel / cm-search styles to
+   match the app's design system.
+──────────────────────────────────────────────────── */
+
+.cm-panels {
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+}
+
+.cm-panels-top {
+  /* give room so the panel floats slightly inside the editor */
+  padding: var(--sp-2) var(--sp-2) 0;
+}
+
+.cm-search.cm-panel {
+  /* reset CodeMirror's built-in background / border */
+  background: var(--bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--r) !important;
+  padding: var(--sp-2) var(--sp-3) !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: var(--sp-1) var(--sp-2) !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* ── inputs ── */
+.cm-search.cm-panel input.cm-textfield {
+  all: unset;
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  min-height: var(--btn-min);
+  min-width: 120px;
+  box-sizing: border-box;
+}
+
+.cm-search.cm-panel input.cm-textfield:focus {
+  outline: none;
+  border-color: var(--hl);
+}
+
+/* ── buttons ── */
+.cm-search.cm-panel button.cm-button {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-1) var(--sp-2);
+  min-height: var(--btn-min);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.cm-search.cm-panel button.cm-button:hover {
+  background: var(--border);
+}
+
+/* close button — keep it ghost */
+.cm-search.cm-panel button[name='close'] {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--btn-min);
+  height: var(--btn-min);
+  border-radius: var(--r);
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.cm-search.cm-panel button[name='close']:hover {
+  background: var(--border);
+}
+
+/* ── labels (match case / regexp / by word) ── */
+.cm-search.cm-panel label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* <br> that separates search row and replace row — keep it from taking up height */
+.cm-search.cm-panel br {
+  flex-basis: 100%;
+  height: 0;
+  content: '';
+}

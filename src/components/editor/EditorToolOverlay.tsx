@@ -6,6 +6,7 @@ import {
   TbOutlineArrowForwardUp,
   TbOutlineDots,
   TbOutlineCopy,
+  TbOutlineSearch,
 } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
 import Dropdown from '../Dropdown';
@@ -20,6 +21,7 @@ interface EditorToolOverlayProps {
   onExport: () => void;
   onSplit: () => void;
   onAnalysis: () => void;
+  onSearch: () => void;
 }
 
 const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
@@ -56,13 +58,18 @@ const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
         trigger={<TbOutlineDots size={14} />}
         items={[
           {
+            icon: TbOutlineSearch,
+            label: s('editor.find_replace'),
+            onSelect: props.onSearch,
+          },
+          {
             icon: TbOutlineCopy,
             label: s('common.copy'),
             onSelect: props.onCopy,
           },
           {
             icon: TbOutlineFileExport,
-            label: s('common.export'),
+            label: s('common.preview_export'),
             onSelect: props.onExport,
           },
           {
