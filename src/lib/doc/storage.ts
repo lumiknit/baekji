@@ -1,3 +1,5 @@
+import { openSheetDoc, closeSheetDoc, waitForSync } from './ydoc';
+
 export async function listBaekjiDatabases(): Promise<
   { name: string; estimatedBytes?: number }[]
 > {
@@ -35,7 +37,6 @@ export async function deleteOrphanSheetDatabases(
 }
 
 export async function compactSheetDoc(sheetId: string): Promise<void> {
-  const { openSheetDoc, closeSheetDoc, waitForSync } = await import('./ydoc');
   const sd = openSheetDoc(sheetId);
   await waitForSync(sd.provider);
   const content = sd.content.toString();

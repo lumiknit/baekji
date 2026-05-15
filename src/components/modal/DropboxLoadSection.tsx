@@ -3,104 +3,64 @@ import { createSignal, Show, For } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import toast from 'solid-toast';
 import {
-  TbOutlineUpload,
   TbOutlineLogin,
   TbOutlineLogout,
   TbOutlineRefresh,
   TbOutlineExternalLink,
   TbOutlineBrandDropbox,
 } from 'solid-icons/tb';
-import {
-  exportProjectAsBakV1,
-  parseBakV1,
-  type ImportStrategy,
-} from '../../lib/doc/backup_v1';
-import {
-  serializeGzip,
-  deserializeGzip,
-  toBlob,
-} from '../../lib/doc/backup_helper';
-import { activeProjectDoc, activeProjectId } from '../../state/workspace_v1';
-import { deviceId } from '../../state/workspace';
+import { parseBakV1, type ImportStrategy } from '../../lib/doc/backup_v1';
+import { deserializeGzip } from '../../lib/doc/backup_helper';
+import { activeProjectId } from '../../state/workspace_v1';
 import { closeBackupModal } from '../../state/modal';
 import { setLoadTarget } from '../../state/backupLoad';
 import { s } from '../../lib/i18n';
-import { timestampSuffix, formatExpiry } from '../../lib/format';
+import { formatExpiry } from '../../lib/format';
 import {
   loadToken,
   clearToken,
   beginOAuth,
   ensureToken,
 } from '../../lib/sync/dropbox_auth';
-import { list, upload, download } from '../../lib/sync/dropbox';
+import { list, download } from '../../lib/sync/dropbox';
 import type { SyncFile } from '../../lib/sync/interface';
 import type { BakV1 } from '../../lib/doc/v1';
-
-declare const __APP_VERSION__: string;
 
 interface Props {
   importStrategy: () => ImportStrategy;
   checkOlderSnapshot: (bak: BakV1) => Promise<boolean>;
 }
 
-const DropboxSection: Component<Props> = (props) => {
+const DropboxLoadSection: Component<Props> = (props) => {
   const navigate = useNavigate();
-  const [exporting, setExporting] = createSignal(false);
-  const [dbxFiles, setDbxFiles] = createSignal<SyncFile[]>([]);
-  const [loadingDbx, setLoadingDbx] = createSignal(false);
+  const [token, setToken] = createSignal(loadToken());
+  const [files, setFiles] = createSignal<SyncFile[]>([]);
+  const [status, setStatus] = createSignal<'idle' | 'loading' | 'loaded'>(
+    'idle',
+  );
   const [showAll, setShowAll] = createSignal(false);
-  const [dbxToken, setDbxToken] = createSignal(loadToken());
 
-  const fetchDbxFiles = async () => {
-    if (!dbxToken()) return;
-    setLoadingDbx(true);
+  const fetchFiles = async () => {
+    if (!token()) return;
+    setStatus('loading');
     try {
-      const validToken = await ensureToken();
-      setDbxToken(loadToken());
+      const t = await ensureToken();
+      setToken(loadToken());
       const prefix = showAll() ? undefined : (activeProjectId() ?? undefined);
-      const files = await list(validToken, { prefix, limit: 100 });
-      setDbxFiles(files.reverse().slice(0, 10));
+      const fetched = await list(t, { prefix, limit: 100 });
+      setFiles(fetched.reverse().slice(0, 10));
+      setStatus('loaded');
     } catch (err) {
       toast.error(s('dropbox.error_list', { msg: (err as Error).message }));
-    } finally {
-      setLoadingDbx(false);
+      setStatus('idle');
     }
   };
 
-  const handleDbxBackup = async () => {
-    const pd = activeProjectDoc();
-    const id = activeProjectId();
-    if (!pd || !id) return;
-    setExporting(true);
+  const handleRestore = async (file: SyncFile) => {
+    setStatus('loading');
     try {
-      const validToken = await ensureToken();
-      setDbxToken(loadToken());
-      const bak = await exportProjectAsBakV1(
-        id,
-        pd,
-        __APP_VERSION__,
-        deviceId(),
-      );
-      const data = await serializeGzip(bak);
-      const blob = toBlob(data);
-      const filename = `${id}_${timestampSuffix()}.bak.gz`;
-      await upload(validToken, filename, blob);
-      toast.success(s('dropbox.save_done'));
-      await fetchDbxFiles();
-    } catch (err) {
-      toast.error(s('dropbox.error_upload', { msg: (err as Error).message }));
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleDbxRestore = async (file: SyncFile) => {
-    if (!dbxToken()) return;
-    setLoadingDbx(true);
-    try {
-      const validToken = await ensureToken();
-      setDbxToken(loadToken());
-      const blob = await download(validToken, file.name);
+      const t = await ensureToken();
+      const blob = await download(t, file.name);
       const raw = await deserializeGzip(blob);
       const bak = parseBakV1(raw);
       if (!(await props.checkOlderSnapshot(bak))) return;
@@ -109,16 +69,8 @@ const DropboxSection: Component<Props> = (props) => {
       navigate('/loading-backup');
     } catch (err) {
       toast.error(s('dropbox.error_download', { msg: (err as Error).message }));
-    } finally {
-      setLoadingDbx(false);
+      setStatus('loaded');
     }
-  };
-
-  const handleLogin = () => beginOAuth();
-  const handleLogout = () => {
-    clearToken();
-    setDbxToken(null);
-    setDbxFiles([]);
   };
 
   return (
@@ -126,53 +78,54 @@ const DropboxSection: Component<Props> = (props) => {
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <TbOutlineBrandDropbox />
-          <h4 class="m-0">Dropbox</h4>
+          <span class="font-bold">Dropbox</span>
         </div>
         <Show
-          when={dbxToken()}
+          when={token()}
           fallback={
-            <button class="btn-sm btn-border" onClick={handleLogin}>
-              <span class="icon">
-                <TbOutlineLogin />
-              </span>
-              {s('dropbox.login')}
+            <button class="btn-sm btn-border" onClick={beginOAuth}>
+              <TbOutlineLogin /> {s('dropbox.login')}
             </button>
           }
         >
-          <button class="btn-sm btn-ghost" onClick={handleLogout}>
-            <span class="icon">
-              <TbOutlineLogout />
-            </span>
-            {s('dropbox.logout')}
+          <button
+            class="btn-sm btn-ghost"
+            onClick={() => {
+              clearToken();
+              setToken(null);
+              setFiles([]);
+            }}
+          >
+            <TbOutlineLogout /> {s('dropbox.logout')}
           </button>
         </Show>
       </div>
 
       <Show
-        when={dbxToken()}
+        when={token()}
         fallback={<p class="hint m-0">{s('dropbox.not_connected')}</p>}
       >
-        {(token) => (
+        {(tok) => (
           <div class="backup-token-box">
             <div class="flex items-center justify-between">
               <div class="flex flex-column">
                 <span class="font-bold">
-                  {token().displayName || s('dropbox.no_account_info')}
+                  {tok().displayName || s('dropbox.no_account_info')}
                 </span>
                 <span class="backup-expiry">
-                  {formatExpiry(token().expiresAt)}
+                  {formatExpiry(tok().expiresAt)}
                 </span>
               </div>
               <div class="backup-token-actions">
                 <button
                   class="sb-icon-btn"
                   title={s('dropbox.load_list')}
-                  onClick={fetchDbxFiles}
-                  disabled={loadingDbx()}
+                  onClick={fetchFiles}
+                  disabled={status() === 'loading'}
                 >
                   <div class="btn-pad">
                     <TbOutlineRefresh
-                      class={loadingDbx() ? 'animate-spin' : ''}
+                      class={status() === 'loading' ? 'animate-spin' : ''}
                     />
                   </div>
                 </button>
@@ -188,20 +141,6 @@ const DropboxSection: Component<Props> = (props) => {
                 </a>
               </div>
             </div>
-
-            <hr class="separator-line" style={{ margin: '4px 0' }} />
-
-            <button
-              class="btn-primary btn-sm"
-              disabled={exporting() || !activeProjectDoc()}
-              onClick={handleDbxBackup}
-            >
-              <span class="icon">
-                <TbOutlineUpload />
-              </span>
-              {exporting() ? s('dropbox.saving') : s('dropbox.save_project')}
-            </button>
-
             <div class="flex items-center justify-between mt-1">
               <span class="backup-list-hint">{s('dropbox.list_hint')}</span>
               <label class="backup-show-all-label">
@@ -210,29 +149,30 @@ const DropboxSection: Component<Props> = (props) => {
                   checked={showAll()}
                   onChange={(e) => {
                     setShowAll(e.currentTarget.checked);
-                    fetchDbxFiles();
+                    fetchFiles();
                   }}
                 />
                 {s('dropbox.show_all')}
               </label>
             </div>
-
             <div class="flex flex-column gap-1 mt-1">
               <For
-                each={dbxFiles()}
+                each={files()}
                 fallback={
                   <p class="hint text-center py-2">
-                    {loadingDbx()
+                    {status() === 'loading'
                       ? s('dropbox.loading_list')
-                      : s('dropbox.no_files')}
+                      : status() === 'idle'
+                        ? s('backup.load_hint_refresh')
+                        : s('dropbox.no_files')}
                   </p>
                 }
               >
                 {(file) => (
                   <button
                     class="btn-ghost btn-sm backup-file-btn"
-                    onClick={() => handleDbxRestore(file)}
-                    disabled={loadingDbx()}
+                    onClick={() => handleRestore(file)}
+                    disabled={status() === 'loading'}
                   >
                     <span class="backup-file-name">{file.name}</span>
                     <span class="backup-file-meta">
@@ -250,4 +190,4 @@ const DropboxSection: Component<Props> = (props) => {
   );
 };
 
-export default DropboxSection;
+export default DropboxLoadSection;

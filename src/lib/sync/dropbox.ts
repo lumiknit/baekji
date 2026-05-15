@@ -268,6 +268,30 @@ export async function download(token: SyncToken, name: string): Promise<Blob> {
   return res.blob();
 }
 
+/** Delete files by their Dropbox IDs (id:xxx). Falls back to path if needed. */
+export async function remove(
+  token: SyncToken,
+  files: SyncFile[],
+): Promise<void> {
+  await Promise.all(
+    files.map(async (f) => {
+      const path = f.id.startsWith('id:') ? f.id : `/${f.name}`;
+      const res = await fetch(`${API_URL}/files/delete_v2`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ path }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        dbxError(`Delete failed (${f.name}): ${parseApiError(json)}`, json);
+      }
+    }),
+  );
+}
+
 // ─── Account ──────────────────────────────────────────────────
 
 export interface DropboxAccount {

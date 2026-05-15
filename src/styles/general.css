@@ -123,5 +123,5 @@ a:hover {
 .separator-line {
   border: none;
   border-top: 1px solid var(--border);
-  margin: var(--sp-6) 0;
+  margin: var(--sp-3) 0;
 }

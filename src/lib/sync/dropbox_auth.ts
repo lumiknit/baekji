@@ -16,6 +16,7 @@ import {
   persistedTokenSchema,
   syncTokenSchema,
   dropboxPkceStateSchema,
+  PENDING_PROVIDER_KEY,
 } from './interface';
 import type { SyncToken, PersistedToken } from './interface';
 
@@ -120,6 +121,7 @@ export async function beginOAuth(): Promise<void> {
   const cfg = getDropboxConfig();
   const { url, state } = await startAuth(cfg);
   sessionStorage.setItem(PKCE_KEY, JSON.stringify(state));
+  localStorage.setItem(PENDING_PROVIDER_KEY, 'dropbox');
   location.href = url;
 }
 

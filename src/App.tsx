@@ -16,8 +16,10 @@ import SearchPage from './pages/SearchPage';
 import LoadingBackupPage from './pages/LoadingBackupPage';
 import ComparePage from './pages/ComparePage';
 import LogsPage from './pages/LogsPage';
+import RemotePage from './pages/RemotePage';
 import { updateRootStyle } from './state/settings';
-import { handleCallback } from './lib/sync/dropbox_auth';
+import { handleRedirect } from './lib/sync/auth_redirect';
+import { PENDING_PROVIDER_KEY } from './lib/sync/interface';
 import { s } from './lib/i18n';
 import { logError, logInfo } from './state/log';
 
@@ -29,20 +31,27 @@ const App: Component = () => {
       const params = new URLSearchParams(location.search);
       const code = params.get('code');
       if (code) {
+        const pendingProvider =
+          localStorage.getItem(PENDING_PROVIDER_KEY) ?? 'dropbox';
         try {
-          await handleCallback(code);
+          await handleRedirect(code);
         } catch (err) {
-          logError('App:DropboxCallback', err);
+          logError('App:OAuthCallback', err);
           setTimeout(() => {
             const error = err as { message?: string };
             const key = error?.message ?? '';
-            const msg = key.startsWith('dropbox.')
-              ? s(key)
-              : s('dropbox.error_auth_callback');
+            const fallback =
+              pendingProvider === 'gdrive'
+                ? s('gdrive.error_auth_callback')
+                : s('dropbox.error_auth_callback');
+            const msg =
+              key.startsWith('dropbox.') || key.startsWith('gdrive.')
+                ? s(key)
+                : fallback;
             toast.error(msg, { duration: 6000 });
           }, 500);
         }
-        history.replaceState(null, '', location.pathname + '#/settings');
+        history.replaceState(null, '', location.pathname + '#/remote');
       }
 
       if (!(await navigator.storage.persisted())) {
@@ -69,6 +78,7 @@ const App: Component = () => {
         <Route path="/loading-backup" component={LoadingBackupPage} />
         <Route path="/compare/:idA/:idB" component={ComparePage} />
         <Route path="/logs" component={LogsPage} />
+        <Route path="/remote" component={RemotePage} />
       </HashRouter>
     </>
   );

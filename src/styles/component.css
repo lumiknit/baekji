@@ -706,6 +706,10 @@
   color: var(--hr);
 }
 
+.sl-item-preview__heading {
+  font-weight: bold;
+}
+
 .sl-item-date {
   font-size: var(--fs-xs);
   color: var(--hr);

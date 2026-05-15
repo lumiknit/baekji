@@ -1,6 +1,14 @@
 import type { Component } from 'solid-js';
-import { createSignal, createEffect, For, Show } from 'solid-js';
+import {
+  createSignal,
+  createEffect,
+  For,
+  Show,
+  onMount,
+  onCleanup,
+} from 'solid-js';
 import { useNavigate } from '@solidjs/router';
+import * as Y from 'yjs';
 import {
   TbOutlineDotsVertical,
   TbFillTrash,
@@ -10,16 +18,13 @@ import {
   TbOutlineTag,
   TbOutlineSquareArrowUp,
   TbOutlineSquareArrowDown,
+  TbOutlineCopy,
   TbOutlineFileExport,
   TbOutlineCheck,
 } from 'solid-icons/tb';
 import { withSheetDoc } from '../../lib/doc/docCache';
 import type { SheetMeta } from '../../lib/doc/v1';
-import {
-  activeSheetId,
-  activeProjectDoc,
-  activeSheetDoc,
-} from '../../state/workspace_v1';
+import { activeSheetId, activeProjectDoc } from '../../state/workspace_v1';
 import { setSidebarOpen, showUpdatedAt } from '../../state/workspace';
 import {
   softDeleteSheet,
@@ -33,6 +38,7 @@ import {
   rangeSelect,
   filteredSheets,
   createSheet,
+  createSheetWithContent,
   isSelectMode,
   enterSelectMode,
 } from '../../state/sheet_list';
@@ -41,11 +47,42 @@ import { showConfirm, showTagEdit } from '../../state/modal';
 import Dropdown from '../Dropdown';
 import { s } from '../../lib/i18n';
 
+type PreviewLine = { text: string; heading: boolean };
+
 function stripMarkdown(line: string): string {
   return line
     .replace(/^#{1,6}\s+/, '')
     .replace(/[*_~`]/g, '')
     .trim();
+}
+
+function extractPreview(text: string): PreviewLine[] {
+  const lines = text
+    .split('\n')
+    .filter((l) => l.trim().length > 0)
+    .slice(0, 2);
+  let remaining = 128;
+  return lines.flatMap((l) => {
+    if (remaining <= 0) return [];
+    const heading = /^#{1,6}\s/.test(l);
+    const stripped = stripMarkdown(l).slice(0, remaining);
+    remaining -= stripped.length;
+    return stripped ? [{ text: stripped, heading }] : [];
+  });
+}
+
+function extractPreviewFromYText(content: Y.Text): PreviewLine[] {
+  let buf = '';
+  for (const op of content.toDelta() as Array<{ insert?: unknown }>) {
+    if (typeof op.insert === 'string') {
+      buf += op.insert;
+      const nonEmpty = buf.split('\n').filter((l) => l.trim().length > 0);
+      if (nonEmpty.length >= 2)
+        return extractPreview(nonEmpty.slice(0, 2).join('\n'));
+    }
+    if (buf.length > 128) break;
+  }
+  return extractPreview(buf);
 }
 
 interface Props {
@@ -56,44 +93,47 @@ interface Props {
 
 const SheetItem: Component<Props> = (props) => {
   const navigate = useNavigate();
-  const [preview, setPreview] = createSignal<string | null>(null);
+  const [preview, setPreview] = createSignal<PreviewLine[] | null>(null);
   const [menuOpen, setMenuOpen] = createSignal(false);
+  const [everVisible, setEverVisible] = createSignal(false);
   const isActive = () => activeSheetId() === props.sheet.id;
+
+  let itemRef: HTMLDivElement | undefined;
 
   const isLast = () => {
     const sheets = liveSheets();
     return sheets[sheets.length - 1]?.id === props.sheet.id;
   };
 
-  const extractPreview = (text: string) => {
-    const lines = text
-      .slice(0, 300)
-      .split('\n')
-      .map(stripMarkdown)
-      .filter((l) => l.length > 0)
-      .slice(0, 2);
-    return lines.join('\n') || '';
-  };
-
   const fetchPreview = async () => {
-    const text = await withSheetDoc(props.sheet.id, async (sd) =>
-      sd.content.toString(),
+    const lines = await withSheetDoc(props.sheet.id, async (sd) =>
+      extractPreviewFromYText(sd.content),
     );
-    setPreview(extractPreview(text));
+    setPreview(lines);
   };
 
-  createEffect(() => {
-    void props.sheet.updatedAt;
-    fetchPreview();
+  // lazy load: fetch once when the item enters the viewport
+  onMount(() => {
+    const el = itemRef;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setEverVisible(true);
+          fetchPreview();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(el);
+    onCleanup(() => observer.disconnect());
   });
 
+  // re-fetch on updatedAt change, but only after the first load
   createEffect(() => {
-    if (activeSheetId() !== props.sheet.id) return;
-    const sd = activeSheetDoc();
-    if (!sd) return;
-    const onUpdate = () => setPreview(extractPreview(sd.content.toString()));
-    sd.content.observe(onUpdate);
-    return () => sd.content.unobserve(onUpdate);
+    void props.sheet.updatedAt;
+    if (everVisible()) fetchPreview();
   });
 
   const openMenu = () => {
@@ -140,6 +180,16 @@ const SheetItem: Component<Props> = (props) => {
     const nextTags = await showTagEdit(s('sheet.edit_tags'), props.sheet.tags);
     if (nextTags === null) return;
     updateSheetTags(props.sheet.id, nextTags);
+  };
+
+  const handleDuplicate = async () => {
+    const text = await withSheetDoc(props.sheet.id, async (sd) =>
+      sd.content.toString(),
+    );
+    const id = await createSheetWithContent([...props.sheet.tags], text, {
+      after: props.sheet.id,
+    });
+    if (id) navigate(`/sheets/${id}`);
   };
 
   const handleDeletePermanently = async () => {
@@ -195,6 +245,11 @@ const SheetItem: Component<Props> = (props) => {
           if (id) navigate(`/sheets/${id}`);
         },
       },
+      {
+        icon: TbOutlineCopy,
+        label: s('sidebar.duplicate_sheet'),
+        onSelect: handleDuplicate,
+      },
       { separator: true as const },
     ];
     if (!isLast()) {
@@ -215,6 +270,9 @@ const SheetItem: Component<Props> = (props) => {
 
   return (
     <div
+      ref={(el) => {
+        itemRef = el;
+      }}
       id={`sheet-item-${props.sheet.id}`}
       class={`sl-item${isActive() ? ' sl-item--active' : ''}${props.isTrash ? ' sl-item--trash' : ''}${isSelected(props.sheet.id) ? ' sl-item--selected' : ''}${menuOpen() ? ' sl-item--open' : ''}`}
       onClick={handleClick}
@@ -250,9 +308,29 @@ const SheetItem: Component<Props> = (props) => {
           </div>
         </Show>
         <div
-          class={`sl-item-preview${preview() === null ? ' sl-item-preview--loading' : ''}${preview() === '' ? ' sl-item-preview--empty' : ''}`}
+          class={`sl-item-preview${preview() === null ? ' sl-item-preview--loading' : ''}${preview()?.length === 0 ? ' sl-item-preview--empty' : ''}`}
         >
-          {preview() === null ? '…' : preview() || s('sheet.empty_content')}
+          <Show when={preview() !== null} fallback="…">
+            <Show
+              when={preview()!.length > 0}
+              fallback={s('sheet.empty_content')}
+            >
+              <For each={preview()}>
+                {(line, i) => (
+                  <>
+                    <Show when={i() > 0}>{'\n'}</Show>
+                    <span
+                      class={
+                        line.heading ? 'sl-item-preview__heading' : undefined
+                      }
+                    >
+                      {line.text}
+                    </span>
+                  </>
+                )}
+              </For>
+            </Show>
+          </Show>
         </div>
         <Show when={showUpdatedAt()}>
           <div class="sl-item-date">

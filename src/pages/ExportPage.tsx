@@ -18,44 +18,54 @@ import MarkdownIt from 'markdown-it';
 import DOMPurify from 'dompurify';
 
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
+const mdExport = new MarkdownIt({
+  html: true,
+  linkify: true,
+  typographer: true,
+});
 
-type ExportFormat = 'markdown' | 'text' | 'html';
-type SheetData = { label: string; text: string };
+type ExportFormat = 'markdown' | 'text' | 'html' | 'docx';
+type SheetData = { label: string; tags: string[]; text: string };
 
-function sheetsToMarkdown(sheets: SheetData[], joiner: string): string {
-  return sheets
+const SEP_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Newlines', value: '\n\n' },
+  { label: '---', value: '\n\n---\n\n' },
+  { label: '***', value: '\n\n***\n\n' },
+  { label: '----------', value: '\n\n----------\n\n' },
+  { label: '**********', value: '\n\n**********\n\n' },
+];
+
+function buildMarkdown(
+  sheets: SheetData[],
+  joiner: string,
+  includeHeader: boolean,
+): string {
+  const parts = sheets
     .filter((s) => s.text.trim())
-    .map((s) => s.text.trim())
-    .join(joiner);
+    .map((s, i) => {
+      const content = s.text.trim();
+      if (!includeHeader) return content;
+      const header = `<!---\n${JSON.stringify({ index: i, tags: s.tags })}\n-->`;
+      return `${header}\n${content}`;
+    });
+  return parts.join(joiner);
 }
 
-function sheetsToText(sheets: SheetData[]): string {
-  return sheets
-    .filter((s) => s.text.trim())
-    .map((s) =>
-      s.text
-        .replace(/^#{1,6}\s+/gm, '')
-        .replace(/[*_~`]/g, '')
-        .trim(),
-    )
-    .join('\n\n');
+function markdownToText(markdown: string): string {
+  const html = mdExport.render(markdown);
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  const blocks = div.querySelectorAll(
+    'p, h1, h2, h3, h4, h5, h6, li, hr, blockquote, pre',
+  );
+  for (const el of blocks) {
+    el.prepend('\n');
+  }
+  return div.textContent?.trim() ?? '';
 }
 
-function sheetsToHtml(sheets: SheetData[], title: string): string {
-  const body = sheets
-    .filter((s) => s.text.trim())
-    .map((s) => {
-      return s.text
-        .trim()
-        .split(/\n\n+/)
-        .map((p) => {
-          const hm = p.trim().match(/^(#{1,6})\s+(.*)/);
-          if (hm) return `<h${hm[1].length}>${hm[2]}</h${hm[1].length}>`;
-          return `<p>${p.trim().replace(/\n/g, '<br>')}</p>`;
-        })
-        .join('\n');
-    })
-    .join('\n<hr>\n');
+function markdownToHtml(markdown: string, title: string): string {
+  const body = DOMPurify.sanitize(mdExport.render(markdown));
   return `<!DOCTYPE html>\n<html lang="ko">\n<head><meta charset="utf-8"><title>${title}</title></head>\n<body>\n${body}\n</body>\n</html>`;
 }
 
@@ -72,22 +82,29 @@ const ExportPage: Component = () => {
 
   const [format, setFormat] = createSignal<ExportFormat>('markdown');
   const [joiner, setJoiner] = createSignal('\n\n---\n\n');
+  const [includeHeader, setIncludeHeader] = createSignal(true);
   const [loading, setLoading] = createSignal(false);
   const [data, setData] = createSignal<SheetData[] | null>(null);
   const [preview, setPreview] = createSignal<string | null>(null);
   const [previewHtml, setPreviewHtml] = createSignal<string | null>(null);
 
-  const buildPreview = (d: SheetData[], fmt: ExportFormat, j: string) => {
-    const text =
-      fmt === 'markdown'
-        ? sheetsToMarkdown(d, j)
-        : fmt === 'text'
-          ? sheetsToText(d)
-          : sheetsToHtml(d, activeProjectLabel());
-    setPreview(text);
+  const buildPreview = (
+    d: SheetData[],
+    fmt: ExportFormat,
+    j: string,
+    header: boolean,
+  ) => {
+    const mdText = buildMarkdown(d, j, header);
     if (fmt === 'markdown') {
-      setPreviewHtml(DOMPurify.sanitize(md.render(text)));
+      setPreview(mdText);
+      setPreviewHtml(DOMPurify.sanitize(md.render(mdText)));
+    } else if (fmt === 'text') {
+      const text = markdownToText(mdText);
+      setPreview(text);
+      setPreviewHtml(null);
     } else {
+      const html = markdownToHtml(mdText, activeProjectLabel());
+      setPreview(html);
       setPreviewHtml(null);
     }
   };
@@ -116,6 +133,7 @@ const ExportPage: Component = () => {
         );
         result.push({
           label: sheet.tags[0] ?? sheet.id.slice(0, 8),
+          tags: sheet.tags,
           text,
         });
       }
@@ -129,7 +147,7 @@ const ExportPage: Component = () => {
         error: s('common.export_error'),
       });
       setData(result);
-      buildPreview(result, format(), joiner());
+      buildPreview(result, format(), joiner(), includeHeader());
     } finally {
       setLoading(false);
     }
@@ -153,23 +171,30 @@ const ExportPage: Component = () => {
 
   const handleFormatChange = (fmt: ExportFormat) => {
     const d = data();
-    if (d) buildPreview(d, fmt, joiner());
+    if (d) buildPreview(d, fmt, joiner(), includeHeader());
     setFormat(fmt);
   };
 
   const handleJoinerChange = (j: string) => {
     setJoiner(j);
     const d = data();
-    if (d) buildPreview(d, format(), j);
+    if (d) buildPreview(d, format(), j, includeHeader());
+  };
+
+  const handleIncludeHeaderChange = (v: boolean) => {
+    setIncludeHeader(v);
+    const d = data();
+    if (d) buildPreview(d, format(), joiner(), v);
   };
 
   const getExportContent = () => {
     const d = data();
     if (!d) return null;
+    const mdText = buildMarkdown(d, joiner(), includeHeader());
     const fmt = format();
-    if (fmt === 'markdown') return sheetsToMarkdown(d, joiner());
-    if (fmt === 'text') return sheetsToText(d);
-    return sheetsToHtml(d, activeProjectLabel());
+    if (fmt === 'markdown') return mdText;
+    if (fmt === 'text') return markdownToText(mdText);
+    return markdownToHtml(mdText, activeProjectLabel());
   };
 
   const handleCopy = async () => {
@@ -224,10 +249,30 @@ const ExportPage: Component = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const d = data();
     if (!d) return;
     const fmt = format();
+
+    if (fmt === 'docx') {
+      try {
+        const mdText = buildMarkdown(d, joiner(), includeHeader());
+        const bodyHtml = mdExport.render(mdText);
+        const { convert } = await import('../lib/html_to_docx');
+        const blob = await convert(bodyHtml);
+        const url = URL.createObjectURL(blob as Blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${activeProjectLabel()}.docx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success(s('project.export_download'));
+      } catch {
+        toast.error(s('common.export_error'));
+      }
+      return;
+    }
+
     const content = getExportContent();
     if (!content) return;
 
@@ -299,19 +344,27 @@ const ExportPage: Component = () => {
           <option value="markdown">Markdown (.md)</option>
           <option value="text">{s('project.export_text')} (.txt)</option>
           <option value="html">HTML (.html)</option>
+          <option value="docx">Word (.docx)</option>
         </select>
 
-        <Show when={format() === 'markdown'}>
-          <select
-            class="pj-format-select"
-            value={joiner()}
-            onChange={(e) => handleJoinerChange(e.currentTarget.value)}
-          >
-            <option value={'\n\n'}>Double Newline (\n\n)</option>
-            <option value={'\n\n---\n\n'}>Horizontal Rule (\n\n---\n\n)</option>
-            <option value={'\n\n***\n\n'}>Asterisk Rule (\n\n***\n\n)</option>
-          </select>
-        </Show>
+        <select
+          class="pj-format-select"
+          value={joiner()}
+          onChange={(e) => handleJoinerChange(e.currentTarget.value)}
+        >
+          {SEP_OPTIONS.map((opt) => (
+            <option value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+
+        <label class="pj-checkbox-label">
+          <input
+            type="checkbox"
+            checked={includeHeader()}
+            onChange={(e) => handleIncludeHeaderChange(e.currentTarget.checked)}
+          />
+          HTML Comment Header
+        </label>
 
         <button
           class="btn-primary"
@@ -326,7 +379,7 @@ const ExportPage: Component = () => {
 
         <button
           class="btn-border"
-          disabled={!data() || loading()}
+          disabled={!data() || loading() || format() === 'docx'}
           onClick={handleCopy}
           title={s('common.copy')}
         >
@@ -338,7 +391,9 @@ const ExportPage: Component = () => {
 
         <button
           class="btn-border"
-          disabled={!data() || loading() || !navigator.share}
+          disabled={
+            !data() || loading() || !navigator.share || format() === 'docx'
+          }
           onClick={handleShare}
           title={s('common.share')}
         >

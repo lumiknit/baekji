@@ -22,6 +22,17 @@ export const dropboxPkceStateSchema = z.object({
   codeVerifier: z.string(),
 });
 
+export const pkceStateSchema = z.object({
+  codeVerifier: z.string(),
+});
+
+export type PkceState = z.infer<typeof pkceStateSchema>;
+
+export type SyncProvider = 'dropbox' | 'gdrive';
+
+/** localStorage key written before OAuth redirect so handleRedirect knows which provider to call. */
+export const PENDING_PROVIDER_KEY = 'sync_pending_provider';
+
 export interface SyncFile {
   id: string;
   name: string;
