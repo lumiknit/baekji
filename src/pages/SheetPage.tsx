@@ -1,13 +1,5 @@
 import type { Component } from 'solid-js';
-import {
-  createSignal,
-  createEffect,
-  on,
-  onMount,
-  onCleanup,
-  Show,
-  For,
-} from 'solid-js';
+import { createSignal, createEffect, on, onCleanup, Show, For } from 'solid-js';
 import { useParams, useNavigate } from '@solidjs/router';
 import { activeProjectDoc } from '../state/workspace_v1';
 import { updateSheetTags, splitSheet } from '../state/sheet_list';
@@ -57,11 +49,12 @@ const SheetPage: Component = () => {
     ),
   );
 
-  onMount(() => {
+  createEffect(() => {
     const pd = activeProjectDoc();
+    if (!pd) return;
     const metaHandler = () => syncMeta();
-    pd?.sheets.observe(metaHandler);
-    onCleanup(() => pd?.sheets.unobserve(metaHandler));
+    pd.sheets.observe(metaHandler);
+    onCleanup(() => pd.sheets.unobserve(metaHandler));
   });
 
   const handleUpdateTags = (tags: string[]) => {

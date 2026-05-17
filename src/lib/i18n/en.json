@@ -156,6 +156,13 @@
     "reading_time": "Reading Time"
   },
   "about": {
+    "title": "About",
+    "privacy": "Privacy",
+    "privacy_desc1": "Baekji collects no data. By default, everything you write is stored only on this device using IndexedDB — no servers, no analytics, no third parties.",
+    "privacy_desc2": "If you enable cloud sync (e.g. Dropbox), files are read from and written to the app folder of your own account on that service. No data is shared with anyone else.",
+    "privacy_desc3": "If you clear your browser data, your content will be permanently lost. Use the backup feature regularly. When you export or share files, that data leaves the app and is outside our control.",
+    "full_privacy": "Full privacy policy →",
+    "back_home": "← Home",
     "shortcuts_title": "Keyboard Shortcuts",
     "shortcut_save": "Save",
     "shortcut_sidebar": "Toggle sidebar",
@@ -163,6 +170,9 @@
     "shortcut_redo": "Redo",
     "shortcut_bold": "Bold",
     "shortcut_italic": "Italic"
+  },
+  "logs": {
+    "title": "System Logs"
   },
   "settings": {
     "title": "Settings",
@@ -255,6 +265,7 @@
     "export_preview": "Preview",
     "export_preparing": "Preparing…",
     "export_download": "Download",
+    "export_html_header": "HTML Comment Header",
     "export_count": "({{count}})",
     "export_filter_count": "(filtered: {{count}})",
     "tag_colors_title": "Tag Colors",

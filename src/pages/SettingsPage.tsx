@@ -162,7 +162,7 @@ const SettingsPage: Component = () => {
       <div class="flex items-center justify-between">
         <h1 class="m-0">{s('settings.title')}</h1>
         <A href="/about" class="btn-skeleton">
-          About
+          {s('about.title')}
         </A>
       </div>
 
@@ -342,7 +342,7 @@ const SettingsPage: Component = () => {
         <section class="mt-32">
           <hr class="separator-line" />
           <div class="danger-zone">
-            <p class="danger-zone-title">Danger Zone</p>
+            <p class="danger-zone-title">{s('project.danger_title')}</p>
 
             <div class="flex justify-between items-center">
               <Show
@@ -385,7 +385,7 @@ const SettingsPage: Component = () => {
           </div>
           <div class="mt-32 opacity-50 text-center">
             <A href="/logs" class="btn-skeleton">
-              View System Logs
+              {s('logs.title')}
             </A>
           </div>
         </section>

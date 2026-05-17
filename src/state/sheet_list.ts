@@ -111,10 +111,27 @@ createRoot(() => {
 
     const sheetsMap = pd.sheets;
     const handler = () => {
-      setAllSheets(Array.from(sheetsMap.values()));
+      const newValues = Array.from(sheetsMap.values());
+      setAllSheets((prev) => {
+        const prevMap = new Map(prev.map((s) => [s.id, s]));
+        return newValues.map((newVal) => {
+          const oldVal = prevMap.get(newVal.id);
+          if (
+            oldVal &&
+            oldVal.updatedAt === newVal.updatedAt &&
+            oldVal.orderKey === newVal.orderKey &&
+            oldVal.deletedAt === newVal.deletedAt &&
+            oldVal.tags.length === newVal.tags.length &&
+            oldVal.tags.every((t, i) => t === newVal.tags[i])
+          ) {
+            return oldVal;
+          }
+          return newVal;
+        });
+      });
     };
     sheetsMap.observe(handler);
-    setAllSheets(Array.from(sheetsMap.values()));
+    handler();
     unobserve = () => sheetsMap.unobserve(handler);
   });
 });

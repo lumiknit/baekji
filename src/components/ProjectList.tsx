@@ -111,7 +111,7 @@ const ProjectList: Component = () => {
             <span class="icon">
               <TbOutlinePlus />
             </span>
-            새 프로젝트
+            {s('project.new_project')}
           </div>
         </button>
 

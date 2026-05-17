@@ -363,7 +363,7 @@ const ExportPage: Component = () => {
             checked={includeHeader()}
             onChange={(e) => handleIncludeHeaderChange(e.currentTarget.checked)}
           />
-          HTML Comment Header
+          {s('project.export_html_header')}
         </label>
 
         <button

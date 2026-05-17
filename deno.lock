@@ -7,11 +7,11 @@
     "npm:@codemirror/search@^6.7.0": "6.7.0",
     "npm:@codemirror/state@^6.6.0": "6.6.0",
     "npm:@codemirror/view@^6.43.0": "6.43.0",
-    "npm:@eslint/js@^10.0.1": "10.0.1_eslint@10.3.0",
+    "npm:@eslint/js@^10.0.1": "10.0.1_eslint@10.4.0",
     "npm:@lezer/markdown@^1.6.3": "1.6.3",
-    "npm:@solid-primitives/media@^2.3.5": "2.3.5_solid-js@1.9.12",
-    "npm:@solid-primitives/storage@^4.3.4": "4.3.4_solid-js@1.9.12",
-    "npm:@solidjs/router@~0.16.1": "0.16.1_solid-js@1.9.12",
+    "npm:@solid-primitives/media@^2.3.5": "2.3.5_solid-js@1.9.13",
+    "npm:@solid-primitives/storage@^4.3.4": "4.3.4_solid-js@1.9.13",
+    "npm:@solidjs/router@~0.16.1": "0.16.1_solid-js@1.9.13",
     "npm:@types/dompurify@^3.2.0": "3.2.0",
     "npm:@types/markdown-it@^14.1.2": "14.1.2",
     "npm:@types/node@^24.12.4": "24.12.4",
@@ -19,20 +19,20 @@
     "npm:diff@9": "9.0.0",
     "npm:docx@^9.6.1": "9.6.1",
     "npm:dompurify@^3.4.3": "3.4.3",
-    "npm:eslint@^10.3.0": "10.3.0",
+    "npm:eslint@^10.4.0": "10.4.0",
     "npm:globals@^17.6.0": "17.6.0",
     "npm:idb@^8.0.3": "8.0.3",
     "npm:localforage@^1.10.0": "1.10.0",
     "npm:markdown-it@^14.1.1": "14.1.1",
     "npm:prettier@^3.8.3": "3.8.3",
-    "npm:solid-icons@^1.2.0": "1.2.0_solid-js@1.9.12",
-    "npm:solid-js@^1.9.12": "1.9.12",
-    "npm:solid-toast@0.5": "0.5.0_solid-js@1.9.12",
+    "npm:solid-icons@^1.2.0": "1.2.0_solid-js@1.9.13",
+    "npm:solid-js@^1.9.13": "1.9.13",
+    "npm:solid-toast@0.5": "0.5.0_solid-js@1.9.13",
     "npm:sortablejs@^1.15.7": "1.15.7",
-    "npm:typescript-eslint@^8.59.3": "8.59.3_eslint@10.3.0_typescript@6.0.3",
+    "npm:typescript-eslint@^8.59.3": "8.59.3_eslint@10.4.0_typescript@6.0.3",
     "npm:typescript@~6.0.3": "6.0.3",
     "npm:vite-bundle-visualizer@^1.2.1": "1.2.1",
-    "npm:vite-plugin-solid@^2.11.12": "2.11.12_solid-js@1.9.12_vite@8.0.13__@types+node@24.12.4_@types+node@24.12.4",
+    "npm:vite-plugin-solid@^2.11.12": "2.11.12_solid-js@1.9.13_vite@8.0.13__@types+node@24.12.4_@types+node@24.12.4",
     "npm:vite@^8.0.13": "8.0.13_@types+node@24.12.4",
     "npm:vitest@^4.1.6": "4.1.6_@types+node@24.12.4_vite@8.0.13__@types+node@24.12.4",
     "npm:y-codemirror.next@~0.3.5": "0.3.5_@codemirror+state@6.6.0_@codemirror+view@6.43.0_yjs@13.6.30",
@@ -304,7 +304,7 @@
         "tslib"
       ]
     },
-    "@eslint-community/eslint-utils@4.9.1_eslint@10.3.0": {
+    "@eslint-community/eslint-utils@4.9.1_eslint@10.4.0": {
       "integrity": "sha512-phrYmNiYppR7znFEdqgfWHXR6NCkZEK7hwWDHZUjit/2/U0r6XvkDl0SYnoM51Hq7FhCGdLDT6zxCCOY1hexsQ==",
       "dependencies": [
         "eslint",
@@ -322,8 +322,8 @@
         "minimatch"
       ]
     },
-    "@eslint/config-helpers@0.5.5": {
-      "integrity": "sha512-eIJYKTCECbP/nsKaaruF6LW967mtbQbsw4JTtSVkUQc9MneSkbrgPJAbKl9nWr0ZeowV8BfsarBmPpBzGelA2w==",
+    "@eslint/config-helpers@0.6.0": {
+      "integrity": "sha512-ii6Bw9jJ2zi2cWA2Z+9/QZ/+3DX6kwaV5Q986D/CdP3Lap3w/pgQZ373FV7byY/i7L4IRH/G43I5dz1ClsCbpA==",
       "dependencies": [
         "@eslint/core"
       ]
@@ -334,7 +334,7 @@
         "@types/json-schema"
       ]
     },
-    "@eslint/js@10.0.1_eslint@10.3.0": {
+    "@eslint/js@10.0.1_eslint@10.4.0": {
       "integrity": "sha512-zeR9k5pd4gxjZ0abRoIaxdc7I3nDktoXZk2qOv9gCNWx3mVwEn32VRhyLaRsDiJjTs0xq/T8mfPtyuXu7GWBcA==",
       "dependencies": [
         "eslint"
@@ -545,14 +545,14 @@
     "@rolldown/pluginutils@1.0.0": {
       "integrity": "sha512-aKs/3GSWyV0mrhNmt/96/Z3yczC3yvrzYATCiCXQebBsGyYzjNdUphRVLeJQ67ySKVXRfMxt2lm12pmXvbPFQQ=="
     },
-    "@solid-primitives/event-listener@2.4.5_solid-js@1.9.12": {
+    "@solid-primitives/event-listener@2.4.5_solid-js@1.9.13": {
       "integrity": "sha512-nwRV558mIabl4yVAhZKY8cb6G+O1F0M6Z75ttTu5hk+SxdOnKSGj+eetDIu7Oax1P138ZdUU01qnBPR8rnxaEA==",
       "dependencies": [
         "@solid-primitives/utils",
         "solid-js"
       ]
     },
-    "@solid-primitives/media@2.3.5_solid-js@1.9.12": {
+    "@solid-primitives/media@2.3.5_solid-js@1.9.13": {
       "integrity": "sha512-LX9fB5WDaK87FMDtUB1qokBOfT2et9Uobv/zZaKLH9caFSz4+P70MBKEIBHcZQy+9MV5M2XvGYLTbLskjkzMjA==",
       "dependencies": [
         "@solid-primitives/event-listener",
@@ -562,34 +562,34 @@
         "solid-js"
       ]
     },
-    "@solid-primitives/rootless@1.5.3_solid-js@1.9.12": {
+    "@solid-primitives/rootless@1.5.3_solid-js@1.9.13": {
       "integrity": "sha512-N8cIDAHbWcLahNRLr0knAAQvXyEdEMoAZvIMZKmhNb1mlx9e2UOv9BRD5YNwQUJwbNoYVhhLwFOEOcVXFx0HqA==",
       "dependencies": [
         "@solid-primitives/utils",
         "solid-js"
       ]
     },
-    "@solid-primitives/static-store@0.1.3_solid-js@1.9.12": {
+    "@solid-primitives/static-store@0.1.3_solid-js@1.9.13": {
       "integrity": "sha512-uxez7SXnr5GiRnzqO2IEDjOJRIXaG+0LZLBizmUA1FwSi+hrpuMzVBwyk70m4prcl8X6FDDXUl9O8hSq8wHbBQ==",
       "dependencies": [
         "@solid-primitives/utils",
         "solid-js"
       ]
     },
-    "@solid-primitives/storage@4.3.4_solid-js@1.9.12": {
+    "@solid-primitives/storage@4.3.4_solid-js@1.9.13": {
       "integrity": "sha512-GSxPAIuyxhJWOcv7n10iv3aid5oHN3KUgyA9IV0GYWlPpgyGs43aS9E85b0VXDLoH+D4ThNK8+2WEJ8B/S6Ccg==",
       "dependencies": [
         "@solid-primitives/utils",
         "solid-js"
       ]
     },
-    "@solid-primitives/utils@6.4.0_solid-js@1.9.12": {
+    "@solid-primitives/utils@6.4.0_solid-js@1.9.13": {
       "integrity": "sha512-AeGTBg8Wtkh/0s+evyLtP8piQoS4wyqqQaAFs2HJcFMMjYAtUgo+ZPduRXLjPlqKVc2ejeR544oeqpbn8Egn8A==",
       "dependencies": [
         "solid-js"
       ]
     },
-    "@solidjs/router@0.16.1_solid-js@1.9.12": {
+    "@solidjs/router@0.16.1_solid-js@1.9.13": {
       "integrity": "sha512-IhyjedgC6LRpw/8CPGGI89FrV+r0xTHzOl2c4CRyzYQ1bLepJxbVI1LLKvsavMWY5TRBRacV7hAeOhuTXkjiqg==",
       "dependencies": [
         "solid-js"
@@ -690,7 +690,7 @@
     "@types/trusted-types@2.0.7": {
       "integrity": "sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw=="
     },
-    "@typescript-eslint/eslint-plugin@8.59.3_@typescript-eslint+parser@8.59.3__eslint@10.3.0__typescript@6.0.3_eslint@10.3.0_typescript@6.0.3": {
+    "@typescript-eslint/eslint-plugin@8.59.3_@typescript-eslint+parser@8.59.3__eslint@10.4.0__typescript@6.0.3_eslint@10.4.0_typescript@6.0.3": {
       "integrity": "sha512-PwFvSKsXGShKGW6n5bZOhGHEcCZXM8HofLK9fNsEwZXzFRjoY+XT1Vsf1zgyXdwTr0ZYz1/2tkZ0DBTT9jZjhw==",
       "dependencies": [
         "@eslint-community/regexpp",
@@ -706,7 +706,7 @@
         "typescript"
       ]
     },
-    "@typescript-eslint/parser@8.59.3_eslint@10.3.0_typescript@6.0.3": {
+    "@typescript-eslint/parser@8.59.3_eslint@10.4.0_typescript@6.0.3": {
       "integrity": "sha512-HPwA+hVkfcriajbNvTmZv4VRauibay+cWArYUYq7u7W7PmGShMxbPxLvrwDme55a6d5alG3nrYfhyJ/G28XlLg==",
       "dependencies": [
         "@typescript-eslint/scope-manager",
@@ -740,7 +740,7 @@
         "typescript"
       ]
     },
-    "@typescript-eslint/type-utils@8.59.3_eslint@10.3.0_typescript@6.0.3": {
+    "@typescript-eslint/type-utils@8.59.3_eslint@10.4.0_typescript@6.0.3": {
       "integrity": "sha512-g71d8QD8UaiHGvrJwyIS1hCX5r63w6Jll+4VEYhEAHXTDIqX1JgxhTAbEHtKntL9kuc4jRo7/GWw5xfCepSccQ==",
       "dependencies": [
         "@typescript-eslint/types",
@@ -770,7 +770,7 @@
         "typescript"
       ]
     },
-    "@typescript-eslint/utils@8.59.3_eslint@10.3.0_typescript@6.0.3": {
+    "@typescript-eslint/utils@8.59.3_eslint@10.4.0_typescript@6.0.3": {
       "integrity": "sha512-JAvT14goBzRzzzZyqq3P9BLArIxTtQURUtFgQ/V7FO+eU+Gg6ES+5ymOPP1wRxXcxAYeivCk4uS3jCKWI1K8Zg==",
       "dependencies": [
         "@eslint-community/eslint-utils",
@@ -889,7 +889,7 @@
         "parse5"
       ]
     },
-    "babel-preset-solid@1.9.12_@babel+core@7.29.0_solid-js@1.9.12": {
+    "babel-preset-solid@1.9.12_@babel+core@7.29.0_solid-js@1.9.13": {
       "integrity": "sha512-LLqnuKVDlKpyBlMPcH6qEvs/wmS9a+NczppxJ3ryS/c0O5IiSFOIBQi9GzyiGDSbcJpx4Gr87jyFTos1MyEuWg==",
       "dependencies": [
         "@babel/core",
@@ -1041,8 +1041,8 @@
     "eslint-visitor-keys@5.0.1": {
       "integrity": "sha512-tD40eHxA35h0PEIZNeIjkHoDR4YjjJp34biM0mDvplBe//mB+IHCqHDGV7pxF+7MklTvighcCPPZC7ynWyjdTA=="
     },
-    "eslint@10.3.0": {
-      "integrity": "sha512-XbEXaRva5cF0ZQB8w6MluHA0kZZfV2DuCMJ3ozyEOHLwDpZX2Lmm/7Pp0xdJmI0GL1W05VH5VwIFHEm1Vcw2gw==",
+    "eslint@10.4.0": {
+      "integrity": "sha512-loXy6bWOoP3EP6JA7jo6p5jMpBJmHmsNZM5SFRHLdh1MGOPurMnNBj4ZlAbaqUAaQWbCr7jHV4P7gzAyryZWkQ==",
       "dependencies": [
         "@eslint-community/eslint-utils",
         "@eslint-community/regexpp",
@@ -1627,21 +1627,21 @@
     "siginfo@2.0.0": {
       "integrity": "sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g=="
     },
-    "solid-icons@1.2.0_solid-js@1.9.12": {
+    "solid-icons@1.2.0_solid-js@1.9.13": {
       "integrity": "sha512-yjQxWQMi9l19P5Af9vjsvalTMDFPDL4XD6etrUdNxNVhFp1bMYF0SFwUa5VYDfJ7u0SF3Qkz/F7BZxqcLUwklw==",
       "dependencies": [
         "solid-js"
       ]
     },
-    "solid-js@1.9.12": {
-      "integrity": "sha512-QzKaSJq2/iDrWR1As6MHZQ8fQkdOBf8GReYb7L5iKwMGceg7HxDcaOHk0at66tNgn9U2U7dXo8ZZpLIAmGMzgw==",
+    "solid-js@1.9.13": {
+      "integrity": "sha512-6hJeJMOcEX8ktqjpDoJZEmld3ijvcvWBDtiXBm7f4332SiFN66QeAQI1REQshvyUoISsSeJ4PHDauKYbwao9JQ==",
       "dependencies": [
         "csstype",
         "seroval",
         "seroval-plugins"
       ]
     },
-    "solid-refresh@0.6.3_solid-js@1.9.12": {
+    "solid-refresh@0.6.3_solid-js@1.9.13": {
       "integrity": "sha512-F3aPsX6hVw9ttm5LYlth8Q15x6MlI/J3Dn+o3EQyRTtTxidepSTwAYdozt01/YA+7ObcciagGEyXIopGZzQtbA==",
       "dependencies": [
         "@babel/generator",
@@ -1650,7 +1650,7 @@
         "solid-js"
       ]
     },
-    "solid-toast@0.5.0_solid-js@1.9.12": {
+    "solid-toast@0.5.0_solid-js@1.9.13": {
       "integrity": "sha512-t770JakjyS2P9b8Qa1zMLOD51KYKWXbTAyJePVUoYex5c5FH5S/HtUBUbZAWFcqRCKmAE8KhyIiCvDZA8bOnxQ==",
       "dependencies": [
         "solid-js"
@@ -1728,7 +1728,7 @@
         "prelude-ls"
       ]
     },
-    "typescript-eslint@8.59.3_eslint@10.3.0_typescript@6.0.3": {
+    "typescript-eslint@8.59.3_eslint@10.4.0_typescript@6.0.3": {
       "integrity": "sha512-KgusgyDgG4LI8Ih/sWaCtZ06tckLAS5CvT5A4D1Q7bYVoAAyzwiZvE4BmwDHkhRVkvhRBepKeASoFzQetha7Fg==",
       "dependencies": [
         "@typescript-eslint/eslint-plugin",
@@ -1780,7 +1780,7 @@
       ],
       "bin": true
     },
-    "vite-plugin-solid@2.11.12_solid-js@1.9.12_vite@8.0.13__@types+node@24.12.4_@types+node@24.12.4": {
+    "vite-plugin-solid@2.11.12_solid-js@1.9.13_vite@8.0.13__@types+node@24.12.4_@types+node@24.12.4": {
       "integrity": "sha512-FgjPcx2OwX9h6f28jli7A4bG7PP3te8uyakE5iqsmpq3Jqi1TWLgSroC9N6cMfGRU2zXsl4Q6ISvTr2VL0QHpA==",
       "dependencies": [
         "@babel/core",
@@ -1960,14 +1960,14 @@
         "npm:diff@9",
         "npm:docx@^9.6.1",
         "npm:dompurify@^3.4.3",
-        "npm:eslint@^10.3.0",
+        "npm:eslint@^10.4.0",
         "npm:globals@^17.6.0",
         "npm:idb@^8.0.3",
         "npm:localforage@^1.10.0",
         "npm:markdown-it@^14.1.1",
         "npm:prettier@^3.8.3",
         "npm:solid-icons@^1.2.0",
-        "npm:solid-js@^1.9.12",
+        "npm:solid-js@^1.9.13",
         "npm:solid-toast@0.5",
         "npm:sortablejs@^1.15.7",
         "npm:typescript-eslint@^8.59.3",

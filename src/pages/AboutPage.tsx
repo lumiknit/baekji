@@ -41,35 +41,23 @@ const AboutPage: Component = () => {
         </tbody>
       </table>
       <hr class="separator-line" />
-      <h3 class="m-0">Privacy</h3>
-      <p class="opacity-60 text-sm">
-        Baekji collects no data. By default, everything you write is stored only
-        on this device using IndexedDB — no servers, no analytics, no third
-        parties.
-      </p>
-      <p class="opacity-60 text-sm">
-        If you enable cloud sync (e.g. Dropbox), files are read from and written
-        to the app folder of your own account on that service. No data is shared
-        with anyone else.
-      </p>
-      <p class="opacity-60 text-sm">
-        If you clear your browser data, your content will be permanently lost.
-        Use the backup feature regularly. When you export or share files, that
-        data leaves the app and is outside our control.
-      </p>
+      <h3 class="m-0">{s('about.privacy')}</h3>
+      <p class="opacity-60 text-sm">{s('about.privacy_desc1')}</p>
+      <p class="opacity-60 text-sm">{s('about.privacy_desc2')}</p>
+      <p class="opacity-60 text-sm">{s('about.privacy_desc3')}</p>
       <p class="text-sm">
         <a
           href="https://github.com/lumiknit/baekji/blob/master/PRIVACY.md"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Full privacy policy →
+          {s('about.full_privacy')}
         </a>
       </p>
       <hr class="separator-line" />
       <div class="flex gap-8">
         <A href="/" class="btn-skeleton">
-          ← Home
+          {s('about.back_home')}
         </A>
       </div>
     </div>

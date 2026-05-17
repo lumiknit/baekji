@@ -156,6 +156,13 @@
     "reading_time": "읽기 시간"
   },
   "about": {
+    "title": "앱 정보",
+    "privacy": "개인정보 보호",
+    "privacy_desc1": "백지는 사용자 데이터를 수집하지 않습니다. 작성하신 모든 내용은 서버나 분석 도구 없이 IndexedDB를 통해 이 기기에만 저장됩니다.",
+    "privacy_desc2": "클라우드 동기화(예: Dropbox)를 활성화하면 해당 서비스의 앱 폴더 내에서만 파일을 읽고 씁니다. 다른 누구와도 데이터를 공유하지 않습니다.",
+    "privacy_desc3": "브라우저 데이터를 삭제하면 모든 내용이 영구적으로 손실됩니다. 정기적으로 백업 기능을 사용해 주세요. 파일을 내보내거나 공유할 때는 해당 데이터가 앱을 떠나게 되며, 이는 백지의 통제 범위를 벗어납니다.",
+    "full_privacy": "개인정보 처리방침 전문 →",
+    "back_home": "← 홈으로",
     "shortcuts_title": "단축키",
     "shortcut_save": "저장",
     "shortcut_sidebar": "사이드바 열기/닫기",
@@ -163,6 +170,9 @@
     "shortcut_redo": "다시 실행",
     "shortcut_bold": "굵게",
     "shortcut_italic": "기울임꼴"
+  },
+  "logs": {
+    "title": "시스템 로그"
   },
   "settings": {
     "title": "설정",
@@ -255,6 +265,7 @@
     "export_preview": "미리보기",
     "export_preparing": "준비 중…",
     "export_download": "다운로드",
+    "export_html_header": "HTML 주석 헤더",
     "export_count": "({{count}}개)",
     "export_filter_count": "(필터: {{count}}개)",
     "tag_colors_title": "태그 색상",

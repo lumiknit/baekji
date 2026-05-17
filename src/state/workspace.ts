@@ -8,13 +8,18 @@ localforage.config({
   storeName: 'keyvaluepairs',
 });
 
+const storage = {
+  getItem: (key: string) => localforage.getItem<string>(key),
+  setItem: (key: string, value: string) => localforage.setItem(key, value),
+  removeItem: (key: string) => localforage.removeItem(key),
+};
+
 // Sidebar width persistence
 export const [sidebarWidth, setSidebarWidth] = makePersisted(
   createSignal(260),
   {
     name: 'baekji-sidebar-width',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    storage: localforage as any,
+    storage,
   },
 );
 
@@ -23,8 +28,7 @@ export const [isSidebarOpen, setSidebarOpen] = makePersisted(
   createSignal(true),
   {
     name: 'baekji-sidebar-open',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    storage: localforage as any,
+    storage,
   },
 );
 
@@ -33,8 +37,7 @@ export const [sidebarView, setSidebarView] = makePersisted(
   createSignal<'tree' | 'projects'>('tree'),
   {
     name: 'baekji-sidebar-view',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    storage: localforage as any,
+    storage,
   },
 );
 
@@ -43,8 +46,7 @@ export const [showUpdatedAt, setShowUpdatedAt] = makePersisted(
   createSignal(false),
   {
     name: 'baekji-show-updated-at',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    storage: localforage as any,
+    storage,
   },
 );
 
@@ -55,6 +57,5 @@ export const invalidateProjectList = () => setProjectListVersion((v) => v + 1);
 // Device ID — persisted so same device always has the same ID
 export const [deviceId] = makePersisted(createSignal<string>(genOrderedId()), {
   name: 'baekji-device-id',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  storage: localforage as any,
+  storage,
 });

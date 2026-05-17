@@ -4,7 +4,7 @@ import { useParams, useNavigate, useSearchParams } from '@solidjs/router';
 import { TbOutlineArrowLeft } from 'solid-icons/tb';
 import { activeProjectLabel, openProject } from '../state/workspace_v1';
 import { liveSheets } from '../state/sheet_list';
-import { openSheetDoc, closeSheetDoc, waitForSync } from '../lib/doc/ydoc';
+import { withSheetDoc } from '../lib/doc/docCache';
 import { matchQuery } from '../lib/tag/query';
 import { s } from '../lib/i18n';
 import toast from 'solid-toast';
@@ -115,22 +115,19 @@ const AnalysisPage: Component = () => {
         }
       }
 
-      const results: SheetStats[] = [];
-      for (const sheet of sheets) {
-        const sd = openSheetDoc(sheet.id);
-        try {
-          await waitForSync(sd.provider);
-          const text = sd.content.toString();
-          const preview = text.trim().slice(0, 16).replace(/\n/g, ' ');
-          results.push({
-            id: sheet.id,
-            label: preview || s('sheet.empty'),
-            ...computeStats(text),
+      const results = await Promise.all(
+        sheets.map(async (sheet) => {
+          return withSheetDoc(sheet.id, async (sd) => {
+            const text = sd.content.toString();
+            const preview = text.trim().slice(0, 16).replace(/\n/g, ' ');
+            return {
+              id: sheet.id,
+              label: preview || s('sheet.empty'),
+              ...computeStats(text),
+            };
           });
-        } finally {
-          closeSheetDoc(sd);
-        }
-      }
+        }),
+      );
       return results;
     };
 
