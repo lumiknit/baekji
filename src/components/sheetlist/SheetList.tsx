@@ -17,8 +17,9 @@ import {
 import Sortable from 'sortablejs';
 import {
   filteredSheets,
+  filteredSheetIds,
   liveSheets,
-  trashSheets,
+  trashSortedIds,
   createSheet,
   createSheetWithContent,
   emptyTrash,
@@ -350,11 +351,11 @@ const SheetList: Component = () => {
         </div>
 
         <div class="sl-list" ref={(el) => (listEl = el)}>
-          <For each={filteredSheets()}>
-            {(sheet) => (
-              <div data-sheet-id={sheet.id} class="sl-item-wrap">
+          <For each={filteredSheetIds()}>
+            {(id) => (
+              <div data-sheet-id={id} class="sl-item-wrap">
                 <SheetItem
-                  sheet={sheet}
+                  id={id}
                   onOpenSelectionMenu={() => {
                     setSelectionMenuOpen(true);
                   }}
@@ -363,7 +364,7 @@ const SheetList: Component = () => {
             )}
           </For>
 
-          <Show when={filteredSheets().length === 0}>
+          <Show when={filteredSheetIds().length === 0}>
             <div class="tree-trash-empty-msg">
               {filterQuery() ? s('sheet.no_match') : s('sheet.empty')}
             </div>
@@ -385,8 +386,8 @@ const SheetList: Component = () => {
                 <TbFillTrash />
               </span>
               <span class="tree-trash-label">{s('tree.trash')}</span>
-              <Show when={trashSheets().length > 0}>
-                <span class="tree-trash-count">{trashSheets().length}</span>
+              <Show when={trashSortedIds().length > 0}>
+                <span class="tree-trash-count">{trashSortedIds().length}</span>
                 <button
                   class="tree-trash-empty-btn sb-icon-btn"
                   title={s('tree.trash_empty_btn')}
@@ -408,15 +409,15 @@ const SheetList: Component = () => {
 
             <Show when={trashOpen()}>
               <Show
-                when={trashSheets().length > 0}
+                when={trashSortedIds().length > 0}
                 fallback={
                   <div class="tree-trash-empty-msg">
                     {s('tree.trash_empty')}
                   </div>
                 }
               >
-                <For each={trashSheets()}>
-                  {(sheet) => <SheetItem sheet={sheet} isTrash />}
+                <For each={trashSortedIds()}>
+                  {(id) => <SheetItem id={id} isTrash />}
                 </For>
               </Show>
             </Show>

@@ -1,7 +1,8 @@
 import type { Component } from 'solid-js';
 import { For } from 'solid-js';
 import { activeProjectDoc } from '../../state/workspace_v1';
-import { liveSheets, trashSheets } from '../../state/sheet_list';
+import { sheetsStore, liveSortedIds, trashSortedIds } from '../../state/sheet_list';
+import type { SheetMeta } from '../../lib/doc/v1';
 
 const ProjectDebug: Component = () => {
   const pd = activeProjectDoc;
@@ -12,7 +13,7 @@ const ProjectDebug: Component = () => {
     return Array.from(p.meta.entries());
   };
 
-  const sheetLine = (sh: ReturnType<typeof liveSheets>[number]) => {
+  const sheetLine = (sh: SheetMeta) => {
     const parts = [
       `id=${sh.id}`,
       `orderKey=${sh.orderKey}`,
@@ -39,8 +40,8 @@ const ProjectDebug: Component = () => {
         {([k, v]) => `${k}: ${JSON.stringify(v)}\n`}
       </For>
       {'\n=== live sheets ===\n'}
-      <For each={liveSheets()}>{(sh) => `${sheetLine(sh)}\n`}</For>
-      <For each={trashSheets()}>{(sh) => `[DELETED] ${sheetLine(sh)}\n`}</For>
+      <For each={liveSortedIds()}>{(id) => `${sheetLine(sheetsStore[id])}\n`}</For>
+      <For each={trashSortedIds()}>{(id) => `[DELETED] ${sheetLine(sheetsStore[id])}\n`}</For>
     </pre>
   );
 };

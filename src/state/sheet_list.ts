@@ -1,4 +1,6 @@
-import { createRoot, createSignal, createEffect, createMemo } from 'solid-js';
+import { createRoot, createSignal, createEffect, createMemo, untrack, batch } from 'solid-js';
+import { createStore, produce, reconcile } from 'solid-js/store';
+import * as Y from 'yjs';
 import type { SheetMeta } from '../lib/doc/v1';
 import { activeProjectDoc } from './workspace_v1';
 import { matchQuery } from '../lib/tag/query';
@@ -7,7 +9,25 @@ import { withSheetDoc } from '../lib/doc/docCache';
 
 // ─── Sheet list state ────────────────────────────────────────────
 
-const [allSheets, setAllSheets] = createSignal<SheetMeta[]>([]);
+// Fine-grained store: per-sheet updates without rebuilding the full array.
+export const [sheetsStore, setSheetsStore] = createStore<Record<string, SheetMeta>>({});
+
+// Sorted ID lists — only rebuilt when order or membership changes.
+const [_liveSortedIds, _setLiveSortedIds] = createSignal<string[]>([]);
+const [_trashSortedIds, _setTrashSortedIds] = createSignal<string[]>([]);
+
+export const liveSortedIds = _liveSortedIds;
+
+function rebuildSortedIds() {
+  const all = Object.values(sheetsStore);
+  _setLiveSortedIds(
+    all.filter(s => !s.deletedAt).sort((a, b) => a.orderKey - b.orderKey).map(s => s.id),
+  );
+  _setTrashSortedIds(
+    all.filter(s => !!s.deletedAt).sort((a, b) => a.orderKey - b.orderKey).map(s => s.id),
+  );
+}
+
 export const [filterQuery, setFilterQuery] = createSignal('');
 export const [selectedIds, setSelectedIds] = createSignal<Set<string>>(
   new Set(),
@@ -62,31 +82,40 @@ export const rangeSelect = (
   });
 };
 
-export const liveSheets = createMemo(() =>
-  allSheets()
-    .filter((s) => !s.deletedAt)
-    .sort((a, b) => a.orderKey - b.orderKey),
-);
+export const trashSortedIds = _trashSortedIds;
 
-export const trashSheets = createMemo(() =>
-  allSheets()
-    .filter((s) => !!s.deletedAt)
-    .sort((a, b) => a.orderKey - b.orderKey),
-);
+// For rendering: ID-only memo avoids re-running <For> on metadata changes.
+export const filteredSheetIds = createMemo(() => {
+  const q = filterQuery().trim();
+  if (!q) return _liveSortedIds();
+  return _liveSortedIds().filter(id => {
+    const sheet = sheetsStore[id];
+    return sheet && matchQuery(q, new Set(sheet.tags));
+  });
+});
 
+// allTags is reactive (used in tag filter UI).
 export const allTags = createMemo(() => {
   const tags = new Set<string>();
-  for (const sheet of liveSheets()) {
-    for (const tag of sheet.tags) tags.add(tag);
+  for (const id of _liveSortedIds()) {
+    for (const tag of sheetsStore[id]?.tags ?? []) tags.add(tag);
   }
   return Array.from(tags).sort();
 });
 
-export const filteredSheets = createMemo(() => {
-  const q = filterQuery().trim();
-  if (!q) return liveSheets();
-  return liveSheets().filter((s) => matchQuery(q, new Set(s.tags)));
-});
+// Plain functions — not memos — so they do not accumulate reactive dependencies
+// when unused, and callers decide the tracking context.
+export function liveSheets(): SheetMeta[] {
+  return _liveSortedIds().map(id => sheetsStore[id]).filter(Boolean) as SheetMeta[];
+}
+
+export function trashSheets(): SheetMeta[] {
+  return _trashSortedIds().map(id => sheetsStore[id]).filter(Boolean) as SheetMeta[];
+}
+
+export function filteredSheets(): SheetMeta[] {
+  return filteredSheetIds().map(id => sheetsStore[id]).filter(Boolean) as SheetMeta[];
+}
 
 export const selectAll = () => {
   setSelectedIds(new Set<string>(filteredSheets().map((s) => s.id)));
@@ -105,33 +134,63 @@ createRoot(() => {
       unobserve = null;
     }
     if (!pd) {
-      setAllSheets([]);
+      batch(() => {
+        setSheetsStore(reconcile({}));
+        _setLiveSortedIds([]);
+        _setTrashSortedIds([]);
+      });
       return;
     }
 
     const sheetsMap = pd.sheets;
-    const handler = () => {
-      const newValues = Array.from(sheetsMap.values());
-      setAllSheets((prev) => {
-        const prevMap = new Map(prev.map((s) => [s.id, s]));
-        return newValues.map((newVal) => {
-          const oldVal = prevMap.get(newVal.id);
-          if (
-            oldVal &&
-            oldVal.updatedAt === newVal.updatedAt &&
-            oldVal.orderKey === newVal.orderKey &&
-            oldVal.deletedAt === newVal.deletedAt &&
-            oldVal.tags.length === newVal.tags.length &&
-            oldVal.tags.every((t, i) => t === newVal.tags[i])
-          ) {
-            return oldVal;
+
+    // Full load on initial attach. batch ensures store and sorted IDs update
+    // atomically. untrack prevents createEffect from depending on sheetsStore
+    // values, which would re-run the effect on every sheet change.
+    batch(() => {
+      setSheetsStore(reconcile(Object.fromEntries(sheetsMap.entries())));
+      untrack(() => rebuildSortedIds());
+    });
+
+    // Called from Y.Map observer — not a Solid reactive context, so store reads
+    // inside rebuildSortedIds() are safe and do not create reactive dependencies.
+    // batch ensures all key changes in a single Y.Map transaction are applied
+    // atomically, so dependents are only notified once per transaction.
+    const handler = (event: Y.YMapEvent<SheetMeta>) => {
+      batch(() => {
+        let orderChanged = false;
+
+        for (const [id, change] of event.changes.keys) {
+          if (change.action === 'delete') {
+            setSheetsStore(produce(s => { delete s[id]; }));
+            orderChanged = true;
+          } else {
+            const newVal = sheetsMap.get(id)!;
+            const oldVal = sheetsStore[id];
+            if (!oldVal) {
+              // New sheet added.
+              setSheetsStore(id, reconcile(newVal));
+              orderChanged = true;
+            } else if (
+              oldVal.orderKey !== newVal.orderKey ||
+              !!oldVal.deletedAt !== !!newVal.deletedAt
+            ) {
+              // Order or live/trash membership changed.
+              setSheetsStore(id, reconcile(newVal));
+              orderChanged = true;
+            } else {
+              // Only metadata (updatedAt, tags, etc.) changed — reconcile ensures
+              // only the actually-changed fields notify their subscribers.
+              setSheetsStore(id, reconcile(newVal));
+            }
           }
-          return newVal;
-        });
+        }
+
+        if (orderChanged) rebuildSortedIds();
       });
     };
+
     sheetsMap.observe(handler);
-    handler();
     unobserve = () => sheetsMap.unobserve(handler);
   });
 });
