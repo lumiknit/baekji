@@ -5,37 +5,14 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from '@codemirror/view';
-import { RangeSetBuilder, type SelectionRange } from '@codemirror/state';
+import { RangeSetBuilder } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
-
-// ─── Helpers ──────────────────────────────────────────────────
-
-const INLINE_FORMAT = new Set(['StrongEmphasis', 'Emphasis', 'Strikethrough']);
-
-function inRange(from: number, to: number, sel: SelectionRange): boolean {
-  return sel.from >= from && sel.from <= to;
-}
-
-// Walk up ancestors: show marker if cursor is inside ANY inline-format ancestor.
-// This handles ***bold italic*** where EmphasisMark is nested.
-function cursorInAnyAncestor(
-  nodeParent: ReturnType<typeof syntaxTree>['topNode']['node'] | null,
-  sel: SelectionRange,
-): boolean {
-  let anc = nodeParent;
-  while (anc && INLINE_FORMAT.has(anc.name)) {
-    if (inRange(anc.from, anc.to, sel)) return true;
-    anc = anc.parent;
-  }
-  return false;
-}
 
 // ─── Cached decoration instances ──────────────────────────────
 // Creating Decoration objects is cheap but doing it inside a hot
 // iterate() loop allocates GC pressure on every update.
 
 const DECO = {
-  hide: Decoration.replace({}),
   marker: Decoration.mark({ class: 'cm-md-marker' }),
   paragraph: Decoration.line({ class: 'cm-md-paragraph' }),
   blockquote: Decoration.line({ class: 'cm-md-blockquote' }),
@@ -50,9 +27,9 @@ const DECO = {
     n ? Decoration.line({ class: `cm-md-h${n}` }) : null,
   ) as (Decoration | null)[],
   hr: Decoration.line({ class: 'cm-md-hr' }),
+  bullet: Decoration.mark({ class: 'cm-md-bullet-mark' }),
   // bullet uses a CSS class + ::before instead of a WidgetType to avoid
   // DOM creation and layout thrashing on every list item in the viewport.
-  bullet: Decoration.mark({ class: 'cm-md-bullet-mark' }),
 };
 
 // ─── Decoration collector ──────────────────────────────────────
@@ -83,7 +60,6 @@ const DECO = {
 
 function buildDecoSet(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
-  const sel = view.state.selection.main;
   const doc = view.state.doc;
   const vpFrom = view.viewport.from;
   const vpTo = view.viewport.to;
@@ -116,11 +92,8 @@ function buildDecoSet(view: EditorView): DecorationSet {
         case 'ATXHeading6': {
           if (node.node.parent?.name === 'Blockquote') break;
           const level = +node.name[node.name.length - 1];
-          builder.add(
-            doc.lineAt(node.from).from,
-            doc.lineAt(node.from).from,
-            DECO.h[level]!,
-          );
+          const lf = doc.lineAt(node.from).from;
+          builder.add(lf, lf, DECO.h[level]!);
           break;
         }
 
@@ -128,32 +101,22 @@ function buildDecoSet(view: EditorView): DecorationSet {
         case 'SetextHeading2': {
           if (node.node.parent?.name === 'Blockquote') break;
           const level = node.name === 'SetextHeading1' ? 1 : 2;
-          builder.add(
-            doc.lineAt(node.from).from,
-            doc.lineAt(node.from).from,
-            DECO.h[level]!,
-          );
+          const lf = doc.lineAt(node.from).from;
+          builder.add(lf, lf, DECO.h[level]!);
           break;
         }
 
         case 'HeaderMark':
         case 'SetextHeadingMark': {
-          const line = doc.lineAt(node.from);
-          if (!inRange(line.from, line.to, sel)) {
-            builder.add(node.from, Math.min(node.to + 1, line.to), DECO.hide);
-          } else {
-            builder.add(node.from, node.to, DECO.marker);
-          }
+          builder.add(node.from, node.to, DECO.marker);
           break;
         }
 
         // ── Horizontal rule ───────────────────────────────────
         case 'HorizontalRule': {
-          const line = doc.lineAt(node.from);
-          if (!inRange(line.from, line.to, sel)) {
-            builder.add(line.from, line.from, DECO.hr);
-            builder.add(node.from, node.to, DECO.hide);
-          }
+          const lf = doc.lineAt(node.from).from;
+          builder.add(lf, lf, DECO.hr);
+          builder.add(node.from, node.to, DECO.marker);
           break;
         }
 
@@ -170,21 +133,16 @@ function buildDecoSet(view: EditorView): DecorationSet {
           for (let pos = Math.max(node.from, vpFrom); pos <= node.to; ) {
             const line = doc.lineAt(pos);
             if (line.from > vpTo) break;
-            const onLine = inRange(line.from, line.to, sel);
             // Advance child pointer past nodes before this line
             while (child && child.from < line.from) child = child.nextSibling;
             const qm =
               child?.name === 'QuoteMark' && child.from <= line.to
                 ? child
                 : null;
-            if (outermost && !onLine)
-              builder.add(line.from, line.from, DECO.blockquote);
-            // Use QuoteMark node range if available; otherwise assume `> ` at line.from.
+            if (outermost) builder.add(line.from, line.from, DECO.blockquote);
             const qmFrom = qm ? qm.from : line.from;
             const qmTo = qm ? qm.to : Math.min(line.from + 1, line.to);
-            if (!onLine)
-              builder.add(qmFrom, Math.min(qmTo + 1, line.to), DECO.hide);
-            else builder.add(qmFrom, qmTo, DECO.marker);
+            builder.add(qmFrom, qmTo, DECO.marker);
             pos = line.to + 1;
           }
           return false;
@@ -193,14 +151,8 @@ function buildDecoSet(view: EditorView): DecorationSet {
         case 'QuoteMark':
           break;
 
-        // ── List bullets ─────────────────────────────────────
         case 'ListMark': {
-          const listItem = node.node.parent;
-          if (
-            listItem?.name === 'ListItem' &&
-            listItem.parent?.name === 'BulletList'
-          )
-            builder.add(node.from, node.to, DECO.bullet);
+          builder.add(node.from, node.to, DECO.bullet);
           break;
         }
 
@@ -209,11 +161,8 @@ function buildDecoSet(view: EditorView): DecorationSet {
         case 'Paragraph': {
           const pn = node.node.parent?.name;
           if (pn === 'ListItem' || pn === 'Blockquote') break;
-          builder.add(
-            doc.lineAt(node.from).from,
-            doc.lineAt(node.from).from,
-            DECO.paragraph,
-          );
+          const lf = doc.lineAt(node.from).from;
+          builder.add(lf, lf, DECO.paragraph);
           break;
         }
 
@@ -229,12 +178,9 @@ function buildDecoSet(view: EditorView): DecorationSet {
         case 'EmphasisMark':
         case 'StrikethroughMark': {
           const parent = node.node.parent;
-          const show =
-            (parent && inRange(parent.from, parent.to, sel)) ||
-            cursorInAnyAncestor(node.node.parent, sel);
-          builder.add(node.from, node.to, show ? DECO.marker : DECO.hide);
+          builder.add(node.from, node.to, DECO.marker);
           // Opening mark: push the container span right after (same from, larger to).
-          if (!show && parent?.from === node.from) {
+          if (parent?.from === node.from) {
             if (parent.name === 'StrongEmphasis')
               builder.add(parent.from, parent.to, DECO.strong);
             else if (parent.name === 'Emphasis')
@@ -248,10 +194,8 @@ function buildDecoSet(view: EditorView): DecorationSet {
         case 'CodeMark': {
           const parent = node.node.parent;
           if (parent?.name === 'InlineCode') {
-            const show = inRange(parent.from, parent.to, sel);
-            builder.add(node.from, node.to, show ? DECO.marker : DECO.hide);
-            // Opening backtick: push InlineCode span after (same from, larger to).
-            if (!show && parent.from === node.from)
+            builder.add(node.from, node.to, DECO.marker);
+            if (parent.from === node.from)
               builder.add(parent.from, parent.to, DECO.code);
           }
           break;
@@ -259,7 +203,6 @@ function buildDecoSet(view: EditorView): DecorationSet {
 
         // ── Links ─────────────────────────────────────────────
         case 'Link': {
-          if (inRange(node.from, node.to, sel)) break;
           let firstMark = null,
             secondMark = null;
           for (let c = node.node.firstChild; c; c = c.nextSibling) {
@@ -271,16 +214,15 @@ function buildDecoSet(view: EditorView): DecorationSet {
             }
           }
           if (firstMark && secondMark) {
-            builder.add(firstMark.from, firstMark.to, DECO.hide);
+            builder.add(firstMark.from, firstMark.to, DECO.marker);
             builder.add(firstMark.to, secondMark.from, DECO.link);
-            builder.add(secondMark.from, node.to, DECO.hide);
+            builder.add(secondMark.from, node.to, DECO.marker);
           }
           break;
         }
 
         // ── Images ────────────────────────────────────────────
         case 'Image': {
-          if (inRange(node.from, node.to, sel)) break;
           let firstMark = null,
             secondMark = null;
           for (let c = node.node.firstChild; c; c = c.nextSibling) {
@@ -292,9 +234,9 @@ function buildDecoSet(view: EditorView): DecorationSet {
             }
           }
           if (firstMark && secondMark) {
-            builder.add(node.from, firstMark.to, DECO.hide);
+            builder.add(node.from, firstMark.to, DECO.marker);
             builder.add(firstMark.to, secondMark.from, DECO.imageAlt);
-            builder.add(secondMark.from, node.to, DECO.hide);
+            builder.add(secondMark.from, node.to, DECO.marker);
           }
           break;
         }
@@ -311,93 +253,24 @@ function buildDecoSet(view: EditorView): DecorationSet {
   return builder.finish();
 }
 
-// ─── Sensitive-node check for selection optimization ──────────
-
-const SENSITIVE_NODES = new Set([
-  'ATXHeading1',
-  'ATXHeading2',
-  'ATXHeading3',
-  'ATXHeading4',
-  'ATXHeading5',
-  'ATXHeading6',
-  'SetextHeading1',
-  'SetextHeading2',
-  'HorizontalRule',
-  'Blockquote',
-  'StrongEmphasis',
-  'Emphasis',
-  'InlineCode',
-  'Strikethrough',
-  'Link',
-  'Image',
-]);
-
-// Returns true if the cursor position sits inside or on a node whose
-// decoration depends on cursor proximity (would change on enter/exit).
-function isInSensitiveNode(pos: number, view: EditorView): boolean {
-  const tree = syntaxTree(view.state);
-  for (const bias of [-1, 1] as const) {
-    let node = tree.resolveInner(pos, bias);
-    while (node.parent) {
-      if (SENSITIVE_NODES.has(node.name)) return true;
-      node = node.parent;
-    }
-  }
-  return false;
-}
-
 // ─── Plugin ────────────────────────────────────────────────────
 
 export const livePreviewPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
-    private prevSelFrom = -1;
-    private prevSelInSensitive = false;
 
     constructor(view: EditorView) {
       this.decorations = buildDecoSet(view);
-      const sel = view.state.selection.main;
-      this.prevSelFrom = sel.from;
-      this.prevSelInSensitive = isInSensitiveNode(this.prevSelFrom, view);
     }
 
     update(update: ViewUpdate) {
       if (update.docChanged || update.viewportChanged) {
         this.decorations = buildDecoSet(update.view);
-        const sel = update.view.state.selection.main;
-        this.prevSelFrom = sel.from;
-        this.prevSelInSensitive = isInSensitiveNode(
-          this.prevSelFrom,
-          update.view,
-        );
-        return;
       }
-      if (!update.selectionSet) return;
-
-      const sel = update.view.state.selection.main;
-      const inSensitive = isInSensitiveNode(sel.from, update.view);
-
-      // Skip rebuild when neither old nor new position is inside a node
-      // whose decoration depends on cursor proximity.
-      if (!inSensitive && !this.prevSelInSensitive) {
-        this.prevSelFrom = sel.from;
-        this.prevSelInSensitive = inSensitive;
-        return;
-      }
-
-      this.decorations = buildDecoSet(update.view);
-      this.prevSelFrom = sel.from;
-      this.prevSelInSensitive = inSensitive;
     }
   },
   {
     decorations: (v) => v.decorations,
-    // Treat HR replace-decorations as atomic so the cursor skips over them
-    // cleanly rather than landing inside the replaced range.
-    provide: (plugin) =>
-      EditorView.atomicRanges.of((view) => {
-        return view.plugin(plugin)?.decorations ?? Decoration.none;
-      }),
   },
 );
 
@@ -495,9 +368,9 @@ export const livePreviewTheme = EditorView.theme({
     background: 'var(--cm-code-bg)',
   },
 
-  // HR: hide the raw text, draw the rule via ::after on the line element.
-  // No widget → no cm-widgetBuffer → line height stays natural.
-  '.cm-line.cm-md-hr': { color: 'transparent', position: 'relative' },
+  // HR: draw rule via ::after; hide raw text via marker CSS. On active line,
+  // show the raw text and suppress the rule to avoid visual overlap.
+  '.cm-line.cm-md-hr': { position: 'relative' },
   '.cm-line.cm-md-hr::after': {
     content: '""',
     position: 'absolute',
@@ -507,15 +380,16 @@ export const livePreviewTheme = EditorView.theme({
     borderTop: '1px solid var(--cm-md-mark, #888)',
     transform: 'translateY(-50%)',
   },
+  '.cm-activeLine.cm-md-hr::after': { display: 'none' },
 
-  // Bullet mark: hide the raw "-"/"*" and inject "•" via ::before.
-  '.cm-md-bullet-mark': { fontSize: '0', color: 'transparent' },
-  '.cm-md-bullet-mark::before': {
-    content: '"•"',
-    fontSize: '1rem',
+  // List marks: colored but always visible, no hiding.
+  '.cm-md-bullet-mark': { color: 'var(--cm-md-mark, #888)' },
+
+  // Markers hidden by default; revealed on the active line via .cm-activeLine.
+  // font-size:1px (not 0) keeps cursor movement correct while being visually invisible.
+  '.cm-md-marker': { color: 'transparent', fontSize: '1px' },
+  '.cm-activeLine .cm-md-marker': {
     color: 'var(--cm-md-mark, #888)',
+    fontSize: 'inherit',
   },
-
-  // Visible markdown markers (when cursor is nearby): *, **, ~~, `, #, >
-  '.cm-md-marker': { color: 'var(--cm-md-mark, #888)' },
 });
