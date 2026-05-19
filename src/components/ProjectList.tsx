@@ -1,14 +1,7 @@
 import { useNavigate } from '@solidjs/router';
 import { TbOutlineDotsVertical, TbOutlinePlus } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
-import {
-  createEffect,
-  createResource,
-  createSignal,
-  For,
-  Show,
-} from 'solid-js';
-import { getAllVersionRoots } from '../lib/doc/db';
+import { createEffect, createResource, createSignal, For } from 'solid-js';
 import { getAllProjects, putProject } from '../lib/doc/db_v1';
 import { s } from '../lib/i18n';
 import { formatRelativeDate } from '../lib/format';
@@ -21,11 +14,6 @@ const ProjectList: Component = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = createSignal('');
   const [showInactive, setShowInactive] = createSignal(false);
-
-  const [v0Projects] = createResource(async () => {
-    const all = await getAllVersionRoots();
-    return all.filter((r) => r.active);
-  });
 
   const [v1Projects, { refetch: refetchV1 }] = createResource(async () => {
     return getAllProjects();
@@ -62,14 +50,6 @@ const ProjectList: Component = () => {
   const filteredV1 = () => {
     const q = filter().toLowerCase();
     const list = v1Projects() ?? [];
-    return q ? list.filter((p) => p.label.toLowerCase().includes(q)) : list;
-  };
-
-  const filteredV0 = () => {
-    const q = filter().toLowerCase();
-    const list = (v0Projects() ?? []).sort((a, b) =>
-      b.updatedAt.localeCompare(a.updatedAt),
-    );
     return q ? list.filter((p) => p.label.toLowerCase().includes(q)) : list;
   };
 
@@ -135,35 +115,6 @@ const ProjectList: Component = () => {
             </div>
           )}
         </For>
-
-        <Show when={filteredV0().length > 0}>
-          <div
-            style={{ padding: '4px 8px', opacity: 0.4, 'font-size': '0.75em' }}
-          >
-            {s('project.legacy_label')}
-          </div>
-          <For each={filteredV0()}>
-            {(p) => (
-              <div
-                class="project-list-item project-list-item--inactive"
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate(`/v0-project/${p.projectId}`)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ')
-                    navigate(`/v0-project/${p.projectId}`);
-                }}
-              >
-                <div class="btn-pad">
-                  <div class="project-list-item-label">{p.label}</div>
-                  <div class="project-list-item-meta">
-                    {formatRelativeDate(p.updatedAt)}
-                  </div>
-                </div>
-              </div>
-            )}
-          </For>
-        </Show>
       </div>
     </div>
   );

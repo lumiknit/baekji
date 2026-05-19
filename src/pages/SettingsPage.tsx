@@ -7,7 +7,6 @@ import ThemePreview from '../components/ThemePreview';
 import { s } from '../lib/i18n';
 import toast from 'solid-toast';
 import { showConfirm } from '../state/modal';
-import { fullReset } from '../lib/doc/db';
 import { getAllProjects } from '../lib/doc/db_v1';
 import { openProjectDoc, closeProjectDoc, waitForSync } from '../lib/doc/ydoc';
 import {
@@ -15,6 +14,7 @@ import {
   deleteOrphanSheetDatabases,
   formatBytes,
 } from '../lib/doc/storage';
+import { fullResetDB } from '../lib/doc/db_reset';
 
 const SettingRow: Component<{ label: string; children: JSX.Element }> = (
   props,
@@ -120,7 +120,7 @@ const SettingsPage: Component = () => {
       s('settings.reset_title'),
       s('settings.reset_confirm'),
     );
-    if (confirmed) await fullReset();
+    if (confirmed) await fullResetDB();
   };
 
   const [storageInfo, setStorageInfo] = createSignal<{
