@@ -5,16 +5,11 @@ import { settings, setSettings } from '../state/settings';
 import type { FontSettings } from '../state/settings';
 import ThemePreview from '../components/ThemePreview';
 import { s } from '../lib/i18n';
-import toast from 'solid-toast';
 import { showConfirm } from '../state/modal';
-import { fullReset } from '../lib/doc/db';
-import { getAllProjects } from '../lib/doc/db_v1';
-import { openProjectDoc, closeProjectDoc, waitForSync } from '../lib/doc/ydoc';
-import {
-  estimateStorageUsage,
-  deleteOrphanSheetDatabases,
-  formatBytes,
-} from '../lib/doc/storage';
+import { estimateStorageUsage, formatBytes } from '../lib/doc/storage';
+import { fullResetDB } from '../lib/doc/db_reset';
+import { cleanupAndCompact, getDBStats, type DBStats } from '../lib/doc/db_v3';
+import toast from 'solid-toast';
 
 const SettingRow: Component<{ label: string; children: JSX.Element }> = (
   props,
@@ -120,41 +115,51 @@ const SettingsPage: Component = () => {
       s('settings.reset_title'),
       s('settings.reset_confirm'),
     );
-    if (confirmed) await fullReset();
+    if (confirmed)
+      await toast.promise(fullResetDB(), {
+        loading: 'Resettting...',
+        success: 'All content reset',
+        error: 'Failed to reset',
+      });
   };
 
   const [storageInfo, setStorageInfo] = createSignal<{
     used: number;
     quota: number;
   } | null>(null);
+  const [dbStats, setDbStats] = createSignal<DBStats | null>(null);
 
   const loadStorage = async () => {
-    const info = await estimateStorageUsage();
+    const [info, stats] = await Promise.all([
+      estimateStorageUsage(),
+      getDBStats(),
+    ]);
     setStorageInfo(info);
+    setDbStats(stats);
   };
 
-  const handleCleanOrphans = async () => {
-    const doClean = async () => {
-      const projects = await getAllProjects();
-      const allSheetIds = new Set<string>();
-      for (const pj of projects) {
-        const pd = openProjectDoc(pj.id);
-        try {
-          await waitForSync(pd.provider);
-          for (const id of pd.sheets.keys()) allSheetIds.add(id);
-        } finally {
-          closeProjectDoc(pd);
-        }
-      }
-      const count = await deleteOrphanSheetDatabases(allSheetIds);
-      await loadStorage();
-      return count;
-    };
-    await toast.promise(doClean(), {
-      loading: s('common.clean_loading'),
-      success: (count) => s('settings.storage_clean_done', { count }),
-      error: s('common.clean_error'),
-    });
+  const handleCleanOrphans = () => {
+    toast.promise(
+      cleanupAndCompact().then(async (r) => {
+        const [info, stats] = await Promise.all([
+          estimateStorageUsage(),
+          getDBStats(),
+        ]);
+        setStorageInfo(info);
+        setDbStats(stats);
+        return r;
+      }),
+      {
+        loading: s('settings.storage_compact_loading'),
+        success: (r) =>
+          s('settings.storage_compact_done', {
+            orphanSheets: r.orphanSheets,
+            orphanDeltas: r.orphanDeltas,
+            compacted: r.compacted,
+          }),
+        error: s('settings.storage_compact_error'),
+      },
+    );
   };
 
   return (
@@ -336,6 +341,15 @@ const SettingsPage: Component = () => {
                 }
               />
             </SettingRow>
+            <SettingRow label={s('settings.show_goal_overlay')}>
+              <input
+                type="checkbox"
+                checked={settings.showGoalOverlay ?? false}
+                onChange={(e) =>
+                  setSettings('showGoalOverlay', e.currentTarget.checked)
+                }
+              />
+            </SettingRow>
           </div>
         </section>
 
@@ -359,6 +373,19 @@ const SettingsPage: Component = () => {
                       used: formatBytes(info().used),
                       quota: formatBytes(info().quota),
                     })}
+                    <Show when={dbStats()}>
+                      {(st) => (
+                        <>
+                          {' · '}
+                          {s('settings.storage_stats', {
+                            projects: st().projects,
+                            sheets: st().sheets,
+                            deltas: st().deltas,
+                            free: formatBytes(info().quota - info().used),
+                          })}
+                        </>
+                      )}
+                    </Show>
                   </span>
                 )}
               </Show>

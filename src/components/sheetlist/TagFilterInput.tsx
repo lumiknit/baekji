@@ -9,7 +9,7 @@ import {
   liveSheets,
   allTags,
 } from '../../state/sheet_list';
-import { activeProjectId } from '../../state/workspace_v1';
+import { activeProjectId } from '../../state/workspace_v3';
 import { s } from '../../lib/i18n';
 import TagList from '../tag/TagList';
 

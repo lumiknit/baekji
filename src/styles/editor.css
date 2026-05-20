@@ -88,6 +88,128 @@
   font-size: var(--fs-xs);
 }
 
+.editor-tool-btn--active {
+  background: var(--border);
+}
+
+/* ─── Goal Overlay ───────────────────────────────── */
+
+.goal-overlay {
+  position: absolute;
+  right: var(--sp-2);
+  top: calc(100% + 2.75rem);
+  width: 8rem;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: var(--fs-xs);
+}
+
+.goal-set-btn {
+  width: 100%;
+  padding: var(--sp-1) 0;
+  font-size: var(--fs-xs);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.goal-set-btn:hover {
+  opacity: 1;
+}
+
+.goal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: bold;
+  margin-bottom: var(--sp-1);
+}
+
+.goal-achieved-badge {
+  color: var(--accent, green);
+  font-size: var(--fs-xs);
+}
+
+.goal-progress {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: var(--border);
+
+  &::-webkit-progress-bar {
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  &::-webkit-progress-value {
+    background: var(--text);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  &::-moz-progress-bar {
+    background: var(--text);
+    border-radius: 3px;
+  }
+}
+
+.goal-stat {
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.goal-stat--due {
+  font-weight: 600;
+  opacity: 1;
+}
+
+.goal-stat--achieved {
+  color: var(--accent, green);
+  opacity: 1;
+}
+
+.goal-actions {
+  display: flex;
+  gap: var(--sp-1);
+  margin-top: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.goal-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px var(--sp-1);
+  border-radius: var(--r);
+  cursor: pointer;
+  opacity: 0.6;
+
+  &:hover {
+    background: var(--border);
+    opacity: 1;
+  }
+}
+
+.goal-action-btn--danger:hover {
+  color: var(--danger, #e00);
+}
+
+/* ─── Modal form row ─────────────────────────────── */
+
+.modal-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
 /* ─── Section Markers ─────────────────────────────── */
 
 .editor-section-marker {

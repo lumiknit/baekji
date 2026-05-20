@@ -20,12 +20,11 @@ import {
   toBlob,
 } from '../../lib/doc/backup_helper';
 import {
-  activeProjectDoc,
   activeProjectId,
   activeProjectLabel,
-} from '../../state/workspace_v1';
+  activeProjectMeta,
+} from '../../state/workspace_v3';
 import { deviceId } from '../../state/workspace';
-import { readProjectMeta } from '../../lib/doc/ydoc';
 import { closeBackupModal, showConfirm } from '../../state/modal';
 import { setLoadTarget } from '../../state/backupLoad';
 import { s } from '../../lib/i18n';
@@ -87,12 +86,9 @@ const BackupModal: Component = () => {
 
   const checkOlderSnapshot = async (bak: BakV1): Promise<boolean> => {
     if (importStrategy() === 'new') return true;
-    const pd = activeProjectDoc();
-    if (!pd) return true;
-    const id = activeProjectId();
-    if (!id) return true;
-    const localMeta = readProjectMeta(id, pd.meta);
-    const committedAt = localMeta.committedAt ?? '';
+    const meta = activeProjectMeta();
+    if (!meta) return true;
+    const committedAt = meta.committedAt ?? '';
     if (committedAt && bak.exportedAt <= committedAt) {
       return showConfirm(
         s('backup.import_older_title'),
@@ -132,18 +128,12 @@ const BackupModal: Component = () => {
       return;
     }
 
-    const pd = activeProjectDoc();
     const id = activeProjectId();
-    if (!pd || !id) return;
+    if (!id) return;
 
     setSaving(true);
     try {
-      const bak = await exportProjectAsBakV1(
-        id,
-        pd,
-        __APP_VERSION__,
-        deviceId(),
-      );
+      const bak = await exportProjectAsBakV1(id, __APP_VERSION__, deviceId());
       const data = await serializeGzip(bak);
       const blob = toBlob(data);
       const cloudFilename = `${id}_${timestampSuffix()}.bak.gz`;
@@ -236,7 +226,7 @@ const BackupModal: Component = () => {
         <button
           class="btn-primary btn-sm"
           disabled={
-            saving() || saveDestinations().length === 0 || !activeProjectDoc()
+            saving() || saveDestinations().length === 0 || !activeProjectId()
           }
           onClick={handleSave}
         >

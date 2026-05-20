@@ -1,19 +1,13 @@
 import { useNavigate } from '@solidjs/router';
 import { TbOutlineDotsVertical, TbOutlinePlus } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
-import {
-  createEffect,
-  createResource,
-  createSignal,
-  For,
-  Show,
-} from 'solid-js';
-import { getAllVersionRoots } from '../lib/doc/db';
-import { getAllProjects, putProject } from '../lib/doc/db_v1';
+import { createEffect, createResource, createSignal, For } from 'solid-js';
+import { listProjects, putProjectMeta } from '../lib/doc/db_v3';
 import { s } from '../lib/i18n';
 import { formatRelativeDate } from '../lib/format';
 import { setSidebarView, projectListVersion } from '../state/workspace';
-import { openProject, activeProjectDoc } from '../state/workspace_v1';
+import { openProject } from '../state/workspace_v3';
+import { loadSheetsForProject } from '../state/sheet_list';
 import { genUnorderedId } from '../lib/uuid';
 import Dropdown from './Dropdown';
 
@@ -22,54 +16,43 @@ const ProjectList: Component = () => {
   const [filter, setFilter] = createSignal('');
   const [showInactive, setShowInactive] = createSignal(false);
 
-  const [v0Projects] = createResource(async () => {
-    const all = await getAllVersionRoots();
-    return all.filter((r) => r.active);
-  });
-
-  const [v1Projects, { refetch: refetchV1 }] = createResource(async () => {
-    return getAllProjects();
+  const [projects, { refetch }] = createResource(async () => {
+    return listProjects();
   });
 
   createEffect(() => {
     projectListVersion(); // subscribe
-    refetchV1();
+    refetch();
   });
 
-  const openV1Project = async (id: string) => {
+  const handleOpenProject = async (id: string) => {
     await openProject(id);
+    await loadSheetsForProject(id);
     setSidebarView('tree');
     navigate(`/project/${id}`);
   };
 
-  const createV1Project = async () => {
+  const createProject = async () => {
     const label = s('home.default_project_name');
     const id = genUnorderedId();
     const now = new Date().toISOString();
-    putProject({ id, label, updatedAt: now, committedAt: '', tagColors: {} });
+    await putProjectMeta({
+      id,
+      label,
+      updatedAt: now,
+      committedAt: '',
+      tagColors: {},
+    });
     await openProject(id);
-    const pd = activeProjectDoc();
-    if (pd) {
-      pd.meta.set('id', id);
-      pd.meta.set('label', label);
-      pd.meta.set('updatedAt', now);
-    }
-    refetchV1();
+    await loadSheetsForProject(id);
+    refetch();
     setSidebarView('tree');
     navigate(`/project/${id}?new=1`);
   };
 
-  const filteredV1 = () => {
+  const filteredProjects = () => {
     const q = filter().toLowerCase();
-    const list = v1Projects() ?? [];
-    return q ? list.filter((p) => p.label.toLowerCase().includes(q)) : list;
-  };
-
-  const filteredV0 = () => {
-    const q = filter().toLowerCase();
-    const list = (v0Projects() ?? []).sort((a, b) =>
-      b.updatedAt.localeCompare(a.updatedAt),
-    );
+    const list = projects() ?? [];
     return q ? list.filter((p) => p.label.toLowerCase().includes(q)) : list;
   };
 
@@ -106,7 +89,7 @@ const ProjectList: Component = () => {
       </div>
 
       <div class="project-list-items">
-        <button class="project-list-new-btn" onClick={createV1Project}>
+        <button class="project-list-new-btn" onClick={createProject}>
           <div class="btn-pad">
             <span class="icon">
               <TbOutlinePlus />
@@ -115,15 +98,15 @@ const ProjectList: Component = () => {
           </div>
         </button>
 
-        <For each={filteredV1()}>
+        <For each={filteredProjects()}>
           {(p) => (
             <div
               class="project-list-item"
               role="button"
               tabIndex={0}
-              onClick={() => openV1Project(p.id)}
+              onClick={() => handleOpenProject(p.id)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') openV1Project(p.id);
+                if (e.key === 'Enter' || e.key === ' ') handleOpenProject(p.id);
               }}
             >
               <div class="btn-pad">
@@ -135,35 +118,6 @@ const ProjectList: Component = () => {
             </div>
           )}
         </For>
-
-        <Show when={filteredV0().length > 0}>
-          <div
-            style={{ padding: '4px 8px', opacity: 0.4, 'font-size': '0.75em' }}
-          >
-            {s('project.legacy_label')}
-          </div>
-          <For each={filteredV0()}>
-            {(p) => (
-              <div
-                class="project-list-item project-list-item--inactive"
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate(`/v0-project/${p.projectId}`)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ')
-                    navigate(`/v0-project/${p.projectId}`);
-                }}
-              >
-                <div class="btn-pad">
-                  <div class="project-list-item-label">{p.label}</div>
-                  <div class="project-list-item-meta">
-                    {formatRelativeDate(p.updatedAt)}
-                  </div>
-                </div>
-              </div>
-            )}
-          </For>
-        </Show>
       </div>
     </div>
   );

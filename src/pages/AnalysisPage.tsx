@@ -2,9 +2,14 @@ import type { Component } from 'solid-js';
 import { createSignal, For, Show, createEffect, createMemo } from 'solid-js';
 import { useParams, useNavigate, useSearchParams } from '@solidjs/router';
 import { TbOutlineArrowLeft } from 'solid-icons/tb';
-import { activeProjectLabel, openProject } from '../state/workspace_v1';
-import { liveSheets } from '../state/sheet_list';
-import { withSheetDoc } from '../lib/doc/docCache';
+import { activeProjectLabel, openProject } from '../state/workspace_v3';
+import {
+  liveSheets,
+  loadSheetsForProject,
+  sheetStatsStore,
+} from '../state/sheet_list';
+import { loadSheetContent } from '../lib/doc/db_v3';
+import { formatDuration } from '../lib/format';
 import { matchQuery } from '../lib/tag/query';
 import { s } from '../lib/i18n';
 import toast from 'solid-toast';
@@ -38,6 +43,7 @@ type SheetStats = {
   charsNoSpecial: number;
   words: number;
   readingMinutes: number;
+  writingSeconds: number;
 };
 
 const AnalysisPage: Component = () => {
@@ -85,6 +91,7 @@ const AnalysisPage: Component = () => {
         charsNoSpecial: acc.charsNoSpecial + cur.charsNoSpecial,
         words: acc.words + cur.words,
         readingMinutes: acc.readingMinutes + cur.readingMinutes,
+        writingSeconds: acc.writingSeconds + cur.writingSeconds,
       }),
       {
         bytes: 0,
@@ -93,6 +100,7 @@ const AnalysisPage: Component = () => {
         charsNoSpecial: 0,
         words: 0,
         readingMinutes: 0,
+        writingSeconds: 0,
       },
     );
   };
@@ -103,6 +111,7 @@ const AnalysisPage: Component = () => {
 
     const doRun = async () => {
       await openProject(params.pjId!);
+      await loadSheetsForProject(params.pjId!);
 
       const ids = sheetIds();
       let sheets = liveSheets();
@@ -117,15 +126,14 @@ const AnalysisPage: Component = () => {
 
       const results = await Promise.all(
         sheets.map(async (sheet) => {
-          return withSheetDoc(sheet.id, async (sd) => {
-            const text = sd.content.toString();
-            const preview = text.trim().slice(0, 16).replace(/\n/g, ' ');
-            return {
-              id: sheet.id,
-              label: preview || s('sheet.empty'),
-              ...computeStats(text),
-            };
-          });
+          const text = await loadSheetContent(sheet.id);
+          const preview = text.trim().slice(0, 16).replace(/\n/g, ' ');
+          return {
+            id: sheet.id,
+            label: preview || s('sheet.empty'),
+            writingSeconds: sheetStatsStore[sheet.id]?.writingSeconds ?? 0,
+            ...computeStats(text),
+          };
         }),
       );
       return results;
@@ -225,6 +233,7 @@ const AnalysisPage: Component = () => {
                   <th>{charLabel()}</th>
                   <th>{s('project.stat_words')}</th>
                   <th>{s('stats.reading_time')}</th>
+                  <th>{s('goal.writing_time')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -236,6 +245,11 @@ const AnalysisPage: Component = () => {
                       <td>{charCount(r).toLocaleString()}</td>
                       <td>{r.words.toLocaleString()}</td>
                       <td>{formatReadingTime(r.readingMinutes)}</td>
+                      <td>
+                        {r.writingSeconds > 0
+                          ? formatDuration(r.writingSeconds)
+                          : '—'}
+                      </td>
                     </tr>
                   )}
                 </For>
@@ -246,6 +260,11 @@ const AnalysisPage: Component = () => {
                     <td>{charCount(total()!).toLocaleString()}</td>
                     <td>{total()!.words.toLocaleString()}</td>
                     <td>{formatReadingTime(total()!.readingMinutes)}</td>
+                    <td>
+                      {total()!.writingSeconds > 0
+                        ? formatDuration(total()!.writingSeconds)
+                        : '—'}
+                    </td>
                   </tr>
                 </Show>
               </tbody>

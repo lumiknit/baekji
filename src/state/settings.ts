@@ -24,6 +24,7 @@ export interface Settings {
   typewriterMode: boolean;
   focusMode: boolean;
   previewFontSize: number;
+  showGoalOverlay: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -40,6 +41,7 @@ const defaultSettings: Settings = {
   typewriterMode: false,
   focusMode: false,
   previewFontSize: 13,
+  showGoalOverlay: true,
 };
 
 const [settings, setSettings] = makePersisted(

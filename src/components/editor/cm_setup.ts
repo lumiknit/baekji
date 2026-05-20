@@ -27,8 +27,10 @@ export function createActiveLineCompartment() {
   return new Compartment();
 }
 
-export function activeLineExtension(enabled: boolean): Extension {
-  return enabled ? highlightActiveLine() : [];
+export function activeLineExtension(): Extension {
+  // highlightActiveLine is always on so .cm-activeLine is always present for marker CSS.
+  // The enabled flag is kept for API compatibility but currently unused.
+  return highlightActiveLine();
 }
 
 export function buildExtensions(opts: {
@@ -45,7 +47,6 @@ export function buildExtensions(opts: {
     onSave,
     getTypewriterMode,
     activeLineCompartment,
-    initialHighlightActiveLine,
   } = opts;
 
   return [
@@ -64,7 +65,7 @@ export function buildExtensions(opts: {
       },
     ]),
     search({ top: true }),
-    activeLineCompartment.of(activeLineExtension(initialHighlightActiveLine)),
+    activeLineCompartment.of(activeLineExtension()),
     markdown({ extensions: [GFM] }),
     livePreviewPlugin,
     livePreviewTheme,

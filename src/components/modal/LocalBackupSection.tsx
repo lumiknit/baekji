@@ -13,11 +13,7 @@ import {
   deserializeGzip,
   toBlob,
 } from '../../lib/doc/backup_helper';
-import {
-  activeProjectDoc,
-  activeProjectId,
-  activeProjectLabel,
-} from '../../state/workspace_v1';
+import { activeProjectId, activeProjectLabel } from '../../state/workspace_v3';
 import { deviceId } from '../../state/workspace';
 import { closeBackupModal } from '../../state/modal';
 import { setLoadTarget } from '../../state/backupLoad';
@@ -41,17 +37,11 @@ const LocalBackupSection: Component<Props> = (props) => {
   const [exporting, setExporting] = createSignal(false);
 
   const handleDownload = async () => {
-    const pd = activeProjectDoc();
     const id = activeProjectId();
-    if (!pd || !id) return;
+    if (!id) return;
     setExporting(true);
     try {
-      const bak = await exportProjectAsBakV1(
-        id,
-        pd,
-        __APP_VERSION__,
-        deviceId(),
-      );
+      const bak = await exportProjectAsBakV1(id, __APP_VERSION__, deviceId());
       const data = await serializeGzip(bak);
       const blob = toBlob(data);
       const url = URL.createObjectURL(blob);
@@ -100,7 +90,7 @@ const LocalBackupSection: Component<Props> = (props) => {
       <div class="flex gap-2">
         <button
           class="btn-primary btn-sm flex-1"
-          disabled={exporting() || !activeProjectDoc()}
+          disabled={exporting() || !activeProjectId()}
           onClick={handleDownload}
         >
           <span class="icon">

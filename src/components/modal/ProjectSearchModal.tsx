@@ -3,7 +3,7 @@ import { createSignal, For, Show, onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { TbOutlineSearch, TbOutlineFileText, TbOutlineX } from 'solid-icons/tb';
 import { liveSheets } from '../../state/sheet_list';
-import { openSheetDoc, closeSheetDoc, waitForSync } from '../../lib/doc/ydoc';
+import { loadSheetContent } from '../../lib/doc/db_v3';
 import { s } from '../../lib/i18n';
 import { closeProjectSearchModal } from '../../state/modal';
 
@@ -33,9 +33,7 @@ const ProjectSearchModal: Component = () => {
     const newResults: SearchResult[] = [];
 
     for (const sheet of sheets) {
-      const sd = openSheetDoc(sheet.id);
-      await waitForSync(sd.provider);
-      const text = sd.content.toString();
+      const text = await loadSheetContent(sheet.id);
       const lowerText = text.toLowerCase();
 
       const matches: { start: number; end: number }[] = [];
@@ -53,7 +51,6 @@ const ProjectSearchModal: Component = () => {
           matches,
         });
       }
-      closeSheetDoc(sd);
     }
 
     setResults(newResults);

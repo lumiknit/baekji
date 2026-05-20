@@ -17,8 +17,9 @@ import {
 import Sortable from 'sortablejs';
 import {
   filteredSheets,
+  filteredSheetIds,
   liveSheets,
-  trashSheets,
+  trashSortedIds,
   createSheet,
   createSheetWithContent,
   emptyTrash,
@@ -36,11 +37,10 @@ import {
   updateSelectedSheetTags,
 } from '../../state/sheet_list';
 import {
-  activeProjectDoc,
   activeProjectId,
   activeProjectLabel,
   activeSheetId,
-} from '../../state/workspace_v1';
+} from '../../state/workspace_v3';
 import {
   setSidebarView,
   showUpdatedAt,
@@ -128,7 +128,9 @@ const SheetList: Component = () => {
             beforeKey,
             afterKey,
           );
-          orderedSelected.forEach((id, i) => reorderSheet(id, keys[i]));
+          Promise.all(
+            orderedSelected.map((id, i) => reorderSheet(id, keys[i])),
+          );
         } else {
           const newKey = orderKeyBetween(
             oldIdx < newIdx
@@ -150,8 +152,8 @@ const SheetList: Component = () => {
     return id ? { after: id } : undefined;
   };
 
-  const handleNewSheet = () => {
-    const id = createSheet([], activeSheetOption());
+  const handleNewSheet = async () => {
+    const id = await createSheet([], activeSheetOption());
     if (id) navigate(`/sheets/${id}`);
   };
 
@@ -172,7 +174,7 @@ const SheetList: Component = () => {
   return (
     <div class="tree-view">
       <Show
-        when={activeProjectDoc()}
+        when={activeProjectId()}
         fallback={
           <div class="tree-no-project">
             <span class="tree-no-project-label">{s('tree.no_project')}</span>
@@ -336,7 +338,7 @@ const SheetList: Component = () => {
                         }),
                       );
                       if (!ok) return;
-                      for (const id of ids) softDeleteSheet(id);
+                      await Promise.all(ids.map((id) => softDeleteSheet(id)));
                       exitSelectMode();
                     },
                   },
@@ -350,11 +352,11 @@ const SheetList: Component = () => {
         </div>
 
         <div class="sl-list" ref={(el) => (listEl = el)}>
-          <For each={filteredSheets()}>
-            {(sheet) => (
-              <div data-sheet-id={sheet.id} class="sl-item-wrap">
+          <For each={filteredSheetIds()}>
+            {(id) => (
+              <div data-sheet-id={id} class="sl-item-wrap">
                 <SheetItem
-                  sheet={sheet}
+                  id={id}
                   onOpenSelectionMenu={() => {
                     setSelectionMenuOpen(true);
                   }}
@@ -363,7 +365,7 @@ const SheetList: Component = () => {
             )}
           </For>
 
-          <Show when={filteredSheets().length === 0}>
+          <Show when={filteredSheetIds().length === 0}>
             <div class="tree-trash-empty-msg">
               {filterQuery() ? s('sheet.no_match') : s('sheet.empty')}
             </div>
@@ -385,8 +387,8 @@ const SheetList: Component = () => {
                 <TbFillTrash />
               </span>
               <span class="tree-trash-label">{s('tree.trash')}</span>
-              <Show when={trashSheets().length > 0}>
-                <span class="tree-trash-count">{trashSheets().length}</span>
+              <Show when={trashSortedIds().length > 0}>
+                <span class="tree-trash-count">{trashSortedIds().length}</span>
                 <button
                   class="tree-trash-empty-btn sb-icon-btn"
                   title={s('tree.trash_empty_btn')}
@@ -396,7 +398,7 @@ const SheetList: Component = () => {
                       s('tree.trash_empty_btn'),
                       s('tree.trash_empty_confirm'),
                     );
-                    if (ok) emptyTrash();
+                    if (ok) await emptyTrash();
                   }}
                 >
                   <div class="btn-pad">
@@ -408,15 +410,15 @@ const SheetList: Component = () => {
 
             <Show when={trashOpen()}>
               <Show
-                when={trashSheets().length > 0}
+                when={trashSortedIds().length > 0}
                 fallback={
                   <div class="tree-trash-empty-msg">
                     {s('tree.trash_empty')}
                   </div>
                 }
               >
-                <For each={trashSheets()}>
-                  {(sheet) => <SheetItem sheet={sheet} isTrash />}
+                <For each={trashSortedIds()}>
+                  {(id) => <SheetItem id={id} isTrash />}
                 </For>
               </Show>
             </Show>

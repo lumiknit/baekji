@@ -7,16 +7,21 @@ import {
   TbOutlineDots,
   TbOutlineCopy,
   TbOutlineSearch,
+  TbOutlineDeviceFloppy,
+  TbOutlineTarget,
 } from 'solid-icons/tb';
+
 import type { Component } from 'solid-js';
 import Dropdown from '../Dropdown';
 import { formatCompact } from '../../lib/format';
 import { s } from '../../lib/i18n';
+import { settings, setSettings } from '../../state/settings';
 
 interface EditorToolOverlayProps {
   charCount: () => number;
   onUndo: () => void;
   onRedo: () => void;
+  onSave: () => void;
   onCopy: () => void;
   onExport: () => void;
   onSplit: () => void;
@@ -33,7 +38,7 @@ const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
     >
       <div class="editor-tool-status">
         <span class="editor-tool-charcount">
-          {s('editor.size', { count: formatCompact(props.charCount()) })}
+          {s('editor.chars', { count: formatCompact(props.charCount()) })}
         </span>
       </div>
 
@@ -58,6 +63,12 @@ const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
         trigger={<TbOutlineDots size={14} />}
         items={[
           {
+            icon: TbOutlineDeviceFloppy,
+            label: s('editor.snapshot_save'),
+            onSelect: props.onSave,
+          },
+          { separator: true },
+          {
             icon: TbOutlineSearch,
             label: s('editor.find_replace'),
             onSelect: props.onSearch,
@@ -76,6 +87,13 @@ const EditorToolOverlay: Component<EditorToolOverlayProps> = (props) => {
             icon: TbOutlineAnalyze,
             label: s('common.analysis'),
             onSelect: props.onAnalysis,
+          },
+          { separator: true },
+          {
+            icon: TbOutlineTarget,
+            label: s('goal.title'),
+            checked: settings.showGoalOverlay,
+            onSelect: () => setSettings('showGoalOverlay', (v) => !v),
           },
           { separator: true },
           {

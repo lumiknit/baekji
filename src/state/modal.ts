@@ -57,6 +57,12 @@ export const closeModal = (value: unknown = null) => {
   setModalState(null);
 };
 
+export const [goalModalSheetId, setGoalModalSheetId] = createSignal<
+  string | null
+>(null);
+export const openGoalModal = (sheetId: string) => setGoalModalSheetId(sheetId);
+export const closeGoalModal = () => setGoalModalSheetId(null);
+
 export const [backupModalOpen, setBackupModalOpen] = createSignal(false);
 export const openBackupModal = () => setBackupModalOpen(true);
 export const closeBackupModal = () => setBackupModalOpen(false);

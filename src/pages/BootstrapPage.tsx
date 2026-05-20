@@ -1,7 +1,8 @@
 import type { Component } from 'solid-js';
 import { onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
-import { lastProjectId, lastSheetId, openProject } from '../state/workspace_v1';
+import { lastProjectId, lastSheetId, openProject } from '../state/workspace_v3';
+import { loadSheetsForProject } from '../state/sheet_list';
 import { setSidebarView } from '../state/workspace';
 import { logError } from '../state/log';
 
@@ -13,6 +14,7 @@ const BootstrapPage: Component = () => {
     if (projectId) {
       try {
         await openProject(projectId);
+        await loadSheetsForProject(projectId);
       } catch (err) {
         logError('BootstrapPage:openProject', err);
         navigate('/', { replace: true });

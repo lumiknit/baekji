@@ -1,19 +1,64 @@
-import { createRoot, createSignal, createEffect, createMemo } from 'solid-js';
-import type { SheetMeta } from '../lib/doc/v1';
-import { activeProjectDoc } from './workspace_v1';
+import { createSignal, createMemo } from 'solid-js';
+import { createStore, produce, reconcile, unwrap } from 'solid-js/store';
+import type { SheetMeta, SheetStats, WritingGoal } from '../lib/doc/v1';
+import { activeProjectId } from './workspace_v3';
 import { matchQuery } from '../lib/tag/query';
 import { genUnorderedId } from '../lib/uuid';
-import { withSheetDoc } from '../lib/doc/docCache';
+import {
+  getSheetMetasByProject,
+  putSheetMeta,
+  deleteSheetMeta,
+  deleteSheetDeltas,
+  deleteSheetStats,
+  appendSheetDelta,
+  loadSheetContent,
+  replaceSheetContent,
+  putSheetStats,
+  getSheetStatsByProject,
+} from '../lib/doc/db_v3';
 
 // ─── Sheet list state ────────────────────────────────────────────
 
-const [allSheets, setAllSheets] = createSignal<SheetMeta[]>([]);
+export const [sheetsStore, setSheetsStore] = createStore<
+  Record<string, SheetMeta>
+>({});
+export const [sheetStatsStore, setSheetStatsStore] = createStore<
+  Record<string, SheetStats>
+>({});
+
+// Incremented whenever sheet content is flushed so previews can re-fetch.
+const [_previewVersion, setPreviewVersion] = createSignal(0);
+export const previewVersion = _previewVersion;
+export function invalidateSheetPreview() {
+  setPreviewVersion((v) => v + 1);
+}
+
+const [_liveSortedIds, _setLiveSortedIds] = createSignal<string[]>([]);
+const [_trashSortedIds, _setTrashSortedIds] = createSignal<string[]>([]);
+
+export const liveSortedIds = _liveSortedIds;
+
+function rebuildSortedIds() {
+  const all = Object.values(sheetsStore);
+  _setLiveSortedIds(
+    all
+      .filter((s) => !s.deletedAt)
+      .sort((a, b) => a.orderKey - b.orderKey)
+      .map((s) => s.id),
+  );
+  _setTrashSortedIds(
+    all
+      .filter((s) => !!s.deletedAt)
+      .sort((a, b) => a.orderKey - b.orderKey)
+      .map((s) => s.id),
+  );
+}
+
 export const [filterQuery, setFilterQuery] = createSignal('');
 export const [selectedIds, setSelectedIds] = createSignal<Set<string>>(
   new Set(),
 );
 export const [isSelectMode, setSelectMode] = createSignal(false);
-// last toggled id for shift+click range select
 const [_anchorId, setAnchorId] = createSignal<string | null>(null);
 
 export const enterSelectMode = () => setSelectMode(true);
@@ -62,85 +107,72 @@ export const rangeSelect = (
   });
 };
 
-export const liveSheets = createMemo(() =>
-  allSheets()
-    .filter((s) => !s.deletedAt)
-    .sort((a, b) => a.orderKey - b.orderKey),
-);
+export const trashSortedIds = _trashSortedIds;
 
-export const trashSheets = createMemo(() =>
-  allSheets()
-    .filter((s) => !!s.deletedAt)
-    .sort((a, b) => a.orderKey - b.orderKey),
-);
+export const filteredSheetIds = createMemo(() => {
+  const q = filterQuery().trim();
+  if (!q) return _liveSortedIds();
+  return _liveSortedIds().filter((id) => {
+    const sheet = sheetsStore[id];
+    return sheet && matchQuery(q, new Set(sheet.tags));
+  });
+});
 
 export const allTags = createMemo(() => {
   const tags = new Set<string>();
-  for (const sheet of liveSheets()) {
-    for (const tag of sheet.tags) tags.add(tag);
+  for (const id of _liveSortedIds()) {
+    for (const tag of sheetsStore[id]?.tags ?? []) tags.add(tag);
   }
   return Array.from(tags).sort();
 });
 
-export const filteredSheets = createMemo(() => {
-  const q = filterQuery().trim();
-  if (!q) return liveSheets();
-  return liveSheets().filter((s) => matchQuery(q, new Set(s.tags)));
-});
+export function liveSheets(): SheetMeta[] {
+  return _liveSortedIds()
+    .map((id) => sheetsStore[id])
+    .filter(Boolean) as SheetMeta[];
+}
+
+export function trashSheets(): SheetMeta[] {
+  return _trashSortedIds()
+    .map((id) => sheetsStore[id])
+    .filter(Boolean) as SheetMeta[];
+}
+
+export function filteredSheets(): SheetMeta[] {
+  return filteredSheetIds()
+    .map((id) => sheetsStore[id])
+    .filter(Boolean) as SheetMeta[];
+}
 
 export const selectAll = () => {
   setSelectedIds(new Set<string>(filteredSheets().map((s) => s.id)));
   setSelectMode(true);
 };
 
-// ─── Y.Map subscription ──────────────────────────────────────────
+// ─── Load sheets for active project ──────────────────────────────
 
-createRoot(() => {
-  let unobserve: (() => void) | null = null;
+export async function loadSheetsForProject(projectId: string): Promise<void> {
+  const [metas, statsList] = await Promise.all([
+    getSheetMetasByProject(projectId),
+    getSheetStatsByProject(projectId),
+  ]);
+  const metaMap: Record<string, SheetMeta> = {};
+  for (const m of metas) metaMap[m.id] = m;
+  const statsMap: Record<string, SheetStats> = {};
+  for (const s of statsList) statsMap[s.sheetId] = s;
+  setSheetsStore(reconcile(metaMap));
+  setSheetStatsStore(reconcile(statsMap));
+  rebuildSortedIds();
+}
 
-  createEffect(() => {
-    const pd = activeProjectDoc();
-    if (unobserve) {
-      unobserve();
-      unobserve = null;
-    }
-    if (!pd) {
-      setAllSheets([]);
-      return;
-    }
-
-    const sheetsMap = pd.sheets;
-    const handler = () => {
-      const newValues = Array.from(sheetsMap.values());
-      setAllSheets((prev) => {
-        const prevMap = new Map(prev.map((s) => [s.id, s]));
-        return newValues.map((newVal) => {
-          const oldVal = prevMap.get(newVal.id);
-          if (
-            oldVal &&
-            oldVal.updatedAt === newVal.updatedAt &&
-            oldVal.orderKey === newVal.orderKey &&
-            oldVal.deletedAt === newVal.deletedAt &&
-            oldVal.tags.length === newVal.tags.length &&
-            oldVal.tags.every((t, i) => t === newVal.tags[i])
-          ) {
-            return oldVal;
-          }
-          return newVal;
-        });
-      });
-    };
-    sheetsMap.observe(handler);
-    handler();
-    unobserve = () => sheetsMap.unobserve(handler);
-  });
-});
+export function clearSheets(): void {
+  setSheetsStore(reconcile({}));
+  setSheetStatsStore(reconcile({}));
+  _setLiveSortedIds([]);
+  _setTrashSortedIds([]);
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────
-
-function getSheetsMap() {
-  return activeProjectDoc()?.sheets ?? null;
-}
 
 function maxOrderKey(): number {
   return liveSheets().reduce(
@@ -169,19 +201,57 @@ export function orderKeysBetween(
   return Array.from({ length: n }, (_, i) => start + step * (i + 1));
 }
 
+function applyMeta(meta: SheetMeta): void {
+  setSheetsStore(meta.id, reconcile(meta));
+  rebuildSortedIds();
+}
+
+// Strip SolidJS Proxy wrapping before passing to IDB structured clone.
+function plain(meta: SheetMeta): SheetMeta {
+  return unwrap(meta);
+}
+
+// ─── Stats helpers ────────────────────────────────────────────────
+
+export function touchSheetStats(id: string, writingSeconds: number): void {
+  const updatedAt = new Date().toISOString();
+  const stats: SheetStats = { sheetId: id, updatedAt, writingSeconds };
+  setSheetStatsStore(id, reconcile(stats));
+  putSheetStats(stats);
+}
+
+export function updateSheetGoal(
+  id: string,
+  goal: WritingGoal | undefined,
+): void {
+  const meta = sheetsStore[id];
+  if (!meta) return;
+  const updated = { ...plain(meta), goal };
+  setSheetsStore(id, reconcile(updated));
+  putSheetMeta(updated);
+}
+
+export function resetSheetWritingSeconds(id: string): void {
+  const existing = sheetStatsStore[id];
+  const stats: SheetStats = {
+    sheetId: id,
+    updatedAt: existing?.updatedAt ?? new Date().toISOString(),
+    writingSeconds: 0,
+  };
+  setSheetStatsStore(id, reconcile(stats));
+  putSheetStats(stats);
+}
+
 // ─── CRUD ────────────────────────────────────────────────────────
 
-export function createSheet(
+export async function createSheet(
   tags: string[],
   options?: { after?: string; before?: string },
-): string | null {
-  const sheetsMap = getSheetsMap();
-  const pd = activeProjectDoc();
-  if (!sheetsMap || !pd) return null;
+): Promise<string | null> {
+  const projectId = activeProjectId();
+  if (!projectId) return null;
 
-  const projectId = (pd.meta.get('id') as string | undefined) ?? '';
   const id = genUnorderedId();
-  const now = new Date().toISOString();
 
   let orderKey: number;
   const sheets = liveSheets();
@@ -209,99 +279,95 @@ export function createSheet(
     orderKey = orderKeyBetween(maxOrderKey(), null);
   }
 
-  const meta: SheetMeta = {
-    id,
-    projectId,
-    updatedAt: now,
-    orderKey,
-    tags,
-  };
-
-  sheetsMap.set(id, meta);
+  const meta: SheetMeta = { id, projectId, orderKey, tags };
+  applyMeta(meta);
+  putSheetMeta(plain(meta));
   return id;
 }
 
-export function softDeleteSheet(id: string): void {
-  const sheetsMap = getSheetsMap();
-  if (!sheetsMap) return;
-  const meta = sheetsMap.get(id);
+export async function softDeleteSheet(id: string): Promise<void> {
+  const meta = sheetsStore[id];
   if (!meta) return;
   const now = new Date().toISOString();
-  sheetsMap.set(id, { ...meta, updatedAt: now, deletedAt: now });
+  const updated = { ...plain(meta), deletedAt: now };
+  applyMeta(updated);
+  putSheetMeta(updated);
+  touchSheetStats(id, sheetStatsStore[id]?.writingSeconds ?? 0);
 }
 
-export function touchSheetUpdatedAt(id: string): void {
-  const sheetsMap = getSheetsMap();
-  if (!sheetsMap) return;
-  const meta = sheetsMap.get(id);
+export async function restoreSheet(id: string): Promise<void> {
+  const meta = sheetsStore[id];
   if (!meta) return;
-  sheetsMap.set(id, { ...meta, updatedAt: new Date().toISOString() });
-}
-
-export function restoreSheet(id: string): void {
-  const sheetsMap = getSheetsMap();
-  if (!sheetsMap) return;
-  const meta = sheetsMap.get(id);
-  if (!meta) return;
-  const restored = { ...meta };
+  const restored = { ...plain(meta) };
   delete restored.deletedAt;
-  sheetsMap.set(id, restored);
+  applyMeta(restored);
+  putSheetMeta(restored);
 }
 
-export function deleteSheetPermanently(id: string): void {
-  const sheetsMap = getSheetsMap();
-  if (!sheetsMap) return;
-  sheetsMap.delete(id);
-  indexedDB.deleteDatabase(`baekji-v2-sheet-${id}`);
+export async function deleteSheetPermanently(id: string): Promise<void> {
+  await Promise.all([
+    deleteSheetDeltas(id),
+    deleteSheetMeta(id),
+    deleteSheetStats(id),
+  ]);
+  setSheetsStore(
+    produce((s) => {
+      delete s[id];
+    }),
+  );
+  setSheetStatsStore(
+    produce((s) => {
+      delete s[id];
+    }),
+  );
+  rebuildSortedIds();
 }
 
 export function updateSheetTags(id: string, tags: string[]): void {
-  const sheetsMap = getSheetsMap();
-  if (!sheetsMap) return;
-  const meta = sheetsMap.get(id);
+  const meta = sheetsStore[id];
   if (!meta) return;
-  sheetsMap.set(id, { ...meta, tags, updatedAt: new Date().toISOString() });
+  const updated = { ...plain(meta), tags };
+  setSheetsStore(id, reconcile(updated));
+  putSheetMeta(updated);
 }
 
 export function updateSelectedSheetTags(ids: string[], tags: string[]): void {
-  const sheetsMap = getSheetsMap();
-  if (!sheetsMap) return;
   for (const id of ids) {
-    const meta = sheetsMap.get(id);
-    if (meta)
-      sheetsMap.set(id, { ...meta, tags, updatedAt: new Date().toISOString() });
+    const meta = sheetsStore[id];
+    if (!meta) continue;
+    const updated = { ...plain(meta), tags };
+    setSheetsStore(id, reconcile(updated));
+    putSheetMeta(updated);
   }
 }
 
-export function reorderSheet(id: string, newOrderKey: number): void {
-  const sheetsMap = getSheetsMap();
-  if (!sheetsMap) return;
-  const meta = sheetsMap.get(id);
+export async function reorderSheet(
+  id: string,
+  newOrderKey: number,
+): Promise<void> {
+  const meta = sheetsStore[id];
   if (!meta) return;
-  sheetsMap.set(id, { ...meta, orderKey: newOrderKey });
+  const updated = { ...plain(meta), orderKey: newOrderKey };
+  applyMeta(updated);
+  putSheetMeta(updated);
 }
 
-export function reindexOrderKeys(): void {
-  const sheetsMap = getSheetsMap();
-  const pd = activeProjectDoc();
-  if (!sheetsMap || !pd) return;
-  const sorted = Array.from(sheetsMap.values()).sort(
+export async function reindexOrderKeys(): Promise<void> {
+  const sorted = [...liveSheets(), ...trashSheets()].sort(
     (a, b) => a.orderKey - b.orderKey,
   );
-  pd.doc.transact(() => {
-    sorted.forEach((sheet, i) => {
-      sheetsMap.set(sheet.id, { ...sheet, orderKey: (i + 1) * ORDER_KEY_GAP });
-    });
-  });
+  await Promise.all(
+    sorted.map(async (sheet, i) => {
+      const updated = { ...plain(sheet), orderKey: (i + 1) * ORDER_KEY_GAP };
+      await putSheetMeta(updated);
+      setSheetsStore(sheet.id, 'orderKey', updated.orderKey);
+    }),
+  );
+  rebuildSortedIds();
 }
 
-export function emptyTrash(): void {
-  const sheetsMap = getSheetsMap();
-  if (!sheetsMap) return;
-  for (const s of trashSheets()) {
-    sheetsMap.delete(s.id);
-    indexedDB.deleteDatabase(`baekji-v2-sheet-${s.id}`);
-  }
+export async function emptyTrash(): Promise<void> {
+  await Promise.all(trashSheets().map((s) => deleteSheetPermanently(s.id)));
 }
 
 export async function createSheetWithContent(
@@ -309,19 +375,12 @@ export async function createSheetWithContent(
   content: string,
   options?: { after?: string; before?: string },
 ): Promise<string | null> {
-  const id = createSheet(tags, options);
+  const id = await createSheet(tags, options);
   if (!id) return null;
-  await withSheetDoc(id, async (sd) => {
-    sd.doc.transact(() => {
-      sd.content.delete(0, sd.content.length);
-      sd.content.insert(0, content);
-    });
-  });
+  await appendSheetDelta(id, content);
   return id;
 }
 
-/** 두 시트 content를 합쳐서 첫 번째에 저장하고 두 번째를 휴지통으로 이동.
- * list가 주어지면 해당 리스트에서 id 다음 항목과 합침. */
 export async function mergeSheetDown(
   id: string,
   list?: SheetMeta[],
@@ -333,54 +392,92 @@ export async function mergeSheetDown(
   const nextId = sheets[idx + 1].id;
 
   const [text1Raw, text2Raw] = await Promise.all([
-    withSheetDoc(id, async (sd) => sd.content.toString()),
-    withSheetDoc(nextId, async (sd) => sd.content.toString()),
+    loadSheetContent(id),
+    loadSheetContent(nextId),
   ]);
   const text1 = text1Raw.trimEnd();
   const text2 = text2Raw.trimStart();
   const merged = text1 + (text1 && text2 ? '\n\n' : '') + text2;
 
-  await withSheetDoc(id, async (sd) => {
-    sd.doc.transact(() => {
-      sd.content.delete(0, sd.content.length);
-      sd.content.insert(0, merged);
-    });
-  });
-  softDeleteSheet(nextId);
+  await replaceSheetContent(id, merged);
+
+  // Merge stats: sum of both writingSeconds, goal removed.
+  const stats1 = sheetStatsStore[id];
+  const stats2 = sheetStatsStore[nextId];
+  const mergedSeconds =
+    (stats1?.writingSeconds ?? 0) + (stats2?.writingSeconds ?? 0);
+  touchSheetStats(id, mergedSeconds);
+
+  // Remove goal from merged sheet.
+  const meta = sheetsStore[id];
+  if (meta?.goal) {
+    const updated = { ...plain(meta) };
+    delete updated.goal;
+    setSheetsStore(id, reconcile(updated));
+    putSheetMeta(updated);
+  }
+
+  await softDeleteSheet(nextId);
 }
 
-/** 시트를 지정된 위치에서 둘로 나눔. */
 export async function splitSheet(
   id: string,
   head: string,
   tail: string,
 ): Promise<string | null> {
-  const sheetsMap = getSheetsMap();
-  if (!sheetsMap) return null;
-  const meta = sheetsMap.get(id);
+  const meta = sheetsStore[id];
   if (!meta) return null;
 
-  const nextId = createSheet(meta.tags, { after: id });
+  const nextId = await createSheet(meta.tags, { after: id });
   if (!nextId) return null;
 
-  // Write tail to new sheet first; if this fails, the original is untouched.
-  await withSheetDoc(nextId, async (sd) => {
-    sd.doc.transact(() => {
-      sd.content.delete(0, sd.content.length);
-      sd.content.insert(0, tail);
-    });
-  });
-  await withSheetDoc(id, async (sd) => {
-    sd.doc.transact(() => {
-      sd.content.delete(0, sd.content.length);
-      sd.content.insert(0, head);
-    });
-  });
+  await replaceSheetContent(nextId, tail);
+  await replaceSheetContent(id, head);
 
-  const now = new Date().toISOString();
-  sheetsMap.set(id, { ...meta, updatedAt: now });
-  const nextMeta = sheetsMap.get(nextId);
-  if (nextMeta) sheetsMap.set(nextId, { ...nextMeta, updatedAt: now });
+  // Split writingSeconds proportionally by character length.
+  const totalLen = head.length + tail.length;
+  const existingSeconds = sheetStatsStore[id]?.writingSeconds ?? 0;
+  const headSeconds =
+    totalLen > 0 ? Math.round((existingSeconds * head.length) / totalLen) : 0;
+  const tailSeconds = existingSeconds - headSeconds;
+
+  // Remove goal from both halves.
+  const updatedMeta = { ...plain(meta) };
+  delete updatedMeta.goal;
+  setSheetsStore(id, reconcile(updatedMeta));
+  putSheetMeta(updatedMeta);
+
+  touchSheetStats(id, headSeconds);
+  touchSheetStats(nextId, tailSeconds);
 
   return nextId;
+}
+
+// ─── Goal helpers ────────────────────────────────────────────────
+
+export function startGoal(id: string, goalChars: number, dueAt?: string): void {
+  const writingSeconds = sheetStatsStore[id]?.writingSeconds ?? 0;
+  const goal: WritingGoal = {
+    startedAt: new Date().toISOString(),
+    startedWritingSeconds: writingSeconds,
+    goalChars,
+    ...(dueAt ? { dueAt } : {}),
+  };
+  updateSheetGoal(id, goal);
+}
+
+export function achieveGoal(id: string): void {
+  const meta = sheetsStore[id];
+  if (!meta?.goal) return;
+  const writingSeconds = sheetStatsStore[id]?.writingSeconds ?? 0;
+  const achieved: WritingGoal = {
+    ...unwrap(meta.goal),
+    achievedAt: new Date().toISOString(),
+    achievedWritingSeconds: writingSeconds,
+  };
+  updateSheetGoal(id, achieved);
+}
+
+export function clearGoal(id: string): void {
+  updateSheetGoal(id, undefined);
 }

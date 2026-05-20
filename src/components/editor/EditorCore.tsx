@@ -1,36 +1,17 @@
 import type { Component } from 'solid-js';
 import { onMount, onCleanup, createEffect } from 'solid-js';
-import * as Y from 'yjs';
 import { EditorView } from '@codemirror/view';
-import { EditorState, type Extension } from '@codemirror/state';
-import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
-import { keymap } from '@codemirror/view';
+import { EditorState, ChangeSet } from '@codemirror/state';
+import type { Extension } from '@codemirror/state';
+import { undo, redo } from '@codemirror/commands';
 import {
   openSheet,
   closeSheet,
-  activeProjectDoc,
+  activeProjectId,
   lastProjectId,
   openProject,
-} from '../../state/workspace_v1';
-import { touchSheetUpdatedAt } from '../../state/sheet_list';
-
-const TOUCH_INTERVAL = 5_000;
-
-// Global map intentionally kept outside component lifecycle.
-// When the user edits a sheet and immediately navigates away, the timer must
-// still fire so updatedAt is written even after the editor unmounts.
-const pendingTouch = new Map<string, ReturnType<typeof setTimeout>>();
-
-function scheduleTouchUpdatedAt(sheetId: string) {
-  if (pendingTouch.has(sheetId)) return;
-  pendingTouch.set(
-    sheetId,
-    setTimeout(() => {
-      pendingTouch.delete(sheetId);
-      touchSheetUpdatedAt(sheetId);
-    }, TOUCH_INTERVAL),
-  );
-}
+} from '../../state/workspace_v3';
+import { touchSheetStats } from '../../state/sheet_list';
 import {
   buildExtensions,
   openSearchPanel,
@@ -39,77 +20,156 @@ import {
 } from './cm_setup';
 import { s } from '../../lib/i18n';
 import { settings } from '../../state/settings';
+import {
+  appendSheetDelta,
+  getSheetMeta,
+  getSheetStats,
+  loadSheetResult,
+  replaceSheetContent,
+} from '../../lib/doc/db_v3';
+import toast from 'solid-toast';
+import { logError } from '../../state/log';
+import {
+  loadSheetsForProject,
+  invalidateSheetPreview,
+} from '../../state/sheet_list';
+import type { DeltaPayload } from '../../lib/doc/cm';
 
-export type EditorCoreHandle = {
-  undo: () => void;
-  redo: () => void;
-  copy: () => Promise<void>;
-  scrollToEdge: (edge: 'start' | 'end') => void;
-  getSplitContent: () => { head: string; tail: string } | null;
-  openSearch: () => void;
-};
+const FLUSH_INTERVAL = 3_000;
+const AUTO_COMPACT_THRESHOLD = 100;
 
-interface Props {
+const EditorCore: Component<{
   sheetId: string;
   onCharCount: (n: number) => void;
   handle: (h: EditorCoreHandle) => void;
   onLoadError: () => void;
-}
-
-const EditorCore: Component<Props> = (props) => {
+}> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let view: EditorView | undefined;
-  let undoManager: Y.UndoManager | undefined;
+  let pendingCS: ChangeSet | null = null;
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+  let deltaCount = 0;
+  let writingSeconds = 0;
   const activeLineCompartment = createActiveLineCompartment();
 
-  onMount(async () => {
-    if (!activeProjectDoc()) {
-      const id = lastProjectId();
-      if (id) await openProject(id);
+  async function flush() {
+    if (flushTimer !== null) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
     }
-
+    if (!pendingCS) return;
+    const cs = pendingCS;
+    pendingCS = null;
     try {
-      const doc = await openSheet(props.sheetId);
+      await appendSheetDelta(props.sheetId, cs.toJSON() as DeltaPayload);
+      writingSeconds += FLUSH_INTERVAL / 1000;
+      touchSheetStats(props.sheetId, writingSeconds);
+      invalidateSheetPreview();
+      deltaCount++;
+      if (deltaCount >= AUTO_COMPACT_THRESHOLD) {
+        await saveSnapshot(true);
+      }
+    } catch (err) {
+      // Restore cs into pendingCS so it is not lost.
+      pendingCS = pendingCS ? cs.compose(pendingCS) : cs;
+      logError('flush:appendSheetDelta', err);
+      toast.error(
+        `Failed to save changes: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
 
-      undoManager = new Y.UndoManager(doc.content);
+  async function saveSnapshot(silent = false) {
+    if (flushTimer !== null) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    pendingCS = null;
+    const content = view?.state.doc.toString() ?? '';
+    try {
+      await replaceSheetContent(props.sheetId, content);
+      touchSheetStats(props.sheetId, writingSeconds);
+      invalidateSheetPreview();
+      deltaCount = 0;
+      if (!silent) toast.success(s('editor.snapshot_saved'));
+    } catch (err) {
+      logError('saveSnapshot', err);
+      toast.error(
+        `Failed to save snapshot: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  function scheduleFlush() {
+    if (flushTimer !== null) return;
+    flushTimer = setTimeout(() => {
+      flushTimer = null;
+      flush();
+    }, FLUSH_INTERVAL);
+  }
+
+  onMount(async () => {
+    try {
+      // Resolve projectId from sheetMeta, falling back to lastProjectId
+      const sheetMeta = await getSheetMeta(props.sheetId);
+      const projectId = sheetMeta?.projectId ?? lastProjectId();
+      if (projectId && projectId !== activeProjectId()) {
+        await openProject(projectId);
+        await loadSheetsForProject(projectId);
+      }
+
+      const [
+        { content: initialContent, truncated, deltaCount: initialDeltaCount },
+        initialStats,
+      ] = await Promise.all([
+        loadSheetResult(props.sheetId),
+        getSheetStats(props.sheetId),
+      ]);
+      deltaCount = initialDeltaCount;
+      writingSeconds = initialStats?.writingSeconds ?? 0;
+      openSheet(props.sheetId);
+      if (truncated) {
+        toast.error(s('editor.deltaCorrupt'));
+      }
 
       const extensions: Extension[] = [
         ...buildExtensions({
           placeholderText: s('editor.placeholder'),
-          onChange: () => {
+          onChange: (cs: ChangeSet) => {
             props.onCharCount(view?.state.doc.length ?? 0);
-            scheduleTouchUpdatedAt(props.sheetId);
+            pendingCS = pendingCS ? pendingCS.compose(cs) : cs;
+            scheduleFlush();
           },
-          onSave: () => {},
+          onSave: () => {
+            saveSnapshot();
+          },
           getTypewriterMode: () => settings.typewriterMode ?? false,
           activeLineCompartment,
           initialHighlightActiveLine: settings.focusMode ?? false,
         }),
-        keymap.of([...yUndoManagerKeymap]),
-        yCollab(doc.content, null as never, { undoManager }),
       ];
 
-      const initialDoc = doc.content.toString();
-      const state = EditorState.create({ doc: initialDoc, extensions });
+      const state = EditorState.create({ doc: initialContent, extensions });
 
-      if (!editorRef) {
-        undoManager.destroy();
-        undoManager = undefined;
-        return;
-      }
+      if (!editorRef) return;
       view = new EditorView({ state, parent: editorRef });
-      props.onCharCount(initialDoc.length);
+      props.onCharCount(initialContent.length);
       view.focus();
 
       props.handle({
         undo: () => {
-          undoManager?.undo();
-          view?.focus();
+          if (view) {
+            undo(view);
+            view.focus();
+          }
         },
         redo: () => {
-          undoManager?.redo();
-          view?.focus();
+          if (view) {
+            redo(view);
+            view.focus();
+          }
         },
+        save: saveSnapshot,
         copy: async () => {
           const text = view?.state.doc.toString() ?? '';
           await navigator.clipboard.writeText(text);
@@ -122,17 +182,14 @@ const EditorCore: Component<Props> = (props) => {
         },
         getSplitContent: () => {
           if (!view) return null;
-          const selection = view.state.selection.main;
-          const pos = selection.head;
+          const pos = view.state.selection.main.head;
           const text = view.state.doc.toString();
-          return {
-            head: text.slice(0, pos),
-            tail: text.slice(pos),
-          };
+          return { head: text.slice(0, pos), tail: text.slice(pos) };
         },
         openSearch: () => {
           if (view) openSearchPanel(view);
         },
+        getWritingSeconds: () => writingSeconds,
       });
     } catch (err) {
       console.error('EditorCore: failed to open sheet', err);
@@ -141,20 +198,30 @@ const EditorCore: Component<Props> = (props) => {
   });
 
   createEffect(() => {
-    const enabled = settings.focusMode ?? false;
     if (!view) return;
     view.dispatch({
-      effects: activeLineCompartment.reconfigure(activeLineExtension(enabled)),
+      effects: activeLineCompartment.reconfigure(activeLineExtension()),
     });
   });
 
-  onCleanup(() => {
+  onCleanup(async () => {
     view?.destroy();
-    undoManager?.destroy();
+    await flush();
     closeSheet();
   });
 
   return <div ref={(el) => (editorRef = el)} class="cm-editor-wrap typo" />;
+};
+
+export type EditorCoreHandle = {
+  undo: () => void;
+  redo: () => void;
+  save: () => Promise<void>;
+  copy: () => Promise<void>;
+  scrollToEdge: (edge: 'start' | 'end') => void;
+  getSplitContent: () => { head: string; tail: string } | null;
+  openSearch: () => void;
+  getWritingSeconds: () => number;
 };
 
 export default EditorCore;

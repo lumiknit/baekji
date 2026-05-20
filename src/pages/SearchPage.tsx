@@ -3,7 +3,7 @@ import { createSignal, For, Show, onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { TbOutlineSearch, TbOutlineFileText } from 'solid-icons/tb';
 import { liveSheets } from '../state/sheet_list';
-import { withSheetDoc } from '../lib/doc/docCache';
+import { loadSheetContent } from '../lib/doc/db_v3';
 import { s } from '../lib/i18n';
 import toast from 'solid-toast';
 import { logError } from '../state/log';
@@ -33,25 +33,23 @@ const SearchPage: Component = () => {
       const sheets = liveSheets();
       const results = await Promise.all(
         sheets.map(async (sheet) => {
-          return withSheetDoc(sheet.id, async (sd) => {
-            const text = sd.content.toString();
-            const lowerText = text.toLowerCase();
-            const matches: { start: number; end: number }[] = [];
-            let pos = lowerText.indexOf(q);
-            while (pos !== -1) {
-              matches.push({ start: pos, end: pos + q.length });
-              pos = lowerText.indexOf(q, pos + q.length);
-            }
-            if (matches.length > 0) {
-              return {
-                id: sheet.id,
-                tags: sheet.tags,
-                content: text,
-                matches,
-              };
-            }
-            return null;
-          });
+          const text = await loadSheetContent(sheet.id);
+          const lowerText = text.toLowerCase();
+          const matches: { start: number; end: number }[] = [];
+          let pos = lowerText.indexOf(q);
+          while (pos !== -1) {
+            matches.push({ start: pos, end: pos + q.length });
+            pos = lowerText.indexOf(q, pos + q.length);
+          }
+          if (matches.length > 0) {
+            return {
+              id: sheet.id,
+              tags: sheet.tags,
+              content: text,
+              matches,
+            };
+          }
+          return null;
         }),
       );
       return results.filter((r): r is SearchResult => r !== null);

@@ -8,7 +8,6 @@ import {
   onCleanup,
 } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
-import * as Y from 'yjs';
 import {
   TbOutlineDotsVertical,
   TbFillTrash,
@@ -22,16 +21,18 @@ import {
   TbOutlineFileExport,
   TbOutlineCheck,
 } from 'solid-icons/tb';
-import { withSheetDoc } from '../../lib/doc/docCache';
-import type { SheetMeta } from '../../lib/doc/v1';
-import { activeSheetId, activeProjectDoc } from '../../state/workspace_v1';
+import { loadSheetContent } from '../../lib/doc/db_v3';
+import { activeSheetId } from '../../state/workspace_v3';
+import { activeProjectId } from '../../state/workspace_v3';
 import { setSidebarOpen, showUpdatedAt } from '../../state/workspace';
 import {
+  sheetsStore,
+  sheetStatsStore,
+  liveSortedIds,
   softDeleteSheet,
   restoreSheet,
   deleteSheetPermanently,
   mergeSheetDown,
-  liveSheets,
   updateSheetTags,
   isSelected,
   toggleSelect,
@@ -41,6 +42,7 @@ import {
   createSheetWithContent,
   isSelectMode,
   enterSelectMode,
+  previewVersion,
 } from '../../state/sheet_list';
 import { tagToHsl } from '../../lib/tag/color';
 import { showConfirm, showTagEdit } from '../../state/modal';
@@ -71,22 +73,8 @@ function extractPreview(text: string): PreviewLine[] {
   });
 }
 
-function extractPreviewFromYText(content: Y.Text): PreviewLine[] {
-  let buf = '';
-  for (const op of content.toDelta() as Array<{ insert?: unknown }>) {
-    if (typeof op.insert === 'string') {
-      buf += op.insert;
-      const nonEmpty = buf.split('\n').filter((l) => l.trim().length > 0);
-      if (nonEmpty.length >= 2)
-        return extractPreview(nonEmpty.slice(0, 2).join('\n'));
-    }
-    if (buf.length > 128) break;
-  }
-  return extractPreview(buf);
-}
-
 interface Props {
-  sheet: SheetMeta;
+  id: string;
   isTrash?: boolean;
   onOpenSelectionMenu?: () => void;
 }
@@ -96,21 +84,28 @@ const SheetItem: Component<Props> = (props) => {
   const [preview, setPreview] = createSignal<PreviewLine[] | null>(null);
   const [menuOpen, setMenuOpen] = createSignal(false);
   const [everVisible, setEverVisible] = createSignal(false);
-  const isActive = () => activeSheetId() === props.sheet.id;
+  const sheet = () => sheetsStore[props.id];
+  const isActive = () => activeSheetId() === props.id;
 
   let itemRef: HTMLDivElement | undefined;
 
   const isLast = () => {
-    const sheets = liveSheets();
-    return sheets[sheets.length - 1]?.id === props.sheet.id;
+    const ids = liveSortedIds();
+    return ids[ids.length - 1] === props.id;
   };
 
   const fetchPreview = async () => {
-    const lines = await withSheetDoc(props.sheet.id, async (sd) =>
-      extractPreviewFromYText(sd.content),
-    );
-    setPreview(lines);
+    const text = await loadSheetContent(props.id);
+    setPreview(extractPreview(text));
   };
+
+  // Re-fetch preview when content is flushed (only if this is the active sheet)
+  createEffect(() => {
+    previewVersion(); // subscribe
+    if (isActive() && everVisible()) {
+      fetchPreview();
+    }
+  });
 
   // lazy load: fetch once when the item enters the viewport
   onMount(() => {
@@ -132,7 +127,7 @@ const SheetItem: Component<Props> = (props) => {
 
   // re-fetch on updatedAt change, but only after the first load
   createEffect(() => {
-    void props.sheet.updatedAt;
+    void sheetStatsStore[props.id]?.updatedAt;
     if (everVisible()) fetchPreview();
   });
 
@@ -151,21 +146,21 @@ const SheetItem: Component<Props> = (props) => {
       return;
 
     if (props.isTrash) {
-      navigate(`/sheets/${props.sheet.id}`);
+      navigate(`/sheets/${props.id}`);
       return;
     }
 
     if (e.shiftKey && isSelectMode()) {
-      rangeSelect(props.sheet.id, filteredSheets());
+      rangeSelect(props.id, filteredSheets());
     } else if (e.ctrlKey || e.metaKey) {
       if (!isSelectMode()) enterSelectMode();
-      toggleSelect(props.sheet.id);
+      toggleSelect(props.id);
     } else if (isSelectMode()) {
-      toggleSelect(props.sheet.id);
+      toggleSelect(props.id);
     } else if (isActive() && window.matchMedia('(max-width: 768px)').matches) {
       setSidebarOpen(false);
     } else {
-      navigate(`/sheets/${props.sheet.id}`);
+      navigate(`/sheets/${props.id}`);
     }
   };
 
@@ -177,19 +172,24 @@ const SheetItem: Component<Props> = (props) => {
   };
 
   const handleEditTags = async () => {
-    const nextTags = await showTagEdit(s('sheet.edit_tags'), props.sheet.tags);
+    const nextTags = await showTagEdit(
+      s('sheet.edit_tags'),
+      sheet()?.tags ?? [],
+    );
     if (nextTags === null) return;
-    updateSheetTags(props.sheet.id, nextTags);
+    updateSheetTags(props.id, nextTags);
   };
 
   const handleDuplicate = async () => {
-    const text = await withSheetDoc(props.sheet.id, async (sd) =>
-      sd.content.toString(),
+    const text = await loadSheetContent(props.id);
+    const newId = await createSheetWithContent(
+      [...(sheet()?.tags ?? [])],
+      text,
+      {
+        after: props.id,
+      },
     );
-    const id = await createSheetWithContent([...props.sheet.tags], text, {
-      after: props.sheet.id,
-    });
-    if (id) navigate(`/sheets/${id}`);
+    if (newId) navigate(`/sheets/${newId}`);
   };
 
   const handleDeletePermanently = async () => {
@@ -197,7 +197,7 @@ const SheetItem: Component<Props> = (props) => {
       s('sheet.delete_permanent'),
       s('sheet.delete_permanent_confirm'),
     );
-    if (ok) deleteSheetPermanently(props.sheet.id);
+    if (ok) deleteSheetPermanently(props.id);
   };
 
   const dropdownItems = () => {
@@ -212,37 +212,38 @@ const SheetItem: Component<Props> = (props) => {
         icon: TbOutlineReportAnalytics,
         label: s('common.analysis'),
         onSelect: () => {
-          const id = activeProjectDoc()?.id;
-          if (id) navigate(`/project/${id}/analysis?sheetId=${props.sheet.id}`);
+          const projId = activeProjectId();
+          if (projId)
+            navigate(`/project/${projId}/analysis?sheetId=${props.id}`);
         },
       },
       {
         icon: TbOutlineFileExport,
         label: s('common.preview_export'),
         onSelect: () => {
-          const id = activeProjectDoc()?.id;
-          if (id) navigate(`/project/${id}/export?sheetId=${props.sheet.id}`);
+          const projId = activeProjectId();
+          if (projId) navigate(`/project/${projId}/export?sheetId=${props.id}`);
         },
       },
       { separator: true as const },
       {
         icon: TbOutlineSquareArrowUp,
         label: s('sidebar.new_sheet_above'),
-        onSelect: () => {
-          const id = createSheet([...props.sheet.tags], {
-            before: props.sheet.id,
+        onSelect: async () => {
+          const newId = await createSheet([...(sheet()?.tags ?? [])], {
+            before: props.id,
           });
-          if (id) navigate(`/sheets/${id}`);
+          if (newId) navigate(`/sheets/${newId}`);
         },
       },
       {
         icon: TbOutlineSquareArrowDown,
         label: s('sidebar.new_sheet_below'),
-        onSelect: () => {
-          const id = createSheet([...props.sheet.tags], {
-            after: props.sheet.id,
+        onSelect: async () => {
+          const newId = await createSheet([...(sheet()?.tags ?? [])], {
+            after: props.id,
           });
-          if (id) navigate(`/sheets/${id}`);
+          if (newId) navigate(`/sheets/${newId}`);
         },
       },
       {
@@ -256,14 +257,14 @@ const SheetItem: Component<Props> = (props) => {
       items.push({
         icon: TbOutlineArrowMerge,
         label: s('tree.merge_down'),
-        onSelect: () => mergeSheetDown(props.sheet.id, filteredSheets()),
+        onSelect: () => mergeSheetDown(props.id, filteredSheets()),
       });
     }
     items.push({
       icon: TbFillTrash,
       label: s('common.delete'),
       danger: true,
-      onSelect: () => softDeleteSheet(props.sheet.id),
+      onSelect: () => softDeleteSheet(props.id),
     });
     return items;
   };
@@ -273,23 +274,23 @@ const SheetItem: Component<Props> = (props) => {
       ref={(el) => {
         itemRef = el;
       }}
-      id={`sheet-item-${props.sheet.id}`}
-      class={`sl-item${isActive() ? ' sl-item--active' : ''}${props.isTrash ? ' sl-item--trash' : ''}${isSelected(props.sheet.id) ? ' sl-item--selected' : ''}${menuOpen() ? ' sl-item--open' : ''}`}
+      id={`sheet-item-${props.id}`}
+      class={`sl-item${isActive() ? ' sl-item--active' : ''}${props.isTrash ? ' sl-item--trash' : ''}${isSelected(props.id) ? ' sl-item--selected' : ''}${menuOpen() ? ' sl-item--open' : ''}`}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
     >
       <Show when={isSelectMode() && !props.isTrash}>
         <div class="sl-item-checkbox">
-          <Show when={isSelected(props.sheet.id)}>
+          <Show when={isSelected(props.id)}>
             <TbOutlineCheck />
           </Show>
         </div>
       </Show>
 
       <div class="sl-item-body">
-        <Show when={props.sheet.tags.length > 0}>
+        <Show when={(sheet()?.tags.length ?? 0) > 0}>
           <div class="sl-item-tags">
-            <For each={props.sheet.tags}>
+            <For each={sheet()?.tags ?? []}>
               {(tag) => {
                 const { h, s: sat } = tagToHsl(tag);
                 return (
@@ -334,7 +335,9 @@ const SheetItem: Component<Props> = (props) => {
         </div>
         <Show when={showUpdatedAt()}>
           <div class="sl-item-date">
-            {new Date(props.sheet.updatedAt).toLocaleString()}
+            {new Date(
+              sheetStatsStore[props.id]?.updatedAt ?? '',
+            ).toLocaleString()}
           </div>
         </Show>
       </div>
@@ -347,7 +350,7 @@ const SheetItem: Component<Props> = (props) => {
               <button
                 class="sb-icon-btn"
                 title={s('sheet.restore')}
-                onClick={() => restoreSheet(props.sheet.id)}
+                onClick={() => restoreSheet(props.id)}
               >
                 <div class="btn-pad">
                   <TbOutlineRestore />

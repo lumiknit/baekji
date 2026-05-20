@@ -1,7 +1,7 @@
 {
   "name": "baekji",
   "private": true,
-  "version": "0.6.3",
+  "version": "0.7.0",
   "type": "module",
   "author": "lumiknit <aasr4r4@gmail.com>",
   "license": "MPL-2.0",
@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "lint:fix": "eslint src --fix"
+    "lint:fix": "eslint src --fix",
+    "test": "vitest"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.3",
@@ -28,7 +29,7 @@
     "@types/sortablejs": "^1.15.9",
     "diff": "^9.0.0",
     "docx": "^9.6.1",
-    "dompurify": "^3.4.3",
+    "dompurify": "^3.4.5",
     "idb": "^8.0.3",
     "localforage": "^1.10.0",
     "markdown-it": "^14.1.1",
@@ -36,9 +37,6 @@
     "solid-js": "^1.9.13",
     "solid-toast": "^0.5.0",
     "sortablejs": "^1.15.7",
-    "y-codemirror.next": "^0.3.5",
-    "y-indexeddb": "^9.0.12",
-    "yjs": "^13.6.30",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -48,9 +46,10 @@
     "@types/node": "^24.12.4",
     "eslint": "^10.4.0",
     "globals": "^17.6.0",
+    "jsdom": "^29.1.1",
     "prettier": "^3.8.3",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.59.3",
+    "typescript-eslint": "^8.59.4",
     "vite": "^8.0.13",
     "vite-bundle-visualizer": "^1.2.1",
     "vite-plugin-solid": "^2.11.12",

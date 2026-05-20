@@ -8,9 +8,9 @@ import {
   TbOutlineCopy,
   TbOutlineShare,
 } from 'solid-icons/tb';
-import { activeProjectLabel, openProject } from '../state/workspace_v1';
-import { liveSheets } from '../state/sheet_list';
-import { withSheetDoc } from '../lib/doc/docCache';
+import { activeProjectLabel, openProject } from '../state/workspace_v3';
+import { liveSheets, loadSheetsForProject } from '../state/sheet_list';
+import { loadSheetContent } from '../lib/doc/db_v3';
 import { matchQuery } from '../lib/tag/query';
 import { s } from '../lib/i18n';
 import toast from 'solid-toast';
@@ -114,6 +114,7 @@ const ExportPage: Component = () => {
 
     const doLoad = async () => {
       await openProject(params.pjId!);
+      await loadSheetsForProject(params.pjId!);
 
       const ids = sheetIds();
       let sheets = liveSheets();
@@ -128,9 +129,7 @@ const ExportPage: Component = () => {
 
       const result: SheetData[] = [];
       for (const sheet of sheets) {
-        const text = await withSheetDoc(sheet.id, async (sd) =>
-          sd.content.toString(),
-        );
+        const text = await loadSheetContent(sheet.id);
         result.push({
           label: sheet.tags[0] ?? sheet.id.slice(0, 8),
           tags: sheet.tags,

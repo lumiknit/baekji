@@ -1,16 +1,17 @@
 import type { Component } from 'solid-js';
-import { createSignal, createEffect, on, onCleanup, Show, For } from 'solid-js';
+import { createSignal, createEffect, on, Show, For } from 'solid-js';
 import { useParams, useNavigate } from '@solidjs/router';
-import { activeProjectDoc } from '../state/workspace_v1';
-import { updateSheetTags, splitSheet } from '../state/sheet_list';
+import { activeProjectId } from '../state/workspace_v3';
+import { sheetsStore, updateSheetTags, splitSheet } from '../state/sheet_list';
 import { showConfirm } from '../state/modal';
 import { s } from '../lib/i18n';
 import EditorCore, {
   type EditorCoreHandle,
 } from '../components/editor/EditorCore';
 import EditorToolOverlay from '../components/editor/EditorToolOverlay';
+import EditorGoalOverlay from '../components/editor/EditorGoalOverlay';
 import TagEditor from '../components/editor/TagEditor';
-import type { SheetMeta } from '../lib/doc/v1';
+import { settings } from '../state/settings';
 import { tagToHsl } from '../lib/tag/color';
 import { TbOutlineEdit } from 'solid-icons/tb';
 
@@ -19,23 +20,11 @@ const SheetPage: Component = () => {
   const navigate = useNavigate();
 
   const [charCount, setCharCount] = createSignal(0);
-  const [sheetMeta, setSheetMeta] = createSignal<SheetMeta | null>(null);
   const [tagEditing, setTagEditing] = createSignal(false);
   let handle: EditorCoreHandle | undefined;
 
+  const sheetMeta = () => sheetsStore[params.id] ?? null;
   const currentTags = () => sheetMeta()?.tags ?? [];
-
-  const syncMeta = () => {
-    const pd = activeProjectDoc();
-    if (!pd) return;
-    const meta = pd.sheets.get(params.id);
-    if (meta) setSheetMeta(meta as SheetMeta);
-  };
-
-  createEffect(() => {
-    void params.id;
-    syncMeta();
-  });
 
   createEffect(
     on(
@@ -49,28 +38,19 @@ const SheetPage: Component = () => {
     ),
   );
 
-  createEffect(() => {
-    const pd = activeProjectDoc();
-    if (!pd) return;
-    const metaHandler = () => syncMeta();
-    pd.sheets.observe(metaHandler);
-    onCleanup(() => pd.sheets.unobserve(metaHandler));
-  });
-
   const handleUpdateTags = (tags: string[]) => {
     updateSheetTags(params.id, tags);
-    syncMeta();
   };
 
   const handleAnalysis = () => {
-    const pjId = activeProjectDoc()?.id;
+    const pjId = activeProjectId();
     if (pjId) {
       navigate(`/project/${pjId}/analysis?sheetId=${params.id}`);
     }
   };
 
   const handleExport = () => {
-    const pjId = activeProjectDoc()?.id;
+    const pjId = activeProjectId();
     if (pjId) {
       navigate(`/project/${pjId}/export?sheetId=${params.id}`);
     }
@@ -99,12 +79,16 @@ const SheetPage: Component = () => {
           charCount={charCount}
           onUndo={() => handle?.undo()}
           onRedo={() => handle?.redo()}
+          onSave={() => handle?.save()}
           onCopy={() => handle?.copy() ?? Promise.resolve()}
           onExport={handleExport}
           onSplit={handleSplit}
           onAnalysis={handleAnalysis}
           onSearch={() => handle?.openSearch()}
         />
+        <Show when={settings.showGoalOverlay && params.id}>
+          <EditorGoalOverlay sheetId={params.id} charCount={charCount} />
+        </Show>
       </div>
 
       <div

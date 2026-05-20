@@ -4,7 +4,7 @@ import { useParams, useNavigate } from '@solidjs/router';
 import { diffLines } from 'diff';
 import type { Change } from 'diff';
 import { TbOutlineArrowLeft, TbOutlineCheck } from 'solid-icons/tb';
-import { withSheetDoc } from '../lib/doc/docCache';
+import { loadSheetContent, replaceSheetContent } from '../lib/doc/db_v3';
 import { softDeleteSheet } from '../state/sheet_list';
 import { s } from '../lib/i18n';
 import toast from 'solid-toast';
@@ -22,16 +22,11 @@ function stripMarkdownFirst(text: string): string {
 }
 
 async function loadContent(id: string): Promise<string> {
-  return withSheetDoc(id, async (sd) => sd.content.toString());
+  return loadSheetContent(id);
 }
 
 async function writeContent(id: string, content: string): Promise<void> {
-  await withSheetDoc(id, async (sd) => {
-    sd.doc.transact(() => {
-      sd.content.delete(0, sd.content.length);
-      sd.content.insert(0, content);
-    });
-  });
+  await replaceSheetContent(id, content);
 }
 
 const ComparePage: Component = () => {

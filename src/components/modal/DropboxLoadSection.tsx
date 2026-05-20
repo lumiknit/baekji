@@ -11,7 +11,7 @@ import {
 } from 'solid-icons/tb';
 import { parseBakV1, type ImportStrategy } from '../../lib/doc/backup_v1';
 import { deserializeGzip } from '../../lib/doc/backup_helper';
-import { activeProjectId } from '../../state/workspace_v1';
+import { activeProjectId } from '../../state/workspace_v3';
 import { closeBackupModal } from '../../state/modal';
 import { setLoadTarget } from '../../state/backupLoad';
 import { s } from '../../lib/i18n';

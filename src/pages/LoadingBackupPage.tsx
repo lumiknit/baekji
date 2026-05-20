@@ -2,7 +2,8 @@ import type { Component } from 'solid-js';
 import { createSignal, onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { importBakV1 } from '../lib/doc/backup_v1';
-import { openProject } from '../state/workspace_v1';
+import { openProject } from '../state/workspace_v3';
+import { loadSheetsForProject } from '../state/sheet_list';
 import { invalidateProjectList } from '../state/workspace';
 import { backupLoadTarget, clearLoadTarget } from '../state/backupLoad';
 import { s } from '../lib/i18n';
@@ -23,6 +24,7 @@ const LoadingBackupPage: Component = () => {
       const result = await importBakV1(target.bak, target.strategy);
       invalidateProjectList();
       await openProject(result.projectId, true);
+      await loadSheetsForProject(result.projectId);
       clearLoadTarget();
       if (result.emptiedSheetIds.length > 0) {
         setPartialWarning(true);

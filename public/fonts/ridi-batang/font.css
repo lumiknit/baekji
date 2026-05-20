@@ -5,3 +5,11 @@
   font-display: swap;
   src: url(./RIDIBatang.woff2) format('woff2');
 }
+
+@font-face {
+  font-family: 'RIDIBatang';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(./RIDIBatang_bold.woff2) format('woff2');
+}

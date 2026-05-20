@@ -16,7 +16,7 @@ import {
   sidebarView,
   setSidebarView,
 } from '../state/workspace';
-import { activeProjectDoc } from '../state/workspace_v1';
+import { activeProjectId } from '../state/workspace_v3';
 import { createMediaQuery } from '@solid-primitives/media';
 import { A, useLocation, type RouteSectionProps } from '@solidjs/router';
 import SheetList from './sheetlist/SheetList';
@@ -127,7 +127,7 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
               <ProjectList />
             </Match>
 
-            <Match when={sidebarView() === 'tree' && !activeProjectDoc()}>
+            <Match when={sidebarView() === 'tree' && !activeProjectId()}>
               <div class="tree-no-project">
                 <span class="tree-no-project-label">
                   {s('sidebar.no_project')}

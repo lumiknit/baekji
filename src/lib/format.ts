@@ -44,3 +44,13 @@ export function formatCompact(n: number): string {
   if (unit === 0) return String(Math.round(n));
   return n.toFixed(1) + COMPACT_UNITS[unit];
 }
+
+export function formatDuration(seconds: number): string {
+  const s = Math.floor(seconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
+  if (m > 0) return `${m}m ${String(sec).padStart(2, '0')}s`;
+  return `${sec}s`;
+}

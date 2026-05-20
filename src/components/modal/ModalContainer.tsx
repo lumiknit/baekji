@@ -7,18 +7,22 @@ import {
   closeBackupModal,
   projectSearchModalOpen,
   closeProjectSearchModal,
+  goalModalSheetId,
+  closeGoalModal,
 } from '../../state/modal';
 import ConfirmModal from './ConfirmModal';
 import NameInputModal from './NameInputModal';
 import BackupModal from './BackupModal';
 import ProjectSearchModal from './ProjectSearchModal';
 import TagEditModal from './TagEditModal';
+import GoalModal from './GoalModal';
 
 const ModalContainer: Component = () => {
   onMount(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (modalState()) closeModal(null);
+        if (goalModalSheetId()) closeGoalModal();
+        else if (modalState()) closeModal(null);
         else if (backupModalOpen()) closeBackupModal();
         else if (projectSearchModalOpen()) closeProjectSearchModal();
       }
@@ -29,6 +33,15 @@ const ModalContainer: Component = () => {
 
   return (
     <>
+      <Show when={goalModalSheetId()}>
+        {(sheetId) => (
+          <div class="modal-overlay" onClick={closeGoalModal}>
+            <div class="modal-body" onClick={(e) => e.stopPropagation()}>
+              <GoalModal sheetId={sheetId()} />
+            </div>
+          </div>
+        )}
+      </Show>
       <Show when={backupModalOpen()}>
         <div class="modal-overlay" onClick={closeBackupModal}>
           <div class="modal-body" onClick={(e) => e.stopPropagation()}>

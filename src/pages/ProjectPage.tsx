@@ -9,14 +9,20 @@ import {
   TbOutlineRefresh,
 } from 'solid-icons/tb';
 import {
-  activeProjectDoc,
+  activeProjectId,
   activeProjectLabel,
+  activeProjectMeta,
   closeProject,
   openProject,
-} from '../state/workspace_v1';
-import { liveSheets, reindexOrderKeys } from '../state/sheet_list';
+  updateProjectLabel,
+} from '../state/workspace_v3';
+import {
+  liveSheets,
+  reindexOrderKeys,
+  loadSheetsForProject,
+} from '../state/sheet_list';
 import { compactSheetDoc } from '../lib/doc/storage';
-import { putProject, deleteProject } from '../lib/doc/db_v1';
+import { putProjectMeta, deleteProjectMeta } from '../lib/doc/db_v3';
 import { tagToHsl, hexToHsl } from '../lib/tag/color';
 import { matchQuery } from '../lib/tag/query';
 import { showConfirm, openBackupModal } from '../state/modal';
@@ -25,12 +31,6 @@ import { s } from '../lib/i18n';
 import toast from 'solid-toast';
 import { logError } from '../state/log';
 import ProjectDebug from '../components/debug/ProjectDebug';
-import { z } from 'zod/v4';
-
-const tagColorSchema = z.record(
-  z.string(),
-  z.object({ h: z.number(), s: z.number() }),
-);
 
 const ProjectPage: Component = () => {
   const navigate = useNavigate();
@@ -38,10 +38,12 @@ const ProjectPage: Component = () => {
   const [searchParams] = useSearchParams();
 
   createEffect(() => {
-    if (params.pjId) openProject(params.pjId);
+    const id = params.pjId;
+    if (id) {
+      openProject(id).then(() => loadSheetsForProject(id));
+    }
   });
 
-  const pd = () => activeProjectDoc();
   const projectLabel = activeProjectLabel;
 
   const query = () => (searchParams.q as string | undefined) ?? '';
@@ -52,7 +54,6 @@ const ProjectPage: Component = () => {
     return liveSheets().filter((sh) => matchQuery(q, new Set(sh.tags)));
   });
 
-  // ── Inline rename ──────────────────────────────────────────────────
   const [showDebug, setShowDebug] = createSignal(false);
   const [editingLabel, setEditingLabel] = createSignal(false);
   const [labelDraft, setLabelDraft] = createSignal('');
@@ -63,32 +64,19 @@ const ProjectPage: Component = () => {
   };
 
   createEffect(() => {
-    if (searchParams.new === '1' && pd()) {
+    if (searchParams.new === '1' && activeProjectId()) {
       startRename();
     }
   });
 
-  const commitRename = () => {
+  const commitRename = async () => {
     const label = labelDraft().trim();
     setEditingLabel(false);
     if (!label || label === projectLabel()) return;
-    const p = pd();
-    if (!p) return;
-    const now = new Date().toISOString();
-    p.meta.set('label', label);
-    p.meta.set('updatedAt', now);
     const id = params.pjId;
-    if (id)
-      putProject({
-        id,
-        label,
-        updatedAt: now,
-        committedAt: (p.meta.get('committedAt') as string) ?? '',
-        tagColors: tagColors(),
-      });
+    if (id) await updateProjectLabel(id, label);
   };
 
-  // ── Tag stats ──────────────────────────────────────────────────────
   const allTags = createMemo(() => {
     const counts = new Map<string, number>();
     for (const sheet of liveSheets()) {
@@ -99,51 +87,36 @@ const ProjectPage: Component = () => {
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
   });
 
-  const tagColors = () => {
-    const p = pd();
-    if (!p) return {} as Record<string, { h: number; s: number }>;
-    return tagColorSchema.safeParse(p.meta.get('tagColors')).data ?? {};
-  };
+  const tagColors = () => activeProjectMeta()?.tagColors ?? {};
 
-  const setTagColorOverride = (tag: string, h: number, sv: number) => {
-    const p = pd();
-    if (!p) return;
+  const setTagColorOverride = async (tag: string, h: number, sv: number) => {
+    const meta = activeProjectMeta();
+    if (!meta) return;
     const colors = { ...tagColors(), [tag]: { h, s: sv } };
-    p.meta.set('tagColors', colors);
-    const id = params.pjId;
-    if (id)
-      putProject({
-        id,
-        label: projectLabel(),
-        updatedAt: new Date().toISOString(),
-        committedAt: (p.meta.get('committedAt') as string) ?? '',
-        tagColors: colors,
-      });
+    await putProjectMeta({
+      ...meta,
+      tagColors: colors,
+      updatedAt: new Date().toISOString(),
+    });
   };
 
-  const clearTagColorOverride = (tag: string) => {
-    const p = pd();
-    if (!p) return;
+  const clearTagColorOverride = async (tag: string) => {
+    const meta = activeProjectMeta();
+    if (!meta) return;
     const colors = { ...tagColors() };
     delete colors[tag];
-    p.meta.set('tagColors', colors);
-    const id = params.pjId;
-    if (id)
-      putProject({
-        id,
-        label: projectLabel(),
-        updatedAt: new Date().toISOString(),
-        committedAt: (p.meta.get('committedAt') as string) ?? '',
-        tagColors: colors,
-      });
+    await putProjectMeta({
+      ...meta,
+      tagColors: colors,
+      updatedAt: new Date().toISOString(),
+    });
   };
 
-  // ── Cleanup ────────────────────────────────────────────────────────
   const [cleaning, setCleaning] = createSignal(false);
   const handleCleanup = async () => {
     setCleaning(true);
     const doCleanup = async () => {
-      reindexOrderKeys();
+      await reindexOrderKeys();
       for (const sheet of liveSheets()) {
         await compactSheetDoc(sheet.id);
       }
@@ -161,7 +134,6 @@ const ProjectPage: Component = () => {
     }
   };
 
-  // ── Delete project ─────────────────────────────────────────────────
   const handleDeleteProject = async () => {
     const confirmed = await showConfirm(
       s('project.danger_title'),
@@ -169,7 +141,7 @@ const ProjectPage: Component = () => {
     );
     if (!confirmed) return;
     const id = params.pjId;
-    if (id) await deleteProject(id);
+    if (id) await deleteProjectMeta(id);
     await closeProject();
     setSidebarView('projects');
     navigate('/');
@@ -177,11 +149,10 @@ const ProjectPage: Component = () => {
 
   return (
     <Show
-      when={pd()}
+      when={activeProjectId()}
       fallback={<div class="empty-state">{s('project.no_project_open')}</div>}
     >
       <div class="page-body">
-        {/* ── Project name (inline edit) ── */}
         <div class="page-header">
           <Show
             when={editingLabel()}
@@ -209,7 +180,6 @@ const ProjectPage: Component = () => {
           </Show>
         </div>
 
-        {/* ── Page stats ── */}
         <div class="page-stats">
           <span>
             {s('project.sheet_count', { count: liveSheets().length })}
@@ -226,7 +196,6 @@ const ProjectPage: Component = () => {
           </Show>
         </div>
 
-        {/* ── Toolbar: Analysis / Export / Backup ── */}
         <div class="page-toolbar">
           <button
             class="btn-border"
@@ -280,7 +249,6 @@ const ProjectPage: Component = () => {
           </button>
         </div>
 
-        {/* ── Tag colors ── */}
         <Show when={allTags().length > 0}>
           <h2 class="pj-section-title">
             {s('project.tag_colors_title')}{' '}
@@ -334,7 +302,6 @@ const ProjectPage: Component = () => {
           </div>
         </Show>
 
-        {/* ── Debug ── */}
         <div style={{ 'margin-top': '12rem' }}>
           <button
             class="btn-border btn-sm"

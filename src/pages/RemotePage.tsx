@@ -15,7 +15,7 @@ import { remoteService, setRemoteService } from '../state/remoteService';
 import type { SyncFile } from '../lib/sync/interface';
 import { deserializeGzip } from '../lib/doc/backup_helper';
 import { parseBakV1 } from '../lib/doc/backup_v1';
-import { getAllProjects } from '../lib/doc/db_v1';
+import { listProjects } from '../lib/doc/db_v3';
 import {
   loadToken as loadDropboxToken,
   clearToken as clearDropboxToken,
@@ -100,7 +100,7 @@ const RemotePage: Component = () => {
 
   onMount(async () => {
     try {
-      const projects = await getAllProjects();
+      const projects = await listProjects();
       const map = new Map<string, string>();
       for (const p of projects) map.set(p.id, p.label);
       setLabelMap(map);

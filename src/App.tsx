@@ -10,7 +10,6 @@ import SheetPage from './pages/SheetPage';
 import ProjectPage from './pages/ProjectPage';
 import AnalysisPage from './pages/AnalysisPage';
 import ExportPage from './pages/ExportPage';
-import V0ProjectPage from './pages/V0ProjectPage';
 import SettingsPage from './pages/SettingsPage';
 import SearchPage from './pages/SearchPage';
 import LoadingBackupPage from './pages/LoadingBackupPage';
@@ -72,7 +71,6 @@ const App: Component = () => {
         <Route path="/project/:pjId/analysis" component={AnalysisPage} />
         <Route path="/project/:pjId/export" component={ExportPage} />
         <Route path="/search" component={SearchPage} />
-        <Route path="/v0-project/:pjId" component={V0ProjectPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/about" component={AboutPage} />
         <Route path="/loading-backup" component={LoadingBackupPage} />

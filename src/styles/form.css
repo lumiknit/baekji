@@ -112,6 +112,8 @@ a.btn-danger-solid:not([disabled]):hover {
 
 input[type='text'],
 input[type='number'],
+input[type='date'],
+input[type='datetime-local'],
 select {
   padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--border);

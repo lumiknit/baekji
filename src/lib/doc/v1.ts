@@ -16,17 +16,38 @@ export const projectMetaSchema = z.object({
 });
 export type ProjectMeta = z.infer<typeof projectMetaSchema>;
 
+// --- WritingGoal ---
+
+export const writingGoalSchema = z.object({
+  startedAt: z.string(),
+  startedWritingSeconds: z.number(),
+  dueAt: z.string().optional(),
+  goalChars: z.number(),
+  achievedAt: z.string().optional(),
+  achievedWritingSeconds: z.number().optional(),
+});
+export type WritingGoal = z.infer<typeof writingGoalSchema>;
+
 // --- SheetMeta ---
 
 export const sheetMetaSchema = z.object({
   id: z.string(),
   projectId: z.string(),
-  updatedAt: z.string(),
   orderKey: z.number(),
   tags: z.array(z.string()).default([]),
   deletedAt: z.string().optional(),
+  goal: writingGoalSchema.optional(),
 });
 export type SheetMeta = z.infer<typeof sheetMetaSchema>;
+
+// --- SheetStats ---
+
+export const sheetStatsSchema = z.object({
+  sheetId: z.string(),
+  updatedAt: z.string(),
+  writingSeconds: z.number(),
+});
+export type SheetStats = z.infer<typeof sheetStatsSchema>;
 
 // --- BakV1 (backup format) ---
 
@@ -35,6 +56,8 @@ export const bakSheetSchema = z.object({
   updatedAt: z.string(),
   tags: z.array(z.string()).default([]),
   deletedAt: z.string().optional(),
+  writingSeconds: z.number().default(0),
+  goal: writingGoalSchema.optional(),
   content: z.string(),
 });
 export type BakSheet = z.infer<typeof bakSheetSchema>;
