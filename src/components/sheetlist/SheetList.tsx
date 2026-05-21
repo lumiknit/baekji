@@ -35,26 +35,27 @@ import {
   enterSelectMode,
   exitSelectMode,
   updateSelectedSheetTags,
-} from '../../state/sheet_list';
+} from '../../state/sheet_list.ts';
 import {
   activeProjectId,
   activeProjectLabel,
   activeSheetId,
-} from '../../state/workspace_v3';
+} from '../../state/workspace_v3.ts';
 import {
   setSidebarView,
   showUpdatedAt,
   setShowUpdatedAt,
-} from '../../state/workspace';
+} from '../../state/workspace.ts';
 import {
   openProjectSearchModal,
   showConfirm,
   showTagEdit,
-} from '../../state/modal';
-import TagFilterInput from './TagFilterInput';
-import SheetItem from './SheetItem';
-import Dropdown from '../Dropdown';
-import { s } from '../../lib/i18n';
+} from '../../state/modal.ts';
+import TagFilterInput from './TagFilterInput.tsx';
+import SheetItem from './SheetItem.tsx';
+import Dropdown from '../Dropdown.tsx';
+import { s } from '../../lib/i18n/index.ts';
+import toast from 'solid-toast';
 
 const SheetList: Component = () => {
   const navigate = useNavigate();
@@ -251,7 +252,8 @@ const SheetList: Component = () => {
                   {
                     icon: TbOutlineListCheck,
                     label: s('tree.select_mode'),
-                    onSelect: enterSelectMode,
+                    onSelect: () =>
+                      enterSelectMode(activeSheetId() ?? undefined),
                   },
                   { separator: true },
                   {
@@ -339,6 +341,9 @@ const SheetList: Component = () => {
                       );
                       if (!ok) return;
                       await Promise.all(ids.map((id) => softDeleteSheet(id)));
+                      toast.success(
+                        s('sheet.toast_deleted_count', { count: ids.length }),
+                      );
                       exitSelectMode();
                     },
                   },
@@ -398,7 +403,10 @@ const SheetList: Component = () => {
                       s('tree.trash_empty_btn'),
                       s('tree.trash_empty_confirm'),
                     );
-                    if (ok) await emptyTrash();
+                    if (ok) {
+                      await emptyTrash();
+                      toast.success(s('sheet.toast_trash_emptied'));
+                    }
                   }}
                 >
                   <div class="btn-pad">

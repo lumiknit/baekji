@@ -1,10 +1,14 @@
 import type { Component } from 'solid-js';
 import { onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
-import { lastProjectId, lastSheetId, openProject } from '../state/workspace_v3';
-import { loadSheetsForProject } from '../state/sheet_list';
-import { setSidebarView } from '../state/workspace';
-import { logError } from '../state/log';
+import {
+  lastProjectId,
+  lastSheetId,
+  openProject,
+} from '../state/workspace_v3.ts';
+import { loadSheetsForProject } from '../state/sheet_list.ts';
+import { setSidebarView } from '../state/workspace.ts';
+import { logError } from '../state/log.ts';
 
 const BootstrapPage: Component = () => {
   const navigate = useNavigate();
@@ -31,7 +35,7 @@ const BootstrapPage: Component = () => {
     setSidebarView('tree');
   });
 
-  return <div class="p-16">Loading…</div>;
+  return <div class="p-4">Loading…</div>;
 };
 
 export default BootstrapPage;

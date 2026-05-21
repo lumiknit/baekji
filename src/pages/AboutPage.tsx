@@ -1,10 +1,10 @@
 import type { Component } from 'solid-js';
 import { A } from '@solidjs/router';
-import { s } from '../lib/i18n';
+import { s } from '../lib/i18n/index.ts';
 
 const AboutPage: Component = () => {
   return (
-    <div class="mt-32 p-16 max-w-720 m-auto">
+    <div class="mt-6 p-4 max-w-720 m-auto">
       <h1>{__APP_NAME__}</h1>
       <p class="opacity-60">{s('home.subtitle')}</p>
       <p class="opacity-60">v{__APP_VERSION__}</p>
@@ -55,7 +55,7 @@ const AboutPage: Component = () => {
         </a>
       </p>
       <hr class="separator-line" />
-      <div class="flex gap-8">
+      <div class="flex gap-2">
         <A href="/" class="btn-skeleton">
           {s('about.back_home')}
         </A>

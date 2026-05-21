@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js';
-import type { BakV1 } from '../lib/doc/v1';
-import type { ImportStrategy } from '../lib/doc/backup_v1';
+import type { BakV1 } from '../lib/doc/v1.ts';
+import type { ImportStrategy } from '../lib/doc/backup_v1.ts';
 
 export type BackupLoadTarget = {
   bak: BakV1;

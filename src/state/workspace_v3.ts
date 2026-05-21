@@ -1,7 +1,7 @@
 import { createSignal } from 'solid-js';
 import { makePersisted } from '@solid-primitives/storage';
-import type { ProjectMeta } from '../lib/doc/v1';
-import { getProjectMeta, putProjectMeta } from '../lib/doc/db_v3';
+import type { ProjectMeta } from '../lib/doc/v1.ts';
+import { getProjectMeta, putProjectMeta } from '../lib/doc/db_v3.ts';
 
 // ─── Persistent last-location signals ────────────────────────────
 

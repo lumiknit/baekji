@@ -9,22 +9,22 @@ import {
   TbOutlineExternalLink,
   TbOutlineBrandDropbox,
 } from 'solid-icons/tb';
-import { parseBakV1, type ImportStrategy } from '../../lib/doc/backup_v1';
-import { deserializeGzip } from '../../lib/doc/backup_helper';
-import { activeProjectId } from '../../state/workspace_v3';
-import { closeBackupModal } from '../../state/modal';
-import { setLoadTarget } from '../../state/backupLoad';
-import { s } from '../../lib/i18n';
-import { formatExpiry } from '../../lib/format';
+import { parseBakV1, type ImportStrategy } from '../../lib/doc/backup_v1.ts';
+import { deserializeGzip } from '../../lib/doc/backup_helper.ts';
+import { activeProjectId } from '../../state/workspace_v3.ts';
+import { closeBackupModal } from '../../state/modal.ts';
+import { setLoadTarget } from '../../state/backupLoad.ts';
+import { s } from '../../lib/i18n/index.ts';
+import { formatExpiry } from '../../lib/format.ts';
 import {
   loadToken,
   clearToken,
   beginOAuth,
   ensureToken,
-} from '../../lib/sync/dropbox_auth';
-import { list, download } from '../../lib/sync/dropbox';
-import type { SyncFile } from '../../lib/sync/interface';
-import type { BakV1 } from '../../lib/doc/v1';
+} from '../../lib/sync/dropbox_auth.ts';
+import { list, download } from '../../lib/sync/dropbox.ts';
+import type { SyncFile } from '../../lib/sync/interface.ts';
+import type { BakV1 } from '../../lib/doc/v1.ts';
 
 interface Props {
   importStrategy: () => ImportStrategy;
@@ -159,7 +159,7 @@ const DropboxLoadSection: Component<Props> = (props) => {
               <For
                 each={files()}
                 fallback={
-                  <p class="hint text-center py-2">
+                  <p class="hint text-center py-0.5">
                     {status() === 'loading'
                       ? s('dropbox.loading_list')
                       : status() === 'idle'

@@ -33,6 +33,20 @@ export type SyncProvider = 'dropbox' | 'gdrive';
 /** localStorage key written before OAuth redirect so handleRedirect knows which provider to call. */
 export const PENDING_PROVIDER_KEY = 'sync_pending_provider';
 
+/** Error carrying a literal i18n key so callers can pass it directly to s(). */
+export type I18nError = Error & { i18nKey: string };
+
+export function makeI18nError(key: string): I18nError {
+  const err = new Error(key) as I18nError;
+  err.name = 'I18nError';
+  err.i18nKey = key;
+  return err;
+}
+
+export function isI18nError(err: unknown): err is I18nError {
+  return err instanceof Error && err.name === 'I18nError';
+}
+
 export interface SyncFile {
   id: string;
   name: string;

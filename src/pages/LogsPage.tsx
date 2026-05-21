@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js';
 import { For, Show } from 'solid-js';
 import { A } from '@solidjs/router';
-import { logs } from '../state/log';
+import { logs } from '../state/log.ts';
 
 const LogsPage: Component = () => {
   const handleCopy = () => {
@@ -10,10 +10,10 @@ const LogsPage: Component = () => {
   };
 
   return (
-    <div class="p-16 mt-32 max-w-720 m-auto">
-      <div class="flex items-center justify-between gap-8">
+    <div class="p-4 mt-6 max-w-720 m-auto">
+      <div class="flex items-center justify-between gap-2">
         <h1 class="m-0">System Logs</h1>
-        <div class="flex gap-8">
+        <div class="flex gap-2">
           <Show when={logs().length > 0}>
             <button class="btn-border btn-sm" onClick={handleCopy}>
               Copy All
@@ -32,7 +32,7 @@ const LogsPage: Component = () => {
         when={logs().length > 0}
         fallback={<p class="opacity-60">No errors recorded.</p>}
       >
-        <div class="flex flex-column gap-8 mt-16">
+        <div class="flex flex-column gap-2 mt-4">
           <For each={logs()}>
             {(entry) => (
               <pre

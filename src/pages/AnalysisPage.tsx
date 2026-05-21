@@ -2,16 +2,16 @@ import type { Component } from 'solid-js';
 import { createSignal, For, Show, createEffect, createMemo } from 'solid-js';
 import { useParams, useNavigate, useSearchParams } from '@solidjs/router';
 import { TbOutlineArrowLeft } from 'solid-icons/tb';
-import { activeProjectLabel, openProject } from '../state/workspace_v3';
+import { activeProjectLabel, openProject } from '../state/workspace_v3.ts';
 import {
   liveSheets,
   loadSheetsForProject,
   sheetStatsStore,
-} from '../state/sheet_list';
-import { loadSheetContent } from '../lib/doc/db_v3';
-import { formatDuration } from '../lib/format';
-import { matchQuery } from '../lib/tag/query';
-import { s } from '../lib/i18n';
+} from '../state/sheet_list.ts';
+import { loadSheetContent } from '../lib/doc/db_v3.ts';
+import { formatDuration } from '../lib/format.ts';
+import { matchQuery } from '../lib/tag/query.ts';
+import { s } from '../lib/i18n/index.ts';
 import toast from 'solid-toast';
 
 const WORDS_PER_MINUTE = 200;
@@ -169,7 +169,7 @@ const AnalysisPage: Component = () => {
 
   return (
     <div class="page-body">
-      <div class="page-header">
+      <div class="page-header flex items-center gap-4">
         <button class="sb-icon-btn" onClick={handleBack}>
           <div class="btn-pad">
             <TbOutlineArrowLeft />
@@ -181,7 +181,7 @@ const AnalysisPage: Component = () => {
       </div>
 
       <Show when={query() && sheetIds().length === 0}>
-        <div class="page-stats">
+        <div class="page-stats flex gap-4">
           <span>
             {s('project.filter_result', {
               query: query(),
@@ -193,7 +193,7 @@ const AnalysisPage: Component = () => {
       </Show>
 
       <Show when={sheetIds().length > 0}>
-        <div class="page-stats">
+        <div class="page-stats flex gap-4">
           <span>
             {s('project.selected_sheets_count', {
               count: sheetIds().length,
@@ -209,7 +209,7 @@ const AnalysisPage: Component = () => {
       <Show when={stats()}>
         {(rows) => (
           <div class="overflow-y-auto">
-            <div class="page-toolbar">
+            <div class="page-toolbar flex flex-wrap gap-2">
               <select
                 value={charMode()}
                 onChange={(e) =>

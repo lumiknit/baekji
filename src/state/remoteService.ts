@@ -1,6 +1,6 @@
 import { createSignal } from 'solid-js';
 import { makePersisted } from '@solid-primitives/storage';
-import type { SyncProvider } from '../lib/sync/interface';
+import type { SyncProvider } from '../lib/sync/interface.ts';
 
 export const [remoteService, setRemoteService] = makePersisted(
   createSignal<SyncProvider>('dropbox'),

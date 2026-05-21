@@ -8,10 +8,10 @@ import {
   filteredSheets,
   liveSheets,
   allTags,
-} from '../../state/sheet_list';
-import { activeProjectId } from '../../state/workspace_v3';
-import { s } from '../../lib/i18n';
-import TagList from '../tag/TagList';
+} from '../../state/sheet_list.ts';
+import { activeProjectId } from '../../state/workspace_v3.ts';
+import { s } from '../../lib/i18n/index.ts';
+import TagList from '../tag/TagList.tsx';
 
 const TagFilterInput: Component = () => {
   const navigate = useNavigate();

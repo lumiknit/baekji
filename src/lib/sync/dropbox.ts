@@ -10,8 +10,8 @@ import {
   type ListOptions,
   type SyncFile,
   type SyncToken,
-} from './interface';
-import { logError } from '../../state/log';
+} from './interface.ts';
+import { logError } from '../../state/log.ts';
 
 const AUTH_URL = 'https://www.dropbox.com/oauth2/authorize';
 const TOKEN_URL = 'https://api.dropboxapi.com/oauth2/token';

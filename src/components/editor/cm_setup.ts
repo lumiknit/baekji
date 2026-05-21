@@ -19,7 +19,7 @@ import {
 import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
 import { search, openSearchPanel, searchKeymap } from '@codemirror/search';
-import { livePreviewPlugin, livePreviewTheme } from './live_preview';
+import { livePreviewPlugin, livePreviewTheme } from './live_preview.ts';
 
 export { openSearchPanel };
 
@@ -85,7 +85,7 @@ export function buildExtensions(opts: {
             rafId = 0;
             const coords = update.view.coordsAtPos(from);
             if (!coords) return;
-            const diff = coords.top - window.innerHeight / 2;
+            const diff = coords.top - globalThis.innerHeight / 2;
             if (Math.abs(diff) > 16) {
               update.view.dispatch({
                 effects: EditorView.scrollIntoView(from, { y: 'center' }),

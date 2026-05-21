@@ -7,9 +7,9 @@
  * Optimistic: assumes at most one OAuth flow is in progress at a time.
  */
 
-import { PENDING_PROVIDER_KEY } from './interface';
-import { handleCallback as dropboxCallback } from './dropbox_auth';
-import { handleCallback as gdriveCallback } from './gdrive_auth';
+import { PENDING_PROVIDER_KEY } from './interface.ts';
+import { handleCallback as dropboxCallback } from './dropbox_auth.ts';
+import { handleCallback as gdriveCallback } from './gdrive_auth.ts';
 
 export async function handleRedirect(code: string): Promise<void> {
   const provider = localStorage.getItem(PENDING_PROVIDER_KEY) ?? 'dropbox';

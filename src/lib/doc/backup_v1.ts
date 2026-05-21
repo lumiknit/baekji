@@ -1,6 +1,6 @@
-import type { BakV1, BakSheet, SheetMeta, ProjectMeta } from './v1';
-import { bakV1Schema } from './v1';
-import { genUnorderedId } from '../uuid';
+import type { BakV1, BakSheet, SheetMeta, ProjectMeta } from './v1.ts';
+import { bakV1Schema } from './v1.ts';
+import { genUnorderedId } from '../uuid.ts';
 import {
   getProjectMeta,
   putProjectMeta,
@@ -13,7 +13,7 @@ import {
   appendSheetDelta,
   getSheetStats,
   putSheetStats,
-} from './db_v3';
+} from './db_v3.ts';
 
 // ─── Export ───────────────────────────────────────────────────
 

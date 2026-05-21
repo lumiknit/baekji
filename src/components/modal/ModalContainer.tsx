@@ -9,26 +9,41 @@ import {
   closeProjectSearchModal,
   goalModalSheetId,
   closeGoalModal,
-} from '../../state/modal';
-import ConfirmModal from './ConfirmModal';
-import NameInputModal from './NameInputModal';
-import BackupModal from './BackupModal';
-import ProjectSearchModal from './ProjectSearchModal';
-import TagEditModal from './TagEditModal';
-import GoalModal from './GoalModal';
+} from '../../state/modal.ts';
+import ConfirmModal from './ConfirmModal.tsx';
+import NameInputModal from './NameInputModal.tsx';
+import BackupModal from './BackupModal.tsx';
+import ProjectSearchModal from './ProjectSearchModal.tsx';
+import TagEditModal from './TagEditModal.tsx';
+import GoalModal from './GoalModal.tsx';
 
 const ModalContainer: Component = () => {
   onMount(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const state = modalState();
       if (e.key === 'Escape') {
-        if (goalModalSheetId()) closeGoalModal();
-        else if (modalState()) closeModal(null);
-        else if (backupModalOpen()) closeBackupModal();
-        else if (projectSearchModalOpen()) closeProjectSearchModal();
+        if (goalModalSheetId()) {
+          closeGoalModal();
+        } else if (state) {
+          // confirm: Escape = cancel (false), others = dismiss (null)
+          closeModal(state.type === 'confirm' ? false : null);
+        } else if (backupModalOpen()) {
+          closeBackupModal();
+        } else if (projectSearchModalOpen()) {
+          closeProjectSearchModal();
+        } else {
+          return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    onCleanup(() => window.removeEventListener('keydown', handleKeyDown));
+    globalThis.addEventListener('keydown', handleKeyDown, { capture: true });
+    onCleanup(() =>
+      globalThis.removeEventListener('keydown', handleKeyDown, {
+        capture: true,
+      }),
+    );
   });
 
   return (

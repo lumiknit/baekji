@@ -8,11 +8,11 @@ import {
   TbOutlineCopy,
   TbOutlineShare,
 } from 'solid-icons/tb';
-import { activeProjectLabel, openProject } from '../state/workspace_v3';
-import { liveSheets, loadSheetsForProject } from '../state/sheet_list';
-import { loadSheetContent } from '../lib/doc/db_v3';
-import { matchQuery } from '../lib/tag/query';
-import { s } from '../lib/i18n';
+import { activeProjectLabel, openProject } from '../state/workspace_v3.ts';
+import { liveSheets, loadSheetsForProject } from '../state/sheet_list.ts';
+import { loadSheetContent } from '../lib/doc/db_v3.ts';
+import { matchQuery } from '../lib/tag/query.ts';
+import { s } from '../lib/i18n/index.ts';
 import toast from 'solid-toast';
 import MarkdownIt from 'markdown-it';
 import DOMPurify from 'dompurify';
@@ -257,7 +257,7 @@ const ExportPage: Component = () => {
       try {
         const mdText = buildMarkdown(d, joiner(), includeHeader());
         const bodyHtml = mdExport.render(mdText);
-        const { convert } = await import('../lib/html_to_docx');
+        const { convert } = await import('../lib/html_to_docx.ts');
         const blob = await convert(bodyHtml);
         const url = URL.createObjectURL(blob as Blob);
         const a = document.createElement('a');
@@ -299,7 +299,7 @@ const ExportPage: Component = () => {
 
   return (
     <div class="page-body">
-      <div class="page-header">
+      <div class="page-header flex items-center gap-4">
         <button class="sb-icon-btn" onClick={handleBack}>
           <div class="btn-pad">
             <TbOutlineArrowLeft />
@@ -311,7 +311,7 @@ const ExportPage: Component = () => {
       </div>
 
       <Show when={query() && sheetIds().length === 0}>
-        <div class="page-stats">
+        <div class="page-stats flex gap-4">
           <span>
             {s('project.filter_result', {
               query: query(),
@@ -323,7 +323,7 @@ const ExportPage: Component = () => {
       </Show>
 
       <Show when={sheetIds().length > 0}>
-        <div class="page-stats">
+        <div class="page-stats flex gap-4">
           <span>
             {s('project.selected_sheets_count', {
               count: sheetIds().length,
@@ -332,7 +332,7 @@ const ExportPage: Component = () => {
         </div>
       </Show>
 
-      <div class="page-toolbar">
+      <div class="page-toolbar flex flex-wrap gap-2">
         <select
           class="pj-format-select"
           value={format()}
@@ -421,7 +421,7 @@ const ExportPage: Component = () => {
           </Show>
           <button
             class="scroll-to-top-btn sb-icon-btn"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            onClick={() => globalThis.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <div class="btn-pad">
               <TbOutlineArrowUp />

@@ -2,14 +2,14 @@ import { useNavigate } from '@solidjs/router';
 import { TbOutlineDotsVertical, TbOutlinePlus } from 'solid-icons/tb';
 import type { Component } from 'solid-js';
 import { createEffect, createResource, createSignal, For } from 'solid-js';
-import { listProjects, putProjectMeta } from '../lib/doc/db_v3';
-import { s } from '../lib/i18n';
-import { formatRelativeDate } from '../lib/format';
-import { setSidebarView, projectListVersion } from '../state/workspace';
-import { openProject } from '../state/workspace_v3';
-import { loadSheetsForProject } from '../state/sheet_list';
-import { genUnorderedId } from '../lib/uuid';
-import Dropdown from './Dropdown';
+import { listProjects, putProjectMeta } from '../lib/doc/db_v3.ts';
+import { s } from '../lib/i18n/index.ts';
+import { formatRelativeDate } from '../lib/format.ts';
+import { setSidebarView, projectListVersion } from '../state/workspace.ts';
+import { openProject } from '../state/workspace_v3.ts';
+import { loadSheetsForProject } from '../state/sheet_list.ts';
+import { genUnorderedId } from '../lib/uuid.ts';
+import Dropdown from './Dropdown.tsx';
 
 const ProjectList: Component = () => {
   const navigate = useNavigate();

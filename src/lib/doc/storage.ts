@@ -1,4 +1,4 @@
-import { compactSheet } from './db_v3';
+import { compactSheet } from './db_v3.ts';
 
 export async function listBaekjiDatabases(): Promise<
   { name: string; estimatedBytes?: number }[]

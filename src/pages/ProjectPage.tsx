@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { createMemo, createSignal, For, createEffect, Show } from 'solid-js';
+import { createMemo, createSignal, createEffect, Show } from 'solid-js';
 import { useParams, useNavigate, useSearchParams } from '@solidjs/router';
 import {
   TbFillTrash,
@@ -11,26 +11,25 @@ import {
 import {
   activeProjectId,
   activeProjectLabel,
-  activeProjectMeta,
   closeProject,
   openProject,
   updateProjectLabel,
-} from '../state/workspace_v3';
+} from '../state/workspace_v3.ts';
 import {
   liveSheets,
   reindexOrderKeys,
   loadSheetsForProject,
-} from '../state/sheet_list';
-import { compactSheetDoc } from '../lib/doc/storage';
-import { putProjectMeta, deleteProjectMeta } from '../lib/doc/db_v3';
-import { tagToHsl, hexToHsl } from '../lib/tag/color';
-import { matchQuery } from '../lib/tag/query';
-import { showConfirm, openBackupModal } from '../state/modal';
-import { setSidebarView } from '../state/workspace';
-import { s } from '../lib/i18n';
+} from '../state/sheet_list.ts';
+import { compactSheetDoc } from '../lib/doc/storage.ts';
+import { deleteProjectMeta } from '../lib/doc/db_v3.ts';
+import ProjectTagEdit from '../components/ProjectTagEdit.tsx';
+import { matchQuery } from '../lib/tag/query.ts';
+import { showConfirm, openBackupModal } from '../state/modal.ts';
+import { setSidebarView } from '../state/workspace.ts';
+import { s } from '../lib/i18n/index.ts';
 import toast from 'solid-toast';
-import { logError } from '../state/log';
-import ProjectDebug from '../components/debug/ProjectDebug';
+import { logError } from '../state/log.ts';
+import ProjectDebug from '../components/debug/ProjectDebug.tsx';
 
 const ProjectPage: Component = () => {
   const navigate = useNavigate();
@@ -87,31 +86,6 @@ const ProjectPage: Component = () => {
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);
   });
 
-  const tagColors = () => activeProjectMeta()?.tagColors ?? {};
-
-  const setTagColorOverride = async (tag: string, h: number, sv: number) => {
-    const meta = activeProjectMeta();
-    if (!meta) return;
-    const colors = { ...tagColors(), [tag]: { h, s: sv } };
-    await putProjectMeta({
-      ...meta,
-      tagColors: colors,
-      updatedAt: new Date().toISOString(),
-    });
-  };
-
-  const clearTagColorOverride = async (tag: string) => {
-    const meta = activeProjectMeta();
-    if (!meta) return;
-    const colors = { ...tagColors() };
-    delete colors[tag];
-    await putProjectMeta({
-      ...meta,
-      tagColors: colors,
-      updatedAt: new Date().toISOString(),
-    });
-  };
-
   const [cleaning, setCleaning] = createSignal(false);
   const handleCleanup = async () => {
     setCleaning(true);
@@ -153,7 +127,7 @@ const ProjectPage: Component = () => {
       fallback={<div class="empty-state">{s('project.no_project_open')}</div>}
     >
       <div class="page-body">
-        <div class="page-header">
+        <div class="page-header flex items-center gap-4">
           <Show
             when={editingLabel()}
             fallback={
@@ -169,7 +143,7 @@ const ProjectPage: Component = () => {
             <input
               class="pj-name-input"
               value={labelDraft()}
-              onInput={(e) => setLabelDraft(e.currentTarget.value)}
+              onChange={(e) => setLabelDraft(e.currentTarget.value)}
               onBlur={commitRename}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') commitRename();
@@ -180,7 +154,7 @@ const ProjectPage: Component = () => {
           </Show>
         </div>
 
-        <div class="page-stats">
+        <div class="page-stats flex gap-4">
           <span>
             {s('project.sheet_count', { count: liveSheets().length })}
           </span>
@@ -196,7 +170,7 @@ const ProjectPage: Component = () => {
           </Show>
         </div>
 
-        <div class="page-toolbar">
+        <div class="page-toolbar flex flex-wrap gap-2">
           <button
             class="btn-border"
             onClick={() =>
@@ -250,59 +224,10 @@ const ProjectPage: Component = () => {
         </div>
 
         <Show when={allTags().length > 0}>
-          <h2 class="pj-section-title">
-            {s('project.tag_colors_title')}{' '}
-            <span class="pj-section-count">({allTags().length})</span>
-          </h2>
-          <div class="pj-tag-list">
-            <For each={allTags()}>
-              {([tag, count]) => {
-                const override = () => tagColors()[tag];
-                const { h: ah, s: as_ } = tagToHsl(tag);
-                const eff = () => override() ?? { h: ah, s: as_ };
-
-                return (
-                  <div class="pj-tag-row">
-                    <span
-                      class="tag"
-                      style={{
-                        background: `hsl(${eff().h}deg ${eff().s}% var(--color-l) / 0.25)`,
-                        color: `hsl(${eff().h}deg ${eff().s}% var(--color-l))`,
-                      }}
-                    >
-                      {tag}
-                    </span>
-                    <span class="pj-tag-count">
-                      {s('project.tag_item_count', { count })}
-                    </span>
-                    <div class="pj-tag-actions">
-                      <input
-                        type="color"
-                        class="tree-color-input"
-                        title={s('project.tag_color_set')}
-                        onInput={(e) => {
-                          const { h, s } = hexToHsl(e.currentTarget.value);
-                          setTagColorOverride(tag, h, s);
-                        }}
-                      />
-                      <Show when={override()}>
-                        <button
-                          class="tree-color-clear"
-                          title={s('project.tag_color_reset')}
-                          onClick={() => clearTagColorOverride(tag)}
-                        >
-                          ✕
-                        </button>
-                      </Show>
-                    </div>
-                  </div>
-                );
-              }}
-            </For>
-          </div>
+          <ProjectTagEdit allTags={allTags()} />
         </Show>
 
-        <div style={{ 'margin-top': '12rem' }}>
+        <div class="mt-section">
           <button
             class="btn-border btn-sm"
             onClick={() => setShowDebug((v) => !v)}

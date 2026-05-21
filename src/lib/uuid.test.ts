@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { genOrderedId, genUnorderedId } from './uuid';
+import { genOrderedId, genUnorderedId } from './uuid.ts';
 
 describe('genOrderedId', () => {
   it('returns a non-empty string', () => {

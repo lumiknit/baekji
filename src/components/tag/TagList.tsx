@@ -5,7 +5,7 @@ import {
   type Accessor,
   type Component,
 } from 'solid-js';
-import { tagToHsl } from '../../lib/tag/color';
+import { tagToHsl } from '../../lib/tag/color.ts';
 
 interface TagListProps {
   tags: Accessor<string[]> | string[];

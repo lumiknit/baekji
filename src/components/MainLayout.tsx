@@ -15,15 +15,15 @@ import {
   setSidebarWidth,
   sidebarView,
   setSidebarView,
-} from '../state/workspace';
-import { activeProjectId } from '../state/workspace_v3';
+} from '../state/workspace.ts';
+import { activeProjectId } from '../state/workspace_v3.ts';
 import { createMediaQuery } from '@solid-primitives/media';
 import { A, useLocation, type RouteSectionProps } from '@solidjs/router';
-import SheetList from './sheetlist/SheetList';
-import ProjectList from './ProjectList';
-import ModalContainer from './modal/ModalContainer';
-import AppErrorBanner from './AppErrorBanner';
-import { s } from '../lib/i18n';
+import SheetList from './sheetlist/SheetList.tsx';
+import ProjectList from './ProjectList.tsx';
+import ModalContainer from './modal/ModalContainer.tsx';
+import AppErrorBanner from './AppErrorBanner.tsx';
+import { s } from '../lib/i18n/index.ts';
 import {
   TbFillLayoutSidebarLeftCollapse,
   TbFillSettings,
@@ -31,8 +31,8 @@ import {
   TbOutlineCarouselVertical,
 } from 'solid-icons/tb';
 import { Dynamic } from 'solid-js/web';
-import BackupIcon from './BackupIcon';
-import { openBackupModal } from '../state/modal';
+import BackupIcon from './BackupIcon.tsx';
+import { openBackupModal } from '../state/modal.ts';
 
 const MainLayout: Component<RouteSectionProps> = (props) => {
   const isMobile = createMediaQuery('(max-width: 768px)');
@@ -46,8 +46,8 @@ const MainLayout: Component<RouteSectionProps> = (props) => {
         setSidebarOpen(!isSidebarOpen());
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    onCleanup(() => window.removeEventListener('keydown', handleKeyDown));
+    globalThis.addEventListener('keydown', handleKeyDown);
+    onCleanup(() => globalThis.removeEventListener('keydown', handleKeyDown));
   });
 
   createEffect(() => {

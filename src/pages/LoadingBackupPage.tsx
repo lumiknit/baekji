@@ -1,12 +1,12 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
-import { importBakV1 } from '../lib/doc/backup_v1';
-import { openProject } from '../state/workspace_v3';
-import { loadSheetsForProject } from '../state/sheet_list';
-import { invalidateProjectList } from '../state/workspace';
-import { backupLoadTarget, clearLoadTarget } from '../state/backupLoad';
-import { s } from '../lib/i18n';
+import { importBakV1 } from '../lib/doc/backup_v1.ts';
+import { openProject } from '../state/workspace_v3.ts';
+import { loadSheetsForProject } from '../state/sheet_list.ts';
+import { invalidateProjectList } from '../state/workspace.ts';
+import { backupLoadTarget, clearLoadTarget } from '../state/backupLoad.ts';
+import { s } from '../lib/i18n/index.ts';
 
 const LoadingBackupPage: Component = () => {
   const navigate = useNavigate();
@@ -37,20 +37,10 @@ const LoadingBackupPage: Component = () => {
   });
 
   return (
-    <div
-      class="page-body"
-      style={{
-        display: 'flex',
-        'flex-direction': 'column',
-        'align-items': 'center',
-        'justify-content': 'center',
-        gap: '1rem',
-        'min-height': '60vh',
-      }}
-    >
+    <div class="page-body loading-backup-body flex flex-column items-center justify-center gap-4">
       {error() ? (
         <>
-          <p style={{ color: 'var(--color-danger)' }}>{error()}</p>
+          <p class="text-danger">{error()}</p>
           <button
             class="btn-border"
             onClick={() => {
@@ -63,9 +53,7 @@ const LoadingBackupPage: Component = () => {
         </>
       ) : partialWarning() ? (
         <>
-          <p style={{ color: 'var(--color-warning)' }}>
-            {s('backup.partial_import_warning')}
-          </p>
+          <p class="text-warning">{s('backup.partial_import_warning')}</p>
           <button class="btn-border" onClick={() => navigate('/')}>
             {s('common.go_back')}
           </button>

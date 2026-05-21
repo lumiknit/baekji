@@ -12,8 +12,8 @@ import {
   type ListOptions,
   type SyncFile,
   type SyncToken,
-} from './interface';
-import { logError } from '../../state/log';
+} from './interface.ts';
+import { logError } from '../../state/log.ts';
 
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';

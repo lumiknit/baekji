@@ -12,10 +12,10 @@ import {
 } from 'solid-icons/tb';
 
 import type { Component } from 'solid-js';
-import Dropdown from '../Dropdown';
-import { formatCompact } from '../../lib/format';
-import { s } from '../../lib/i18n';
-import { settings, setSettings } from '../../state/settings';
+import Dropdown from '../Dropdown.tsx';
+import { formatCompact } from '../../lib/format.ts';
+import { s } from '../../lib/i18n/index.ts';
+import { settings, setSettings } from '../../state/settings.ts';
 
 interface EditorToolOverlayProps {
   charCount: () => number;

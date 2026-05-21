@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js';
 import { createSignal, onMount, Show } from 'solid-js';
-import { closeModal } from '../../state/modal';
-import { s } from '../../lib/i18n';
+import { closeModal } from '../../state/modal.ts';
+import { s } from '../../lib/i18n/index.ts';
 
 interface Props {
   title: string;
@@ -36,7 +36,7 @@ const NameInputModal: Component<Props> = (props) => {
         class="modal-input"
         type="text"
         value={value()}
-        onInput={(e) => setValue(e.currentTarget.value)}
+        onChange={(e) => setValue(e.currentTarget.value)}
         onKeyDown={handleKeyDown}
       />
       <Show when={value().startsWith('.')}>

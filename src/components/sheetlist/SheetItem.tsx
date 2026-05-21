@@ -21,10 +21,10 @@ import {
   TbOutlineFileExport,
   TbOutlineCheck,
 } from 'solid-icons/tb';
-import { loadSheetContent } from '../../lib/doc/db_v3';
-import { activeSheetId } from '../../state/workspace_v3';
-import { activeProjectId } from '../../state/workspace_v3';
-import { setSidebarOpen, showUpdatedAt } from '../../state/workspace';
+import { loadSheetContent } from '../../lib/doc/db_v3.ts';
+import { activeSheetId } from '../../state/workspace_v3.ts';
+import { activeProjectId } from '../../state/workspace_v3.ts';
+import { setSidebarOpen, showUpdatedAt } from '../../state/workspace.ts';
 import {
   sheetsStore,
   sheetStatsStore,
@@ -43,11 +43,12 @@ import {
   isSelectMode,
   enterSelectMode,
   previewVersion,
-} from '../../state/sheet_list';
-import { tagToHsl } from '../../lib/tag/color';
-import { showConfirm, showTagEdit } from '../../state/modal';
-import Dropdown from '../Dropdown';
-import { s } from '../../lib/i18n';
+} from '../../state/sheet_list.ts';
+import { tagToHsl } from '../../lib/tag/color.ts';
+import { showConfirm, showTagEdit } from '../../state/modal.ts';
+import Dropdown from '../Dropdown.tsx';
+import { s } from '../../lib/i18n/index.ts';
+import toast from 'solid-toast';
 
 type PreviewLine = { text: string; heading: boolean };
 
@@ -152,12 +153,19 @@ const SheetItem: Component<Props> = (props) => {
 
     if (e.shiftKey && isSelectMode()) {
       rangeSelect(props.id, filteredSheets());
-    } else if (e.ctrlKey || e.metaKey) {
-      if (!isSelectMode()) enterSelectMode();
-      toggleSelect(props.id);
+    } else if (e.shiftKey || e.ctrlKey || e.metaKey) {
+      if (!isSelectMode()) {
+        // Enter select mode with active sheet pre-selected as anchor
+        const active = activeSheetId();
+        enterSelectMode(active ?? undefined);
+      }
+      if (props.id !== activeSheetId()) toggleSelect(props.id);
     } else if (isSelectMode()) {
       toggleSelect(props.id);
-    } else if (isActive() && window.matchMedia('(max-width: 768px)').matches) {
+    } else if (
+      isActive() &&
+      globalThis.matchMedia('(max-width: 768px)').matches
+    ) {
       setSidebarOpen(false);
     } else {
       navigate(`/sheets/${props.id}`);
@@ -168,7 +176,7 @@ const SheetItem: Component<Props> = (props) => {
     e.preventDefault();
     // Allow right-click only on desktop; mobile long-press fires contextmenu and
     // leaves the dropdown open, consuming the next touch as an outside-click.
-    if (window.matchMedia('(pointer: fine)').matches) openMenu();
+    if (globalThis.matchMedia('(pointer: fine)').matches) openMenu();
   };
 
   const handleEditTags = async () => {
@@ -197,7 +205,10 @@ const SheetItem: Component<Props> = (props) => {
       s('sheet.delete_permanent'),
       s('sheet.delete_permanent_confirm'),
     );
-    if (ok) deleteSheetPermanently(props.id);
+    if (ok) {
+      deleteSheetPermanently(props.id);
+      toast.success(s('sheet.toast_permanently_deleted'));
+    }
   };
 
   const dropdownItems = () => {
@@ -264,7 +275,10 @@ const SheetItem: Component<Props> = (props) => {
       icon: TbFillTrash,
       label: s('common.delete'),
       danger: true,
-      onSelect: () => softDeleteSheet(props.id),
+      onSelect: () => {
+        softDeleteSheet(props.id);
+        toast.success(s('sheet.toast_deleted'));
+      },
     });
     return items;
   };
@@ -350,7 +364,10 @@ const SheetItem: Component<Props> = (props) => {
               <button
                 class="sb-icon-btn"
                 title={s('sheet.restore')}
-                onClick={() => restoreSheet(props.id)}
+                onClick={() => {
+                  restoreSheet(props.id);
+                  toast.success(s('sheet.toast_restored'));
+                }}
               >
                 <div class="btn-pad">
                   <TbOutlineRestore />

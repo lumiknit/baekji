@@ -10,30 +10,30 @@ import {
   activeProjectId,
   lastProjectId,
   openProject,
-} from '../../state/workspace_v3';
-import { touchSheetStats } from '../../state/sheet_list';
+} from '../../state/workspace_v3.ts';
+import { touchSheetStats } from '../../state/sheet_list.ts';
 import {
   buildExtensions,
   openSearchPanel,
   createActiveLineCompartment,
   activeLineExtension,
-} from './cm_setup';
-import { s } from '../../lib/i18n';
-import { settings } from '../../state/settings';
+} from './cm_setup.ts';
+import { s } from '../../lib/i18n/index.ts';
+import { settings } from '../../state/settings.ts';
 import {
   appendSheetDelta,
   getSheetMeta,
   getSheetStats,
   loadSheetResult,
   replaceSheetContent,
-} from '../../lib/doc/db_v3';
+} from '../../lib/doc/db_v3.ts';
 import toast from 'solid-toast';
-import { logError } from '../../state/log';
+import { logError } from '../../state/log.ts';
 import {
   loadSheetsForProject,
   invalidateSheetPreview,
-} from '../../state/sheet_list';
-import type { DeltaPayload } from '../../lib/doc/cm';
+} from '../../state/sheet_list.ts';
+import type { DeltaPayload } from '../../lib/doc/cm.ts';
 
 const FLUSH_INTERVAL = 3_000;
 const AUTO_COMPACT_THRESHOLD = 100;

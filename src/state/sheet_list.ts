@@ -1,12 +1,13 @@
 import { createSignal, createMemo } from 'solid-js';
 import { createStore, produce, reconcile, unwrap } from 'solid-js/store';
-import type { SheetMeta, SheetStats, WritingGoal } from '../lib/doc/v1';
-import { activeProjectId } from './workspace_v3';
-import { matchQuery } from '../lib/tag/query';
-import { genUnorderedId } from '../lib/uuid';
+import type { SheetMeta, SheetStats, WritingGoal } from '../lib/doc/v1.ts';
+import { activeProjectId } from './workspace_v3.ts';
+import { matchQuery } from '../lib/tag/query.ts';
+import { genUnorderedId } from '../lib/uuid.ts';
 import {
   getSheetMetasByProject,
   putSheetMeta,
+  putSheetMetaBatch,
   deleteSheetMeta,
   deleteSheetDeltas,
   deleteSheetStats,
@@ -15,7 +16,7 @@ import {
   replaceSheetContent,
   putSheetStats,
   getSheetStatsByProject,
-} from '../lib/doc/db_v3';
+} from '../lib/doc/db_v3.ts';
 
 // ─── Sheet list state ────────────────────────────────────────────
 
@@ -61,7 +62,13 @@ export const [selectedIds, setSelectedIds] = createSignal<Set<string>>(
 export const [isSelectMode, setSelectMode] = createSignal(false);
 const [_anchorId, setAnchorId] = createSignal<string | null>(null);
 
-export const enterSelectMode = () => setSelectMode(true);
+export const enterSelectMode = (initialId?: string) => {
+  setSelectMode(true);
+  if (initialId) {
+    setSelectedIds(new Set([initialId]));
+    setAnchorId(initialId);
+  }
+};
 export const exitSelectMode = () => {
   setSelectMode(false);
   setSelectedIds(new Set<string>());
@@ -329,6 +336,20 @@ export function updateSheetTags(id: string, tags: string[]): void {
   const updated = { ...plain(meta), tags };
   setSheetsStore(id, reconcile(updated));
   putSheetMeta(updated);
+}
+
+export async function updateSheetTagsBatch(
+  updates: Map<string, string[]>,
+): Promise<void> {
+  const metas: ReturnType<typeof plain>[] = [];
+  for (const [id, tags] of updates) {
+    const meta = sheetsStore[id];
+    if (!meta) continue;
+    const updated = { ...plain(meta), tags };
+    setSheetsStore(id, reconcile(updated));
+    metas.push(updated);
+  }
+  await putSheetMetaBatch(metas);
 }
 
 export function updateSelectedSheetTags(ids: string[], tags: string[]): void {

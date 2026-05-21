@@ -25,6 +25,9 @@ export interface Settings {
   focusMode: boolean;
   previewFontSize: number;
   showGoalOverlay: boolean;
+  goalDueMode: 'absolute' | 'relative';
+  goalDueDurationMinutes: number;
+  goalDueDurationUnit: 'minutes' | 'hours';
 }
 
 const defaultSettings: Settings = {
@@ -42,6 +45,9 @@ const defaultSettings: Settings = {
   focusMode: false,
   previewFontSize: 13,
   showGoalOverlay: true,
+  goalDueMode: 'relative',
+  goalDueDurationMinutes: 120,
+  goalDueDurationUnit: 'minutes',
 };
 
 const [settings, setSettings] = makePersisted(

@@ -3,24 +3,24 @@ import type { Component } from 'solid-js';
 import { Toaster } from 'solid-toast';
 import toast from 'solid-toast';
 import { createEffect, onMount } from 'solid-js';
-import MainLayout from './components/MainLayout';
-import AboutPage from './pages/AboutPage';
-import BootstrapPage from './pages/BootstrapPage';
-import SheetPage from './pages/SheetPage';
-import ProjectPage from './pages/ProjectPage';
-import AnalysisPage from './pages/AnalysisPage';
-import ExportPage from './pages/ExportPage';
-import SettingsPage from './pages/SettingsPage';
-import SearchPage from './pages/SearchPage';
-import LoadingBackupPage from './pages/LoadingBackupPage';
-import ComparePage from './pages/ComparePage';
-import LogsPage from './pages/LogsPage';
-import RemotePage from './pages/RemotePage';
-import { updateRootStyle } from './state/settings';
-import { handleRedirect } from './lib/sync/auth_redirect';
-import { PENDING_PROVIDER_KEY } from './lib/sync/interface';
-import { s } from './lib/i18n';
-import { logError, logInfo } from './state/log';
+import MainLayout from './components/MainLayout.tsx';
+import AboutPage from './pages/AboutPage.tsx';
+import BootstrapPage from './pages/BootstrapPage.tsx';
+import SheetPage from './pages/SheetPage.tsx';
+import ProjectPage from './pages/ProjectPage.tsx';
+import AnalysisPage from './pages/AnalysisPage.tsx';
+import ExportPage from './pages/ExportPage.tsx';
+import SettingsPage from './pages/SettingsPage.tsx';
+import SearchPage from './pages/SearchPage.tsx';
+import LoadingBackupPage from './pages/LoadingBackupPage.tsx';
+import ComparePage from './pages/ComparePage.tsx';
+import LogsPage from './pages/LogsPage.tsx';
+import RemotePage from './pages/RemotePage.tsx';
+import { updateRootStyle } from './state/settings.ts';
+import { handleRedirect } from './lib/sync/auth_redirect.ts';
+import { PENDING_PROVIDER_KEY, isI18nError } from './lib/sync/interface.ts';
+import { s } from './lib/i18n/index.ts';
+import { logError, logInfo } from './state/log.ts';
 
 const App: Component = () => {
   onMount(() => {
@@ -37,16 +37,11 @@ const App: Component = () => {
         } catch (err) {
           logError('App:OAuthCallback', err);
           setTimeout(() => {
-            const error = err as { message?: string };
-            const key = error?.message ?? '';
-            const fallback =
-              pendingProvider === 'gdrive'
+            const msg = isI18nError(err)
+              ? s(err.i18nKey)
+              : pendingProvider === 'gdrive'
                 ? s('gdrive.error_auth_callback')
                 : s('dropbox.error_auth_callback');
-            const msg =
-              key.startsWith('dropbox.') || key.startsWith('gdrive.')
-                ? s(key)
-                : fallback;
             toast.error(msg, { duration: 6000 });
           }, 500);
         }

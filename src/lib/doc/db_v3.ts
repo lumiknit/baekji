@@ -1,9 +1,9 @@
 import { openDB } from 'idb';
 import type { IDBPDatabase } from 'idb';
 import { ChangeSet, Text } from '@codemirror/state';
-import type { ProjectMeta, SheetMeta, SheetStats } from './v1';
-import type { DeltaPayload } from './cm';
-import { logError } from '../../state/log';
+import type { ProjectMeta, SheetMeta, SheetStats } from './v1.ts';
+import type { DeltaPayload } from './cm.ts';
+import { logError } from '../../state/log.ts';
 import toast from 'solid-toast';
 
 const DB_NAME = 'baekji-v3-data';
@@ -126,6 +126,17 @@ export async function putSheetMeta(meta: SheetMeta): Promise<void> {
     await db.put('sheetMetas', meta);
   } catch (err) {
     handleDBError('putSheetMeta', err);
+  }
+}
+
+export async function putSheetMetaBatch(metas: SheetMeta[]): Promise<void> {
+  try {
+    const db = await getDB();
+    const tx = db.transaction('sheetMetas', 'readwrite');
+    await Promise.all([...metas.map((m) => tx.store.put(m)), tx.done]);
+  } catch (err) {
+    handleDBError('putSheetMetaBatch', err);
+    throw err;
   }
 }
 

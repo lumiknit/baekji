@@ -5,8 +5,9 @@
  */
 
 import { createSignal } from 'solid-js';
-import { getCurrentAccount } from './gdrive';
-import type { SyncToken } from './interface';
+import { getCurrentAccount } from './gdrive.ts';
+import type { SyncToken } from './interface.ts';
+import { makeI18nError } from './interface.ts';
 
 const SCOPE = 'https://www.googleapis.com/auth/drive.appdata profile email';
 
@@ -111,7 +112,7 @@ export async function ensureToken(): Promise<SyncToken> {
   if (t) return t;
   await beginOAuth();
   const t2 = loadToken();
-  if (!t2) throw new Error('gdrive.error_auth_callback');
+  if (!t2) throw makeI18nError('gdrive.error_auth_callback');
   return t2;
 }
 

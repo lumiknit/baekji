@@ -1,4 +1,4 @@
-import { s } from './i18n';
+import { s } from './i18n/index.ts';
 
 export function formatRelativeDate(dateOrIso: Date | string): string {
   const d = typeof dateOrIso === 'string' ? new Date(dateOrIso) : dateOrIso;

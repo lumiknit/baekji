@@ -20,18 +20,11 @@
   flex: 1;
 }
 
-.app-error-banner-actions {
-  display: flex;
-  gap: var(--sp-2);
-  flex-shrink: 0;
-}
+/* .app-error-banner-actions removed — replaced by flex gap-2 flex-shrink-0 utilities */
 
 /* ─── Page Structure ─────────────────────────────── */
 
 .page-header {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
   margin-bottom: var(--sp-2);
 }
 
@@ -40,15 +33,10 @@
 }
 
 .page-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
   margin-bottom: var(--sp-5);
 }
 
 .page-stats {
-  display: flex;
-  gap: var(--sp-4);
   margin-bottom: var(--sp-6);
   font-size: var(--fs-base);
   opacity: 0.7;
@@ -67,9 +55,6 @@
   border: 1px solid #c00;
   border-radius: var(--r);
   padding: var(--sp-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
 }
 
 .danger-zone-title {
@@ -1018,22 +1003,20 @@
   opacity: 0.6;
 }
 
-.pj-tag-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 2rem;
+.pj-tag-cloud {
+  gap: 6px;
+  margin-bottom: 1rem;
 }
 
-.pj-tag-row {
-  display: flex;
+.pj-tag-cloud-item {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 0;
+  gap: 3px;
+}
 
-  & .tag {
-    min-width: 80px;
-  }
+.pj-tag-cloud-count {
+  font-size: 11px;
+  opacity: 0.6;
 }
 
 .pj-tag-count {
@@ -1041,15 +1024,40 @@
   opacity: 0.7;
 }
 
-.pj-tag-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .pj-num-input {
   width: 80px;
+}
+
+/* ─── Spacer at end of page sections ─────────────── */
+
+.mt-section {
+  margin-top: 12rem;
+}
+
+/* ─── Remote Page ─────────────────────────────────── */
+
+.remote-page {
+  padding: 1rem;
+}
+
+.remote-project-header {
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--c-border, var(--border));
+}
+
+.remote-file-row {
+  padding: 2px 4px;
+}
+
+/* Overflow handled by .label-overflow; keep min-width constraint */
+.remote-filename {
+  min-width: 8rem;
+}
+
+/* ─── Backup loading page layout ─────────────────── */
+
+.loading-backup-body {
+  min-height: 60vh;
 }
 
 /* ─── Common Page Elements ───────────────────────── */
@@ -1063,16 +1071,10 @@
 /* ─── Search Page ────────────────────────────────── */
 
 .search-results-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
   margin-top: var(--sp-4);
 }
 
 .search-result-item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
   padding: var(--sp-4);
   border: 1px solid var(--border);
   border-radius: var(--r);
@@ -1083,15 +1085,10 @@
   background: var(--border);
 }
 
-.search-result-header {
+/* .search-result-header removed — replaced by flex items-center gap-2 utilities */
+.search-result-header .tag-list {
   display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-
-  & .tag-list {
-    display: flex;
-    gap: 4px;
-  }
+  gap: 4px;
 }
 
 .search-result-preview {
@@ -1135,26 +1132,17 @@
 /* ─── Compare Page ────────────────────────────────── */
 
 .compare-page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
   padding: var(--sp-4);
 }
 
 .compare-header {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
   padding-bottom: var(--sp-2);
   border-bottom: 1px solid var(--border);
 }
 
+/* Overflow handled by .label-overflow; keep font-weight */
 .compare-title {
-  flex: 1;
   font-weight: bold;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .compare-loading {
@@ -1164,9 +1152,6 @@
 }
 
 .compare-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
   font-family: monospace;
 }
 
@@ -1207,8 +1192,6 @@
 }
 
 .compare-chunk-btns {
-  display: flex;
-  gap: var(--sp-1);
   padding: var(--sp-1) var(--sp-2);
   border-top: 1px solid var(--border);
 }

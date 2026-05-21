@@ -7,19 +7,22 @@ import {
   exportProjectAsBakV1,
   parseBakV1,
   type ImportStrategy,
-} from '../../lib/doc/backup_v1';
+} from '../../lib/doc/backup_v1.ts';
 import {
   serializeGzip,
   deserializeGzip,
   toBlob,
-} from '../../lib/doc/backup_helper';
-import { activeProjectId, activeProjectLabel } from '../../state/workspace_v3';
-import { deviceId } from '../../state/workspace';
-import { closeBackupModal } from '../../state/modal';
-import { setLoadTarget } from '../../state/backupLoad';
-import { s } from '../../lib/i18n';
-import { timestampSuffix } from '../../lib/format';
-import type { BakV1 } from '../../lib/doc/v1';
+} from '../../lib/doc/backup_helper.ts';
+import {
+  activeProjectId,
+  activeProjectLabel,
+} from '../../state/workspace_v3.ts';
+import { deviceId } from '../../state/workspace.ts';
+import { closeBackupModal } from '../../state/modal.ts';
+import { setLoadTarget } from '../../state/backupLoad.ts';
+import { s } from '../../lib/i18n/index.ts';
+import { timestampSuffix } from '../../lib/format.ts';
+import type { BakV1 } from '../../lib/doc/v1.ts';
 
 declare const __APP_VERSION__: string;
 

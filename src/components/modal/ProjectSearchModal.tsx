@@ -2,10 +2,10 @@ import type { Component } from 'solid-js';
 import { createSignal, For, Show, onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { TbOutlineSearch, TbOutlineFileText, TbOutlineX } from 'solid-icons/tb';
-import { liveSheets } from '../../state/sheet_list';
-import { loadSheetContent } from '../../lib/doc/db_v3';
-import { s } from '../../lib/i18n';
-import { closeProjectSearchModal } from '../../state/modal';
+import { liveSheets } from '../../state/sheet_list.ts';
+import { loadSheetContent } from '../../lib/doc/db_v3.ts';
+import { s } from '../../lib/i18n/index.ts';
+import { closeProjectSearchModal } from '../../state/modal.ts';
 
 type SearchResult = {
   id: string;
@@ -67,7 +67,7 @@ const ProjectSearchModal: Component = () => {
   };
 
   return (
-    <div class="flex flex-column gap-12" style={{ 'max-height': '80vh' }}>
+    <div class="flex flex-column gap-3" style={{ 'max-height': '80vh' }}>
       <div class="flex items-center justify-between">
         <h3 class="m-0">{s('common.search')}</h3>
         <button class="sb-icon-btn" onClick={closeProjectSearchModal}>
@@ -94,7 +94,7 @@ const ProjectSearchModal: Component = () => {
       </div>
 
       <div
-        class="search-results-list"
+        class="search-results-list flex flex-column gap-3"
         style={{ overflow: 'auto', flex: 1, 'min-height': '200px' }}
       >
         <Show when={searching()}>
@@ -108,10 +108,10 @@ const ProjectSearchModal: Component = () => {
         <For each={results()}>
           {(res) => (
             <div
-              class="search-result-item"
+              class="search-result-item flex flex-column gap-2"
               onClick={() => handleGoToSheet(res.id)}
             >
-              <div class="search-result-header">
+              <div class="flex items-center gap-2">
                 <span class="icon">
                   <TbOutlineFileText />
                 </span>

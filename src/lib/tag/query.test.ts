@@ -8,7 +8,7 @@ import {
   extractAutoTags,
   type TagExpr,
   type ParseFail,
-} from './query';
+} from './query.ts';
 
 // ---------------------------------------------------------------------------
 // isValidTag

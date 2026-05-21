@@ -1,18 +1,22 @@
 import type { Component } from 'solid-js';
 import { createSignal, createEffect, on, Show, For } from 'solid-js';
 import { useParams, useNavigate } from '@solidjs/router';
-import { activeProjectId } from '../state/workspace_v3';
-import { sheetsStore, updateSheetTags, splitSheet } from '../state/sheet_list';
-import { showConfirm } from '../state/modal';
-import { s } from '../lib/i18n';
+import { activeProjectId } from '../state/workspace_v3.ts';
+import {
+  sheetsStore,
+  updateSheetTags,
+  splitSheet,
+} from '../state/sheet_list.ts';
+import { showConfirm } from '../state/modal.ts';
+import { s } from '../lib/i18n/index.ts';
 import EditorCore, {
   type EditorCoreHandle,
-} from '../components/editor/EditorCore';
-import EditorToolOverlay from '../components/editor/EditorToolOverlay';
-import EditorGoalOverlay from '../components/editor/EditorGoalOverlay';
-import TagEditor from '../components/editor/TagEditor';
-import { settings } from '../state/settings';
-import { tagToHsl } from '../lib/tag/color';
+} from '../components/editor/EditorCore.tsx';
+import EditorToolOverlay from '../components/editor/EditorToolOverlay.tsx';
+import EditorGoalOverlay from '../components/editor/EditorGoalOverlay.tsx';
+import TagEditor from '../components/editor/TagEditor.tsx';
+import { settings } from '../state/settings.ts';
+import { tagToHsl } from '../lib/tag/color.ts';
 import { TbOutlineEdit } from 'solid-icons/tb';
 
 const SheetPage: Component = () => {

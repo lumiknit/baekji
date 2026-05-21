@@ -4,11 +4,11 @@ import { useParams, useNavigate } from '@solidjs/router';
 import { diffLines } from 'diff';
 import type { Change } from 'diff';
 import { TbOutlineArrowLeft, TbOutlineCheck } from 'solid-icons/tb';
-import { loadSheetContent, replaceSheetContent } from '../lib/doc/db_v3';
-import { softDeleteSheet } from '../state/sheet_list';
-import { s } from '../lib/i18n';
+import { loadSheetContent, replaceSheetContent } from '../lib/doc/db_v3.ts';
+import { softDeleteSheet } from '../state/sheet_list.ts';
+import { s } from '../lib/i18n/index.ts';
 import toast from 'solid-toast';
-import { logError } from '../state/log';
+import { logError } from '../state/log.ts';
 
 // null = unresolved, true = keep, false = discard
 type Decision = boolean | null;
@@ -100,12 +100,12 @@ const ComparePage: Component = () => {
   };
 
   return (
-    <div class="page-body compare-page">
-      <div class="compare-header">
+    <div class="page-body compare-page flex flex-column gap-2">
+      <div class="compare-header flex items-center gap-2">
         <button class="btn-border btn-sm" onClick={() => navigate(-1)}>
           <TbOutlineArrowLeft />
         </button>
-        <span class="compare-title">
+        <span class="compare-title label-overflow">
           {labelA()} vs {labelB()}
         </span>
         <button
@@ -123,7 +123,7 @@ const ComparePage: Component = () => {
       </Show>
 
       <Show when={contents()}>
-        <div class="compare-list">
+        <div class="compare-list flex flex-column gap-1">
           <Index each={chunks()}>
             {(chunk, i) => {
               const dec = () => getDecisions()[i] ?? null;
@@ -141,7 +141,7 @@ const ComparePage: Component = () => {
                 >
                   <pre class="compare-chunk-text">{chunk().value}</pre>
                   <Show when={isDiff()}>
-                    <div class="compare-chunk-btns">
+                    <div class="compare-chunk-btns flex gap-1">
                       <button
                         class="btn-border btn-sm"
                         classList={{ 'btn-active': dec() === true }}

@@ -1,14 +1,18 @@
 import type { Component, JSX } from 'solid-js';
 import { createMemo, createSignal, For, Show } from 'solid-js';
 import { A } from '@solidjs/router';
-import { settings, setSettings } from '../state/settings';
-import type { FontSettings } from '../state/settings';
-import ThemePreview from '../components/ThemePreview';
-import { s } from '../lib/i18n';
-import { showConfirm } from '../state/modal';
-import { estimateStorageUsage, formatBytes } from '../lib/doc/storage';
-import { fullResetDB } from '../lib/doc/db_reset';
-import { cleanupAndCompact, getDBStats, type DBStats } from '../lib/doc/db_v3';
+import { settings, setSettings } from '../state/settings.ts';
+import type { FontSettings } from '../state/settings.ts';
+import ThemePreview from '../components/ThemePreview.tsx';
+import { s } from '../lib/i18n/index.ts';
+import { showConfirm } from '../state/modal.ts';
+import { estimateStorageUsage, formatBytes } from '../lib/doc/storage.ts';
+import { fullResetDB } from '../lib/doc/db_reset.ts';
+import {
+  cleanupAndCompact,
+  getDBStats,
+  type DBStats,
+} from '../lib/doc/db_v3.ts';
 import toast from 'solid-toast';
 
 const SettingRow: Component<{ label: string; children: JSX.Element }> = (
@@ -47,15 +51,15 @@ const FontPicker: Component<{
   };
 
   return (
-    <label class="flex justify-between items-center gap-8">
+    <label class="flex justify-between items-center gap-2">
       {props.label}
-      <div class="flex gap-4 items-center flex-1 max-w-240 justify-end">
+      <div class="flex gap-1 items-center flex-1 max-w-240 justify-end">
         <Show when={showInput()}>
           <input
             type="text"
             placeholder={s('settings.font_custom_placeholder')}
             value={isPreset() ? '' : val()}
-            onInput={(e) =>
+            onChange={(e) =>
               setSettings('fonts', props.fontKey, e.currentTarget.value)
             }
             class="flex-1 min-w-0"
@@ -84,7 +88,7 @@ const NumberInputWithSlider: Component<{
   onChange: (val: number) => void;
 }> = (props) => {
   return (
-    <div class="flex flex-column gap-4">
+    <div class="flex flex-column gap-1">
       <SettingRow label={props.label}>
         <input
           type="number"
@@ -102,7 +106,7 @@ const NumberInputWithSlider: Component<{
         max={props.max}
         step={props.step}
         value={props.value}
-        onInput={(e) => props.onChange(parseFloat(e.currentTarget.value))}
+        onChange={(e) => props.onChange(parseFloat(e.currentTarget.value))}
         class="w-full"
       />
     </div>
@@ -163,7 +167,7 @@ const SettingsPage: Component = () => {
   };
 
   return (
-    <div class="p-16 mt-32 max-w-720 m-auto">
+    <div class="p-4 mt-6 max-w-720 m-auto">
       <div class="flex items-center justify-between">
         <h1 class="m-0">{s('settings.title')}</h1>
         <A href="/about" class="btn-skeleton">
@@ -171,10 +175,10 @@ const SettingsPage: Component = () => {
         </A>
       </div>
 
-      <div class="mt-32 flex flex-column gap-16">
+      <div class="mt-6 flex flex-column gap-1">
         <section>
           <h3>{s('settings.theme_title')}</h3>
-          <div class="mt-32 flex flex-column gap-16">
+          <div class="mt-6 flex flex-column gap-1">
             <For
               each={
                 [
@@ -184,15 +188,21 @@ const SettingsPage: Component = () => {
               }
             >
               {([key, label, side]) => (
-                <div class="flex flex-column gap-8">
-                  <span style={{ 'font-size': 'var(--fs-sm)', opacity: '0.7' }}>
-                    {label}
-                  </span>
-                  <div class="flex gap-8">
-                    <For each={['default', 'warm', 'cool'] as const}>
-                      {(variant) => (
+                <div class="flex flex-column gap-2">
+                  <span class="hint">{label}</span>
+                  <div class="flex gap-2">
+                    <For
+                      each={
+                        [
+                          ['default', s('settings.theme_default')],
+                          ['warm', s('settings.theme_warm')],
+                          ['cool', s('settings.theme_cool')],
+                        ] as const
+                      }
+                    >
+                      {([variant, label]) => (
                         <ThemePreview
-                          label={s(`settings.theme_${variant}`)}
+                          label={label}
                           themePrefix={`${side}-${variant}`}
                           active={
                             ((settings[key] as string) ?? 'default') === variant
@@ -215,7 +225,7 @@ const SettingsPage: Component = () => {
 
         <section>
           <h3>{s('settings.font_settings')}</h3>
-          <div class="mt-32 flex flex-column gap-8">
+          <div class="mt-6 flex flex-column gap-2">
             <SettingRow label={s('settings.font_family')}>
               <select
                 value={settings.fontFamily}
@@ -243,7 +253,7 @@ const SettingsPage: Component = () => {
                 { value: '', label: s('settings.font_system') },
                 { value: 'BuiltinSerif', label: 'Noto Serif' },
                 { value: 'RIDIBatang', label: 'RIDI Batang' },
-                { value: 'Daehan', label: '대한체' },
+                { value: 'GowunDodum', label: 'Gowun Dodum' },
               ]}
             />
             <FontPicker
@@ -292,7 +302,7 @@ const SettingsPage: Component = () => {
 
         <section>
           <h3>{s('settings.typography')}</h3>
-          <div class="mt-32 flex flex-column gap-8">
+          <div class="mt-6 flex flex-column gap-2">
             <NumberInputWithSlider
               label={s('settings.line_height')}
               value={settings.lineHeight}
@@ -322,7 +332,7 @@ const SettingsPage: Component = () => {
 
         <section>
           <h3>{s('settings.editor_settings')}</h3>
-          <div class="mt-32 flex flex-column gap-8">
+          <div class="mt-6 flex flex-column gap-2">
             <SettingRow label={s('settings.typewriter_mode')}>
               <input
                 type="checkbox"
@@ -353,9 +363,9 @@ const SettingsPage: Component = () => {
           </div>
         </section>
 
-        <section class="mt-32">
+        <section class="mt-6">
           <hr class="separator-line" />
-          <div class="danger-zone">
+          <div class="danger-zone flex flex-column gap-2">
             <p class="danger-zone-title">{s('project.danger_title')}</p>
 
             <div class="flex justify-between items-center">
@@ -389,7 +399,7 @@ const SettingsPage: Component = () => {
                   </span>
                 )}
               </Show>
-              <div class="flex gap-4">
+              <div class="flex gap-1">
                 <Show when={!storageInfo()}>
                   <button class="btn-border btn-sm" onClick={loadStorage}>
                     {s('settings.storage_check')}
@@ -410,7 +420,7 @@ const SettingsPage: Component = () => {
               </button>
             </div>
           </div>
-          <div class="mt-32 opacity-50 text-center">
+          <div class="mt-6 opacity-50 text-center">
             <A href="/logs" class="btn-skeleton">
               {s('logs.title')}
             </A>

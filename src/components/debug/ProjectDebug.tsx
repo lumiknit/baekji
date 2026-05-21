@@ -1,12 +1,12 @@
 import type { Component } from 'solid-js';
 import { For } from 'solid-js';
-import { activeProjectMeta } from '../../state/workspace_v3';
+import { activeProjectMeta } from '../../state/workspace_v3.ts';
 import {
   sheetsStore,
   liveSortedIds,
   trashSortedIds,
-} from '../../state/sheet_list';
-import type { SheetMeta } from '../../lib/doc/v1';
+} from '../../state/sheet_list.ts';
+import type { SheetMeta } from '../../lib/doc/v1.ts';
 
 const ProjectDebug: Component = () => {
   const metaEntries = () => {

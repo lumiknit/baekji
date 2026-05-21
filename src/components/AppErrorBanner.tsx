@@ -1,8 +1,8 @@
 import type { Component } from 'solid-js';
 import { Show } from 'solid-js';
-import { appErrors, dismissAppError } from '../state/errors';
-import { openBackupModal } from '../state/modal';
-import { s } from '../lib/i18n';
+import { appErrors, dismissAppError } from '../state/errors.ts';
+import { openBackupModal } from '../state/modal.ts';
+import { s } from '../lib/i18n/index.ts';
 
 const AppErrorBanner: Component = () => {
   const hasQuotaError = () =>
@@ -14,7 +14,7 @@ const AppErrorBanner: Component = () => {
         <span class="app-error-banner-msg">
           {s('errors.quota_exceeded_msg')}
         </span>
-        <div class="app-error-banner-actions">
+        <div class="flex gap-2 flex-shrink-0">
           <button
             class="btn-sm btn-primary"
             onClick={() => {

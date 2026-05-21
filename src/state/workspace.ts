@@ -1,7 +1,7 @@
 import { createSignal } from 'solid-js';
 import { makePersisted } from '@solid-primitives/storage';
 import localforage from 'localforage';
-import { genOrderedId } from '../lib/uuid';
+import { genOrderedId } from '../lib/uuid.ts';
 
 localforage.config({
   name: 'baekji-kv-pairs',

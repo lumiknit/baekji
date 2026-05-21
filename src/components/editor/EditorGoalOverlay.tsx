@@ -1,5 +1,13 @@
 import type { Component } from 'solid-js';
-import { createMemo, Match, Show, Switch } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  Match,
+  onCleanup,
+  Show,
+  Switch,
+} from 'solid-js';
 import {
   TbOutlineRefresh,
   TbOutlinePencil,
@@ -9,11 +17,11 @@ import {
   sheetsStore,
   sheetStatsStore,
   resetSheetWritingSeconds,
-} from '../../state/sheet_list';
-import { openGoalModal, showConfirm } from '../../state/modal';
-import { s } from '../../lib/i18n';
-import { formatDuration } from '../../lib/format';
-import { setSettings } from '../../state/settings';
+} from '../../state/sheet_list.ts';
+import { openGoalModal, showConfirm } from '../../state/modal.ts';
+import { s } from '../../lib/i18n/index.ts';
+import { formatDuration } from '../../lib/format.ts';
+import { setSettings } from '../../state/settings.ts';
 
 interface Props {
   sheetId: string;
@@ -23,6 +31,13 @@ interface Props {
 const EditorGoalOverlay: Component<Props> = (props) => {
   const goal = () => sheetsStore[props.sheetId]?.goal;
   const stats = () => sheetStatsStore[props.sheetId];
+
+  const [now, setNow] = createSignal(Date.now());
+  createEffect(() => {
+    if (!goal()?.dueAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    onCleanup(() => clearInterval(id));
+  });
 
   const writingSeconds = () => stats()?.writingSeconds ?? 0;
 
@@ -48,11 +63,25 @@ const EditorGoalOverlay: Component<Props> = (props) => {
     const dueAt = goal()?.dueAt;
     if (!dueAt) return null;
     const due = new Date(dueAt);
-    const diff = Math.ceil((due.getTime() - Date.now()) / 86_400_000);
+    const diffMs = due.getTime() - now();
+    const absDiffMs = Math.abs(diffMs);
+    const past = diffMs < 0;
+    const sign = past ? '+' : '-';
+
+    if (absDiffMs < 86_400_000) {
+      const totalSec = Math.ceil(absDiffMs / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const sec = totalSec % 60;
+      const hms =
+        h > 0
+          ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+          : `${m}:${String(sec).padStart(2, '0')}`;
+      return past ? `+${hms}` : hms;
+    }
+    const days = Math.ceil(absDiffMs / 86_400_000);
     const mmdd = `${due.getMonth() + 1}/${due.getDate()}`;
-    if (diff > 0) return `D-${diff} (${mmdd})`;
-    if (diff === 0) return `D-Day (${mmdd})`;
-    return `D+${-diff} (${mmdd})`;
+    return `D${sign}${days} (${mmdd})`;
   });
 
   const handleResetTime = async () => {
@@ -76,10 +105,7 @@ const EditorGoalOverlay: Component<Props> = (props) => {
             <span class="goal-achieved-badge">✓</span>
           </Match>
           <Match when>
-            <span
-              class="goal-stat"
-              style={{ opacity: '1', 'font-weight': '600' }}
-            >
+            <span class="goal-stat goal-stat--highlight">
               {Math.round(progress() * 100)}%
             </span>
           </Match>
@@ -135,14 +161,14 @@ const EditorGoalOverlay: Component<Props> = (props) => {
       <div class="goal-actions">
         <Show when={goal()}>
           <button
-            class="goal-action-btn"
+            class="btn-sm"
             title={s('goal.edit_goal')}
             onClick={() => openGoalModal(props.sheetId)}
           >
             <TbOutlinePencil size={12} />
           </button>
           <button
-            class="goal-action-btn"
+            class="btn-sm"
             title={s('goal.reset_time')}
             onClick={handleResetTime}
           >
@@ -150,7 +176,7 @@ const EditorGoalOverlay: Component<Props> = (props) => {
           </button>
         </Show>
         <button
-          class="goal-action-btn"
+          class="btn-sm"
           title={s('goal.collapse')}
           onClick={() => setSettings('showGoalOverlay', false)}
         >

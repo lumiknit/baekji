@@ -10,34 +10,34 @@ import {
   TbOutlineDownload,
   TbOutlineChevronLeft,
 } from 'solid-icons/tb';
-import { s } from '../lib/i18n';
-import { remoteService, setRemoteService } from '../state/remoteService';
-import type { SyncFile } from '../lib/sync/interface';
-import { deserializeGzip } from '../lib/doc/backup_helper';
-import { parseBakV1 } from '../lib/doc/backup_v1';
-import { listProjects } from '../lib/doc/db_v3';
+import { s } from '../lib/i18n/index.ts';
+import { remoteService, setRemoteService } from '../state/remoteService.ts';
+import type { SyncFile } from '../lib/sync/interface.ts';
+import { deserializeGzip } from '../lib/doc/backup_helper.ts';
+import { parseBakV1 } from '../lib/doc/backup_v1.ts';
+import { listProjects } from '../lib/doc/db_v3.ts';
 import {
   loadToken as loadDropboxToken,
   clearToken as clearDropboxToken,
   beginOAuth as beginDropboxOAuth,
   ensureToken as ensureDropboxToken,
-} from '../lib/sync/dropbox_auth';
+} from '../lib/sync/dropbox_auth.ts';
 import {
   list as dropboxList,
   remove as dropboxRemove,
   download as dropboxDownload,
-} from '../lib/sync/dropbox';
+} from '../lib/sync/dropbox.ts';
 import {
   clearToken as clearGDriveToken,
   beginOAuth as beginGDriveOAuth,
   ensureToken as ensureGDriveToken,
   gdriveTokenSignal,
-} from '../lib/sync/gdrive_auth';
+} from '../lib/sync/gdrive_auth.ts';
 import {
   list as gdriveList,
   remove as gdriveRemove,
   download as gdriveDownload,
-} from '../lib/sync/gdrive';
+} from '../lib/sync/gdrive.ts';
 
 // ─── Per-project grouping helpers ────────────────────────────
 
@@ -239,19 +239,14 @@ const RemotePage: Component = () => {
   };
 
   return (
-    <div
-      class="page-container flex flex-column gap-3"
-      style={{ padding: '1rem' }}
-    >
+    <div class="page-container flex flex-column gap-3 remote-page">
       {/* Header */}
       <div class="flex items-center gap-2">
         <button class="btn-sm btn-ghost" onClick={() => navigate(-1)}>
           <TbOutlineChevronLeft />
           {s('common.go_back')}
         </button>
-        <h2 class="m-0" style={{ flex: 1 }}>
-          {s('remote.title')}
-        </h2>
+        <h2 class="m-0 flex-1">{s('remote.title')}</h2>
       </div>
 
       {/* Service + auth row */}
@@ -348,18 +343,12 @@ const RemotePage: Component = () => {
             </Show>
           }
         >
-          <div class="flex flex-column gap-4">
+          <div class="flex flex-column gap-1">
             <For each={groups()}>
               {(group) => (
                 <div class="flex flex-column gap-1">
                   {/* Project header */}
-                  <div
-                    class="flex items-baseline gap-2"
-                    style={{
-                      'padding-bottom': '2px',
-                      'border-bottom': '1px solid var(--c-border)',
-                    }}
-                  >
+                  <div class="flex items-baseline gap-2 remote-project-header">
                     <span class="font-bold">
                       {labelMap().get(group.projectId) ?? group.projectId}
                     </span>
@@ -368,10 +357,7 @@ const RemotePage: Component = () => {
                         {group.projectId}
                       </span>
                     </Show>
-                    <span
-                      class="hint text-sm"
-                      style={{ 'margin-left': 'auto' }}
-                    >
+                    <span class="hint text-sm ml-auto">
                       {s('remote.project_size', {
                         size: String(Math.round(group.totalSize / 1024)),
                       })}
@@ -380,36 +366,18 @@ const RemotePage: Component = () => {
                   {/* File rows */}
                   <For each={group.files}>
                     {(file) => (
-                      <div
-                        class="flex flex-wrap items-center gap-1"
-                        style={{ padding: '2px 4px' }}
-                      >
+                      <div class="flex flex-wrap items-center gap-1 remote-file-row">
                         <input
                           type="checkbox"
                           checked={selected().has(file.id)}
                           onChange={() => toggleSelect(file.id)}
-                          style={{ 'flex-shrink': '0' }}
+                          class="flex-shrink-0"
                         />
-                        <span
-                          class="text-sm"
-                          style={{
-                            flex: '1',
-                            'min-width': '8rem',
-                            overflow: 'hidden',
-                            'text-overflow': 'ellipsis',
-                            'white-space': 'nowrap',
-                          }}
-                        >
+                        <span class="text-sm remote-filename label-overflow">
                           {file.name}
                         </span>
-                        <div
-                          class="flex items-center gap-1"
-                          style={{ 'flex-shrink': '0', 'margin-left': 'auto' }}
-                        >
-                          <span
-                            class="hint text-sm"
-                            style={{ 'white-space': 'nowrap' }}
-                          >
+                        <div class="flex items-center gap-1 flex-shrink-0 ml-auto">
+                          <span class="hint text-sm whitespace-nowrap">
                             {file.modifiedAt.toLocaleString()}
                             {file.size !== undefined
                               ? ` · ${Math.round(file.size / 1024)} KB`

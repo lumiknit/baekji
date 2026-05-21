@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js';
 import { createSignal } from 'solid-js';
-import { closeModal } from '../../state/modal';
-import TagEditor from '../editor/TagEditor';
+import { closeModal } from '../../state/modal.ts';
+import TagEditor from '../editor/TagEditor.tsx';
 
 interface Props {
   title: string;

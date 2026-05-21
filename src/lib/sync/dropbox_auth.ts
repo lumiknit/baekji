@@ -11,14 +11,15 @@ import {
   refreshToken as doRefresh,
   getCurrentAccount,
   type DropboxConfig,
-} from './dropbox';
+} from './dropbox.ts';
 import {
   persistedTokenSchema,
   syncTokenSchema,
   dropboxPkceStateSchema,
   PENDING_PROVIDER_KEY,
-} from './interface';
-import type { SyncToken, PersistedToken } from './interface';
+} from './interface.ts';
+import type { SyncToken, PersistedToken } from './interface.ts';
+import { makeI18nError } from './interface.ts';
 
 const TOKEN_KEY = 'dbx_token';
 const PKCE_KEY = 'dbx_pkce';
@@ -129,13 +130,14 @@ export async function beginOAuth(): Promise<void> {
 export async function handleCallback(code: string): Promise<void> {
   const cfg = getDropboxConfig();
   const raw = sessionStorage.getItem(PKCE_KEY);
-  if (!raw) throw new Error('dropbox.error_pkce_missing');
+  if (!raw) throw makeI18nError('dropbox.error_pkce_missing');
   const pkceState = dropboxPkceStateSchema.safeParse(JSON.parse(raw));
-  if (!pkceState.success) throw new Error('dropbox.error_pkce_missing');
+  if (!pkceState.success) throw makeI18nError('dropbox.error_pkce_missing');
   sessionStorage.removeItem(PKCE_KEY);
 
   const token = await exchangeCode(cfg, code, pkceState.data);
-  if (!token.refreshToken) throw new Error('dropbox.error_no_refresh_token'); // i18n key resolved in App.tsx toast handler
+  if (!token.refreshToken)
+    throw makeI18nError('dropbox.error_no_refresh_token');
 
   _accessToken = token.accessToken;
   _accessTokenExpiresAt = token.expiresAt;

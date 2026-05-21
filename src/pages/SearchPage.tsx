@@ -2,11 +2,11 @@ import type { Component } from 'solid-js';
 import { createSignal, For, Show, onMount } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { TbOutlineSearch, TbOutlineFileText } from 'solid-icons/tb';
-import { liveSheets } from '../state/sheet_list';
-import { loadSheetContent } from '../lib/doc/db_v3';
-import { s } from '../lib/i18n';
+import { liveSheets } from '../state/sheet_list.ts';
+import { loadSheetContent } from '../lib/doc/db_v3.ts';
+import { s } from '../lib/i18n/index.ts';
 import toast from 'solid-toast';
-import { logError } from '../state/log';
+import { logError } from '../state/log.ts';
 
 type SearchResult = {
   id: string;
@@ -76,7 +76,7 @@ const SearchPage: Component = () => {
 
   return (
     <div class="page-body">
-      <div class="page-header">
+      <div class="page-header flex items-center gap-4">
         <h1>{s('common.search')}</h1>
       </div>
 
@@ -98,7 +98,7 @@ const SearchPage: Component = () => {
         </div>
       </div>
 
-      <div class="search-results-list">
+      <div class="search-results-list flex flex-column gap-3">
         <Show when={searching()}>
           <div class="empty-state">{s('common.searching')}</div>
         </Show>
@@ -110,10 +110,10 @@ const SearchPage: Component = () => {
         <For each={results()}>
           {(res) => (
             <div
-              class="search-result-item"
+              class="search-result-item flex flex-column gap-2"
               onClick={() => navigate(`/sheets/${res.id}`)}
             >
-              <div class="search-result-header">
+              <div class="flex items-center gap-2">
                 <span class="icon">
                   <TbOutlineFileText />
                 </span>

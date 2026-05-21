@@ -13,42 +13,42 @@ import {
   exportProjectAsBakV1,
   parseBakV1,
   type ImportStrategy,
-} from '../../lib/doc/backup_v1';
+} from '../../lib/doc/backup_v1.ts';
 import {
   serializeGzip,
   deserializeGzip,
   toBlob,
-} from '../../lib/doc/backup_helper';
+} from '../../lib/doc/backup_helper.ts';
 import {
   activeProjectId,
   activeProjectLabel,
   activeProjectMeta,
-} from '../../state/workspace_v3';
-import { deviceId } from '../../state/workspace';
-import { closeBackupModal, showConfirm } from '../../state/modal';
-import { setLoadTarget } from '../../state/backupLoad';
-import { s } from '../../lib/i18n';
-import { timestampSuffix } from '../../lib/format';
+} from '../../state/workspace_v3.ts';
+import { deviceId } from '../../state/workspace.ts';
+import { closeBackupModal, showConfirm } from '../../state/modal.ts';
+import { setLoadTarget } from '../../state/backupLoad.ts';
+import { s } from '../../lib/i18n/index.ts';
+import { timestampSuffix } from '../../lib/format.ts';
 import {
   loadToken as loadDropboxToken,
   beginOAuth as beginDropboxOAuth,
   ensureToken as ensureDropboxToken,
-} from '../../lib/sync/dropbox_auth';
+} from '../../lib/sync/dropbox_auth.ts';
 import {
   loadToken as loadGDriveToken,
   beginOAuth as beginGDriveOAuth,
   ensureToken as ensureGDriveToken,
-} from '../../lib/sync/gdrive_auth';
-import { upload as dropboxUpload } from '../../lib/sync/dropbox';
-import { upload as gdriveUpload } from '../../lib/sync/gdrive';
+} from '../../lib/sync/gdrive_auth.ts';
+import { upload as dropboxUpload } from '../../lib/sync/dropbox.ts';
+import { upload as gdriveUpload } from '../../lib/sync/gdrive.ts';
 import {
   saveDestinations,
   toggleSaveDestination,
   type SaveDestination,
-} from '../../state/backupSettings';
-import type { BakV1 } from '../../lib/doc/v1';
-import DropboxLoadSection from './DropboxLoadSection';
-import GDriveLoadSection from './GDriveLoadSection';
+} from '../../state/backupSettings.ts';
+import type { BakV1 } from '../../lib/doc/v1.ts';
+import DropboxLoadSection from './DropboxLoadSection.tsx';
+import GDriveLoadSection from './GDriveLoadSection.tsx';
 
 declare const __APP_VERSION__: string;
 
@@ -188,7 +188,7 @@ const BackupModal: Component = () => {
   };
 
   return (
-    <div class="flex flex-column gap-4" style={{ 'min-width': '340px' }}>
+    <div class="flex flex-column gap-1 min-w-340">
       <h3 class="m-0">{s('backup.title')}</h3>
       <Show when={activeProjectLabel()}>
         <p class="m-0 text-sm opacity-60">{activeProjectLabel()}</p>
@@ -217,11 +217,7 @@ const BackupModal: Component = () => {
           </For>
         </div>
         <For each={authWarnings()}>
-          {(msg) => (
-            <p class="hint m-0" style={{ color: 'var(--c-warn, orange)' }}>
-              {msg}
-            </p>
-          )}
+          {(msg) => <p class="hint m-0 text-warn">{msg}</p>}
         </For>
         <button
           class="btn-primary btn-sm"
@@ -276,12 +272,12 @@ const BackupModal: Component = () => {
         </Switch>
 
         <a
-          class="btn-ghost btn-sm"
+          class="btn-ghost btn-sm mt-2"
+          style={{ cursor: 'pointer' }}
           onClick={() => {
             closeBackupModal();
             navigate('/remote');
           }}
-          style={{ cursor: 'pointer', 'margin-top': 'var(--sp-2)' }}
         >
           <span class="icon">
             <TbOutlineExternalLink />
@@ -289,10 +285,7 @@ const BackupModal: Component = () => {
           {s('remote.details')}
         </a>
 
-        <div
-          class="flex flex-column gap-1"
-          style={{ 'margin-top': 'var(--sp-4)' }}
-        >
+        <div class="flex flex-column gap-1 mt-4">
           <label class="text-sm opacity-60">
             {s('backup.import_strategy')}
           </label>

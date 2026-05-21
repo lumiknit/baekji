@@ -1,5 +1,7 @@
 import { createSignal } from 'solid-js';
-import { logError } from '../../state/log';
+import { logError } from '../../state/log.ts';
+
+type FileData = { [k: string]: string | FileData };
 
 /**
  * ParsedDict holds an array of split strings for each key.
@@ -14,17 +16,17 @@ const [locale, setLocale] = createSignal<string>('en');
 /**
  * Recursively flattens nested dictionary objects and parses strings into segments.
  */
-function flattenAndParse(
-  obj: Record<string, unknown>,
-  prefix: string,
-  result: ParsedDict,
-) {
+function flattenAndParse(obj: FileData, prefix: string, result: ParsedDict) {
   for (const [key, value] of Object.entries(obj)) {
     const fullKey = prefix ? `${prefix}.${key}` : key;
     if (typeof value === 'string') {
       // Split by {{ or }}
       // "a {{b}} c" -> ["a ", "b", " c"]
-      result[fullKey] = value.split(/{{|}}/);
+      const splitted = value.split(/{{|}}/);
+      if (splitted.length % 2 === 0) {
+        splitted.push(''); // Push empty string.
+      }
+      result[fullKey] = splitted;
     } else if (typeof value === 'object' && value !== null) {
       flattenAndParse(value, fullKey, result);
     }
@@ -46,17 +48,15 @@ export function s(
   // Return joined parts if no parameters provided
   if (!params) return parts.join('');
 
-  let result = '';
-  for (let i = 0; i < parts.length; i++) {
-    if (i % 2 === 1) {
-      // Odd index: Placeholder
-      const pKey = parts[i].trim();
-      const val = params[pKey];
-      result += val !== undefined ? String(val) : `{{${parts[i]}}}`;
-    } else {
-      // Even index: Literal string
-      result += parts[i];
-    }
+  let result = parts[0];
+  for (let i = 1; i < parts.length; i += 2) {
+    // Odd index: placeholder
+    const pKey = parts[i].trim();
+    const val = params[pKey];
+    result += val !== undefined ? String(val) : `{{${parts[i]}}}`;
+
+    // Even index, just append
+    result += parts[i + 1];
   }
   return result;
 }
@@ -70,7 +70,7 @@ export async function initI18n() {
 
   setLocale(targetLocale);
 
-  const locales: Record<string, () => Promise<{ default: unknown }>> = {
+  const locales: Record<string, () => Promise<{ default: FileData }>> = {
     ko: () => import('./ko.json'),
     en: () => import('./en.json'),
   };
@@ -78,18 +78,14 @@ export async function initI18n() {
   try {
     const data = await (locales[targetLocale] ?? locales.en)();
     const newDict: ParsedDict = {};
-    flattenAndParse(data.default as Record<string, unknown>, '', newDict);
+    flattenAndParse(data.default, '', newDict);
     setDict(newDict);
     document.documentElement.lang = targetLocale;
   } catch (err) {
     logError('i18n:init', err);
     const fallback = await import('./en.json');
     const fallbackDict: ParsedDict = {};
-    flattenAndParse(
-      fallback.default as Record<string, unknown>,
-      '',
-      fallbackDict,
-    );
+    flattenAndParse(fallback.default, '', fallbackDict);
     setDict(fallbackDict);
     document.documentElement.lang = 'en';
   }

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { dedent } from './strings';
+import { dedent } from './strings.ts';
 
 describe('dedent', () => {
   it('removes common leading indentation', () => {

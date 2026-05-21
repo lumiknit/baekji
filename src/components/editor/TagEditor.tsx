@@ -5,10 +5,10 @@ import {
   type Component,
   type Accessor,
 } from 'solid-js';
-import { tagToHsl } from '../../lib/tag/color';
-import { canonicalTag, isValidTag } from '../../lib/tag/query';
-import { s } from '../../lib/i18n';
-import { allTags } from '../../state/sheet_list';
+import { tagToHsl } from '../../lib/tag/color.ts';
+import { canonicalTag, isValidTag } from '../../lib/tag/query.ts';
+import { s } from '../../lib/i18n/index.ts';
+import { allTags } from '../../state/sheet_list.ts';
 
 interface TagEditorProps {
   tags: Accessor<string[]>;
@@ -17,7 +17,7 @@ interface TagEditorProps {
   onUpdate?: (tags: string[]) => void;
 }
 
-const TagChip: Component<{
+export const TagChip: Component<{
   tag: string;
   removable?: boolean;
   onRemove?: () => void;
