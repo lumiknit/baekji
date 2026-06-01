@@ -252,8 +252,8 @@ const SettingsPage: Component = () => {
               presets={[
                 { value: '', label: s('settings.font_system') },
                 { value: 'BuiltinSerif', label: 'Noto Serif' },
-                { value: 'RIDIBatang', label: 'RIDI Batang' },
-                { value: 'GowunDodum', label: 'Gowun Dodum' },
+                { value: 'BuiltinRIDIBatang', label: 'RIDI Batang' },
+                { value: 'BuiltinKJC', label: 'KJC Myeongjo' },
               ]}
             />
             <FontPicker
