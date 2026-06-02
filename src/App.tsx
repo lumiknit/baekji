@@ -10,6 +10,7 @@ import SheetPage from './pages/SheetPage.tsx';
 import ProjectPage from './pages/ProjectPage.tsx';
 import AnalysisPage from './pages/AnalysisPage.tsx';
 import ExportPage from './pages/ExportPage.tsx';
+import RevisePage from './pages/RevisePage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import SearchPage from './pages/SearchPage.tsx';
 import LoadingBackupPage from './pages/LoadingBackupPage.tsx';
@@ -65,6 +66,7 @@ const App: Component = () => {
         <Route path="/project/:pjId" component={ProjectPage} />
         <Route path="/project/:pjId/analysis" component={AnalysisPage} />
         <Route path="/project/:pjId/export" component={ExportPage} />
+        <Route path="/project/:pjId/revise" component={RevisePage} />
         <Route path="/search" component={SearchPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/about" component={AboutPage} />

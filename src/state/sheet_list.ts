@@ -391,6 +391,40 @@ export async function emptyTrash(): Promise<void> {
   await Promise.all(trashSheets().map((s) => deleteSheetPermanently(s.id)));
 }
 
+// ─── Query helper ─────────────────────────────────────────────────
+
+export type SheetData = {
+  id: string;
+  label: string;
+  tags: string[];
+  text: string;
+};
+
+/** Load sheet contents matching a query or explicit id list. */
+export async function loadSheetsByQuery(opts: {
+  sheetIds?: string[];
+  query?: string;
+}): Promise<SheetData[]> {
+  const { sheetIds = [], query = '' } = opts;
+  let sheets = liveSheets();
+  if (sheetIds.length > 0) {
+    sheets = sheets.filter((sh) => sheetIds.includes(sh.id));
+  } else if (query.trim()) {
+    sheets = sheets.filter((sh) => matchQuery(query.trim(), new Set(sh.tags)));
+  }
+  const result: SheetData[] = [];
+  for (const sheet of sheets) {
+    const text = await loadSheetContent(sheet.id);
+    result.push({
+      id: sheet.id,
+      label: sheet.tags[0] ?? sheet.id.slice(0, 8),
+      tags: sheet.tags,
+      text,
+    });
+  }
+  return result;
+}
+
 export async function createSheetWithContent(
   tags: string[],
   content: string,

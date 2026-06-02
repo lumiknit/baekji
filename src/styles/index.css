@@ -9,6 +9,7 @@
 @import './helper.css';
 @import './page_analysis.css';
 @import './cm-search.css';
+@import './page_revise.css';
 
 /* solid-toast z-index override */
 .sldt-active {

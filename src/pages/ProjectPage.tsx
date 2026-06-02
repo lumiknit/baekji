@@ -7,6 +7,7 @@ import {
   TbOutlineFileExport,
   TbOutlineDatabaseExport,
   TbOutlineRefresh,
+  TbOutlineEdit,
 } from 'solid-icons/tb';
 import {
   activeProjectId,
@@ -196,6 +197,19 @@ const ProjectPage: Component = () => {
               <TbOutlineFileExport />
             </span>
             {s('common.preview_export')}
+          </button>
+          <button
+            class="btn-border"
+            onClick={() =>
+              navigate(
+                `/project/${params.pjId}/revise${query() ? `?q=${encodeURIComponent(query())}` : ''}`,
+              )
+            }
+          >
+            <span class="icon">
+              <TbOutlineEdit />
+            </span>
+            교정
           </button>
           <button class="btn-border" onClick={openBackupModal}>
             <span class="icon">
