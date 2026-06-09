@@ -1,0 +1,335 @@
+/* ─── Editor Toolbar ──────────────────────────────── */
+
+.editor-toolbar {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: var(--z-toolbar);
+  padding: var(--sp-2) var(--sp-4);
+  display: flex;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 44px;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: var(--sp-4);
+    right: var(--sp-4);
+    height: 1px;
+    background: var(--border);
+  }
+
+  .main-layout.sidebar-closed & {
+    padding-left: 52px;
+  }
+
+  & .separator {
+    width: 1px;
+    height: 16px;
+    background: var(--border);
+    margin: 0 1px;
+  }
+
+  & button.bold {
+    background: var(--border);
+  }
+}
+
+/* ─── Editor Tool Overlay ─────────────────────────── */
+
+.editor-tool-overlay-anchor {
+  position: sticky;
+  top: var(--sp-2);
+  height: 0;
+  z-index: var(--z-toolbar);
+}
+
+.editor-tool-overlay {
+  position: absolute;
+  right: var(--sp-2);
+  top: 0;
+  padding: var(--sp-1) var(--sp-2);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  border-radius: var(--r);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.editor-tool-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-mono);
+  padding: 2px var(--sp-1);
+}
+
+.editor-tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px var(--sp-2);
+  border-radius: var(--r);
+  cursor: pointer;
+  font-size: var(--fs-xs);
+  line-height: 1;
+  min-width: 1.5rem;
+}
+
+.editor-tool-btn:hover {
+  background: var(--border);
+}
+
+.editor-tool-charcount {
+  font-size: var(--fs-xs);
+}
+
+.editor-tool-btn--active {
+  background: var(--border);
+}
+
+/* ─── Goal Overlay ───────────────────────────────── */
+
+.goal-overlay {
+  position: absolute;
+  right: var(--sp-2);
+  top: calc(100% + 2.75rem);
+  width: 8rem;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: var(--fs-xs);
+}
+
+.goal-set-btn {
+  width: 100%;
+  padding: var(--sp-1) 0;
+  font-size: var(--fs-xs);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.goal-set-btn:hover {
+  opacity: 1;
+}
+
+.goal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: bold;
+  margin-bottom: var(--sp-1);
+}
+
+.goal-achieved-badge {
+  color: var(--accent, green);
+  font-size: var(--fs-xs);
+}
+
+.goal-progress {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: var(--border);
+
+  &::-webkit-progress-bar {
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  &::-webkit-progress-value {
+    background: var(--text);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  &::-moz-progress-bar {
+    background: var(--text);
+    border-radius: 3px;
+  }
+}
+
+.goal-stat {
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.goal-stat--due {
+  font-weight: 600;
+  opacity: 1;
+}
+
+/* Inline percentage highlight in goal header */
+.goal-stat--highlight {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.goal-stat--achieved {
+  color: var(--accent, green);
+  opacity: 1;
+}
+
+.goal-actions {
+  display: flex;
+  gap: var(--sp-1);
+  margin-top: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+/* Scoped opacity for action buttons inside the goal overlay */
+.goal-overlay .btn-sm {
+  opacity: 0.6;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+/* ─── Modal form row ─────────────────────────────── */
+
+.modal-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.modal-due-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.modal-due-mode-row > .modal-due-mode-label {
+  flex: none;
+}
+
+.modal-due-mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  font-size: var(--fs-sm);
+}
+
+.modal-due-mode-option {
+  display: flex;
+  gap: var(--sp-1);
+  align-items: center;
+  cursor: pointer;
+}
+
+.hint--preview {
+  font-size: var(--fs-xs);
+  opacity: 0.6;
+}
+
+/* ─── Section Markers ─────────────────────────────── */
+
+.editor-section-marker {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0 1em;
+  cursor: text;
+  position: relative;
+}
+
+.editor-section-marker--start {
+  flex-direction: column;
+  padding-top: 45svh;
+  align-items: stretch;
+  border-bottom: 1px solid var(--ultra-dim);
+  margin-bottom: 1rem;
+}
+
+.editor-section-marker--start::before {
+  bottom: 0;
+}
+
+.editor-section-marker--end {
+  padding-bottom: 45svh;
+  align-items: flex-end;
+  border-top: 1px solid var(--ultra-dim);
+  margin-top: 1rem;
+}
+
+.editor-section-marker--end::after {
+  top: 0;
+}
+
+.editor-section-label {
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  color: var(--ultra-dim);
+  white-space: nowrap;
+  line-height: 1;
+  background: var(--bg);
+  padding: 0 var(--sp-2);
+  position: relative;
+  z-index: 1;
+}
+
+.editor-sod-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  width: 100%;
+  padding-top: var(--sp-2);
+}
+
+.editor-section-marker .separator-line {
+  margin: 0;
+  border-color: var(--ultra-dim);
+  align-self: center;
+}
+
+/* ─── CodeMirror 6 Editor ────────────────────────── */
+
+.cm-editor-wrap {
+  padding: 0 1rem;
+  max-width: var(--container-max-w);
+  margin: 0 auto;
+}
+
+/* CM6 mounts its own .cm-editor root inside the wrapper */
+.cm-editor-wrap .cm-editor {
+  outline: none;
+}
+
+.cm-editor-wrap .cm-line {
+  text-align: var(--typo-align);
+  letter-spacing: var(--typo-ls);
+}
+
+/* Placeholder via CM6 extension */
+.cm-editor-wrap .cm-placeholder {
+  opacity: 0.35;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.cm-editor-wrap .cm-content {
+  color: var(--cm-fg);
+}
+
+/* focus mode: restore active line to full color */
+.cm-editor-wrap .cm-activeLine {
+  background: none !important;
+  color: var(--text);
+  --cm-hl: var(--hl);
+  --cm-text-bold: var(--text-bold);
+  --cm-md-mark: var(--md-mark);
+}

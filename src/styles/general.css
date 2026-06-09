@@ -1,0 +1,132 @@
+/* ─── Design Tokens ──────────────────────────────── */
+:root {
+  --accent: var(--hl);
+
+  /* Typography */
+  --font-serif: serif;
+  --font-sans: sans-serif;
+  --font-mono:
+    'Jetbrains Mono', 'Cascadia Mono', 'Cascadia Code', Consolas, Menlo,
+    'Fira Code', 'Fira Mono', monospace;
+
+  /* Layout (overridden by JS from user settings) */
+  --container-max-w: 720px;
+  --typo-ls: 0em;
+  --typo-align: justify;
+
+  /* Typo settings (overridden by JS from user settings) */
+  --typo-ff: sans-serif;
+  --typo-fs: 16px;
+  --typo-preview-fs: 13px;
+  --typo-lh: 1.5;
+  --typo-indent: 0;
+  --typo-fw: 400;
+  --typo-fw-bold: 700;
+  --fs-2xs: 0.625rem; /* 10px */
+  --fs-xs: 10px;
+  --fs-sm: 12px;
+  --fs-base: 14px;
+  /* body uses 16px directly */
+  --fs-lg: 1rem; /* 16px, matches body */
+  --fs-xl: 1.25rem; /* 20px */
+  --fs-2xl: 1.5rem; /* 24px */
+
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* Shape */
+  --r: 6px;
+
+  /* Z-index (all values in 0–99) */
+  --z-sticky: 5;
+  --z-toolbar: 10;
+  --z-sidebar: 20;
+  --z-dropdown: 30;
+  --z-sidebar-mobile: 40;
+  --z-toggle: 50;
+  --z-modal: 70;
+  --z-toast: 90;
+
+  /* Component sizes */
+  --btn-min: 28px;
+  --sidebar-nav-fs: 12px;
+  --color-l: 35%;
+}
+
+/* ─── Base Reset ──────────────────────────────────── */
+* {
+  box-sizing: border-box;
+  tab-size: 4;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+button,
+input,
+select,
+textarea {
+  color: var(--text);
+}
+
+span.icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+span.icon > svg {
+  font-size: 1.25em;
+  width: 1em;
+  height: 1em;
+}
+
+b,
+strong,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-bold);
+  font-weight: bold;
+}
+
+a {
+  color: inherit;
+}
+
+a:hover {
+  color: var(--text-bold);
+}
+
+/* ─── Page-level ──────────────────────────────────── */
+.page-body {
+  padding: var(--sp-4);
+  max-width: var(--container-max-w);
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .page-body {
+    padding-top: 64px;
+  }
+}
+
+.separator-line {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--sp-3) 0;
+}

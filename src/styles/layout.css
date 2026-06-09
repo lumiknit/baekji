@@ -1,0 +1,129 @@
+/* ─── Main Layout ─────────────────────────────────── */
+
+.main-layout {
+  display: flex;
+  min-height: 100svh;
+  position: relative;
+}
+
+.content {
+  flex: 1;
+  background-color: var(--bg);
+}
+
+/* ─── Sidebar ─────────────────────────────────────── */
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  background-color: var(--bg);
+  height: 100dvh;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sidebar);
+  display: flex;
+  flex-direction: column;
+  font-size: 0.875em;
+}
+
+/* Disable the global a:hover underline inside the sidebar */
+.sidebar a:hover {
+  color: inherit;
+}
+
+.sidebar-nav {
+  padding-left: 44px; /* leave room for the floating toggle */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: var(--sp-3);
+    right: var(--sp-3);
+    height: 1px;
+    background: var(--border);
+  }
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ─── Resizer ─────────────────────────────────────── */
+
+.resizer {
+  width: 4px;
+  cursor: col-resize;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  background: transparent;
+  margin-left: -2px;
+  z-index: 21;
+  touch-action: none;
+}
+
+/* Expand hit area without changing visual size */
+.resizer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -6px;
+  right: -6px;
+}
+
+.resizer:hover {
+  background: var(--border);
+}
+
+/* ─── Sidebar Toggle Button ───────────────────────── */
+
+.sidebar-toggle {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 44px;
+  z-index: var(--z-toggle);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: transparent;
+  }
+
+  & > .btn-pad {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--r);
+    background: var(--bg);
+  }
+
+  &:hover > .btn-pad,
+  &.active > .btn-pad {
+    background: var(--border);
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100vw !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: var(--z-sidebar-mobile);
+  }
+}

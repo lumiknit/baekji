@@ -1,0 +1,178 @@
+import type { Component } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  Match,
+  Show,
+  Switch,
+  onMount,
+  onCleanup,
+} from 'solid-js';
+import {
+  isSidebarOpen,
+  setSidebarOpen,
+  sidebarWidth,
+  setSidebarWidth,
+  sidebarView,
+  setSidebarView,
+} from '../state/workspace.ts';
+import { activeProjectId } from '../state/workspace_v3.ts';
+import { createMediaQuery } from '@solid-primitives/media';
+import { A, useLocation, type RouteSectionProps } from '@solidjs/router';
+import SheetList from './sheetlist/SheetList.tsx';
+import ProjectList from './ProjectList.tsx';
+import ModalContainer from './modal/ModalContainer.tsx';
+import AppErrorBanner from './AppErrorBanner.tsx';
+import { s } from '../lib/i18n/index.ts';
+import {
+  TbFillLayoutSidebarLeftCollapse,
+  TbFillSettings,
+  TbOutlineLayoutSidebarLeftExpand,
+  TbOutlineCarouselVertical,
+} from 'solid-icons/tb';
+import { Dynamic } from 'solid-js/web';
+import BackupIcon from './BackupIcon.tsx';
+import { openBackupModal } from '../state/modal.ts';
+
+const MainLayout: Component<RouteSectionProps> = (props) => {
+  const isMobile = createMediaQuery('(max-width: 768px)');
+  const isNarrow = createMemo(() => isMobile() || sidebarWidth() < 360);
+  const location = useLocation();
+
+  onMount(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+        e.preventDefault();
+        setSidebarOpen(!isSidebarOpen());
+      }
+    };
+    globalThis.addEventListener('keydown', handleKeyDown);
+    onCleanup(() => globalThis.removeEventListener('keydown', handleKeyDown));
+  });
+
+  createEffect(() => {
+    const path = location.pathname;
+    if (isMobile() && !path.startsWith('/sheets/')) setSidebarOpen(false);
+  });
+
+  const handleResizerPointerDown = (e: PointerEvent) => {
+    e.preventDefault();
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    const startX = e.clientX;
+    const startWidth = sidebarWidth();
+    const onMove = (me: PointerEvent) => {
+      const newWidth = startWidth + (me.clientX - startX);
+      if (newWidth > 150 && newWidth < 700) setSidebarWidth(newWidth);
+    };
+    const onUp = () => {
+      el.removeEventListener('pointermove', onMove);
+      el.removeEventListener('pointerup', onUp);
+    };
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+  };
+
+  return (
+    <div
+      class={`main-layout ${isSidebarOpen() ? 'sidebar-open' : 'sidebar-closed'}`}
+    >
+      <AppErrorBanner />
+      <div
+        class={`sidebar${isNarrow() ? ' narrow' : ''}`}
+        style={{
+          width: isMobile() ? '100%' : `${sidebarWidth()}px`,
+          display: isSidebarOpen() ? 'flex' : 'none',
+        }}
+      >
+        <div class="sidebar-nav">
+          <A href="/settings" class="sb-nav-btn" title={s('common.settings')}>
+            <div class="btn-pad">
+              <span class="icon">
+                <TbFillSettings />
+              </span>
+              <Show when={!isNarrow()}>{s('common.settings')}</Show>
+            </div>
+          </A>
+          <button
+            class={`sb-nav-btn${sidebarView() === 'projects' ? ' sb-nav-btn--active' : ''}`}
+            onClick={() =>
+              setSidebarView(sidebarView() === 'tree' ? 'projects' : 'tree')
+            }
+            title={s('sidebar.project_list')}
+          >
+            <div class="btn-pad">
+              <span class="icon">
+                <TbOutlineCarouselVertical />
+              </span>
+              <Show when={!isNarrow()}>{s('sidebar.project_list')}</Show>
+            </div>
+          </button>
+          <button
+            class="sb-nav-btn"
+            onClick={openBackupModal}
+            title={s('backup.title')}
+          >
+            <div class="btn-pad">
+              <span class="icon">
+                <BackupIcon />
+              </span>
+              <Show when={!isNarrow()}>{s('backup.title')}</Show>
+            </div>
+          </button>
+        </div>
+        <div class="sidebar-content">
+          <Switch>
+            <Match when={sidebarView() === 'projects'}>
+              <ProjectList />
+            </Match>
+
+            <Match when={sidebarView() === 'tree' && !activeProjectId()}>
+              <div class="tree-no-project">
+                <span class="tree-no-project-label">
+                  {s('sidebar.no_project')}
+                </span>
+                <button
+                  class="btn-border btn-sm"
+                  onClick={() => setSidebarView('projects')}
+                >
+                  {s('tree.view_list')}
+                </button>
+              </div>
+            </Match>
+            <Match when={sidebarView() === 'tree'}>
+              <SheetList />
+            </Match>
+          </Switch>
+        </div>
+      </div>
+
+      {!isMobile() && isSidebarOpen() && (
+        <div class="resizer" onPointerDown={handleResizerPointerDown} />
+      )}
+
+      <div class="content">{props.children}</div>
+
+      <button
+        class={`sidebar-toggle ${isSidebarOpen() ? 'active' : ''}`}
+        onClick={() => setSidebarOpen(!isSidebarOpen())}
+      >
+        <div class="btn-pad">
+          <span class="icon">
+            <Dynamic
+              component={
+                isSidebarOpen()
+                  ? TbFillLayoutSidebarLeftCollapse
+                  : TbOutlineLayoutSidebarLeftExpand
+              }
+            />
+          </span>
+        </div>
+      </button>
+
+      <ModalContainer />
+    </div>
+  );
+};
+
+export default MainLayout;

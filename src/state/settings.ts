@@ -1,0 +1,139 @@
+import { createStore } from 'solid-js/store';
+import { makePersisted } from '@solid-primitives/storage';
+import localforage from 'localforage';
+
+export interface FontSettings {
+  sans: string; // '' = system, 'BuiltinNotoSans' = builtin, other = custom
+  serif: string;
+  mono: string;
+}
+
+export type ThemeVariant = 'default' | 'warm' | 'cool';
+
+export interface Settings {
+  fontFamily: string;
+  fonts: FontSettings;
+  themeLight: ThemeVariant;
+  themeDark: ThemeVariant;
+  fontSize: number;
+  fontWeight: number;
+  fontBoldWeight: number;
+  indentFirstLine: number; // In em
+  lineHeight: number;
+  paragraphSpacing: number; // In em
+  typewriterMode: boolean;
+  focusMode: boolean;
+  previewFontSize: number;
+  containerMaxWidth: number; // px
+  letterSpacing: number; // em
+  textAlign: 'left' | 'justify';
+  spellcheck: boolean;
+  showGoalOverlay: boolean;
+  goalDueMode: 'absolute' | 'relative';
+  goalDueDurationMinutes: number;
+  goalDueDurationUnit: 'minutes' | 'hours';
+}
+
+const defaultSettings: Settings = {
+  fontFamily: 'serif',
+  fonts: { sans: '', serif: '', mono: '' },
+  themeLight: 'default',
+  themeDark: 'default',
+  fontSize: 16,
+  fontWeight: 400,
+  fontBoldWeight: 900,
+  indentFirstLine: 1,
+  lineHeight: 1.5,
+  paragraphSpacing: 0.5,
+  typewriterMode: false,
+  focusMode: false,
+  previewFontSize: 14,
+  containerMaxWidth: 720,
+  letterSpacing: 0,
+  textAlign: 'justify',
+  spellcheck: true,
+  showGoalOverlay: true,
+  goalDueMode: 'relative',
+  goalDueDurationMinutes: 120,
+  goalDueDurationUnit: 'minutes',
+};
+
+const [settings, setSettings] = makePersisted(
+  createStore<Settings>(defaultSettings),
+  {
+    name: 'baekji-settings',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    storage: localforage as any,
+  },
+);
+
+function buildFontVar(name: string, fallback: string): string {
+  return name ? `'${name}', ${fallback}` : fallback;
+}
+
+export function updateRootStyle() {
+  const el = document.documentElement;
+
+  // Apply theme classes
+  [...el.classList]
+    .filter((c) => c.startsWith('theme-'))
+    .forEach((c) => el.classList.remove(c));
+  el.classList.add(`theme-light-${settings.themeLight ?? 'default'}`);
+  el.classList.add(`theme-dark-${settings.themeDark ?? 'default'}`);
+  el.classList.toggle('focus-mode', settings.focusMode ?? false);
+
+  const root = el.style;
+
+  const fontSans = buildFontVar(settings.fonts?.sans ?? '', 'sans-serif');
+  const fontSerif = buildFontVar(settings.fonts?.serif ?? '', 'serif');
+  root.setProperty('--font-sans', fontSans);
+  root.setProperty('--font-serif', fontSerif);
+  root.setProperty(
+    '--font-mono',
+    buildFontVar(settings.fonts?.mono ?? '', 'monospace'),
+  );
+
+  root.setProperty(
+    '--typo-ff',
+    settings.fontFamily === 'serif' ? fontSerif : fontSans,
+  );
+  root.setProperty('--typo-fs', `${settings.fontSize}px`);
+  root.setProperty('--typo-preview-fs', `${settings.previewFontSize}px`);
+  root.setProperty('--typo-lh', String(settings.lineHeight));
+  root.setProperty('--typo-indent', `${settings.indentFirstLine}em`);
+  root.setProperty(
+    '--typo-paragraph-spacing',
+    `${settings.paragraphSpacing}em`,
+  );
+  root.setProperty('--typo-fw', String(settings.fontWeight));
+  root.setProperty('--typo-fw-bold', String(settings.fontBoldWeight));
+  root.setProperty(
+    '--container-max-w',
+    `${settings.containerMaxWidth ?? 720}px`,
+  );
+  root.setProperty('--typo-ls', `${settings.letterSpacing ?? 0}em`);
+  root.setProperty('--typo-align', settings.textAlign ?? 'justify');
+
+  const LIGHT_BG: Record<string, string> = {
+    default: '#ffffff',
+    warm: '#fdf6e3',
+    cool: '#eef4fb',
+  };
+  const DARK_BG: Record<string, string> = {
+    default: '#000000',
+    warm: '#2a1e0a',
+    cool: '#1e2a3a',
+  };
+  const lightMeta = document.querySelector<HTMLMetaElement>(
+    'meta[name="theme-color"][media*="light"]',
+  );
+  const darkMeta = document.querySelector<HTMLMetaElement>(
+    'meta[name="theme-color"][media*="dark"]',
+  );
+  if (lightMeta)
+    lightMeta.content = LIGHT_BG[settings.themeLight ?? 'default'] ?? '#ffffff';
+  if (darkMeta)
+    darkMeta.content = DARK_BG[settings.themeDark ?? 'default'] ?? '#000000';
+}
+
+export { settings, setSettings };
